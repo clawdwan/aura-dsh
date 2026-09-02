@@ -1,0 +1,27 @@
+# dsh-aura bundle patch — 本包作为 profile bundle 时的插入层（ONE insert）。
+#
+# 结构与 ~/.dsh/profiles/web/cordis.patch.yml 一致：顶层是 loader patch 条目数组，
+# insert 目标条目 = { id, name, config? }。name 必须填【包名】而非相对路径，
+# 因为 loader 按 name import host 半，且 dsh-client-modules 用 require.resolve("<name>/package.json")
+# 定位 client 半的 package.json（见下「加载机制」）。
+#
+# 加载机制（依据 dsh 源码）：
+# - host 半：cordis-plugin-loader 的 loader 条目 import 包主入口（exports["."] = host/tool.js），
+#   即标准 cordis 插件 { apply, inject, name }，apply 里 ctx.tools.register 注册 aura_render 工具。
+# - client 半：无需独立条目。@deepseek-ai/dsh-client-modules 扫描所有 live loader 条目，
+#   凡 package.json 声明 dsh.client.platform === "web" 且 exports["./client"] 存在，
+#   自动把构建产物挂到 /plugins/<name>/client.js 并注入 window.__DSH_BOOT__。
+#   （对照 @deepseek-ai/dsh-client-ui-skill：dsh-web-app patch 只有一条
+#    `id: ui-skill / name: '@deepseek-ai/dsh-client-ui-skill'`，client 半由扫描自动发现。）
+#
+# 安装方式（二选一，均要求包能被 profile 解析）：
+# 1) 推荐 bundle 路由：`dsh plugin --profile web add <本包路径或 registry 名>`
+#    —— dsh plugin 的 reconcilePlugins 检测到本文件声明的 dsh.bundle.patch 后，
+#    把 dsh-aura 加入 profile package.json 的 dsh.profile.bundles，本文件成为 bundle 层
+#    自动应用，无需手改任何配置。
+# 2) 手动 insert 路由：把下面的 insert 复制进 ~/.dsh/profiles/web/cordis.patch.yml
+#    （或 ~/.dsh/cordis.patch.yml）后重启。前提仍是包已安装且可从 profile 目录解析。
+
+- insert:
+    - id: aura-render
+      name: dsh-aura

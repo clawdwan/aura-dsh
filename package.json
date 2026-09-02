@@ -1,0 +1,74 @@
+{
+  "name": "dsh-aura",
+  "description": "Aura 通用展示层插件（候选2 静态 cordis 插件包）：host 半 aura_render 工具 + browser 半 tool.call.toolview 渲染器（5 组件）",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "main": "host/tool.js",
+  "exports": {
+    ".": "./host/tool.js",
+    "./client": "./client/dist/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "host",
+    "client/dist",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-tool",
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ],
+      "immediately": true
+    }
+  },
+  "scripts": {
+    "bundle": "tsdown && node scripts/wrap-client.mjs",
+    "watch": "tsdown --watch",
+    "check": "node --check host/tool.js && node --check host/json-repair.js && node --check host/registry.js",
+    "test:registry": "node -e \"import('./host/registry.js').then(m => { console.log('registry types:', m.REGISTRY.map(r => r.type).join(', ')); console.log('downgrade chain OK:', m.REGISTRY.every(r => r.downgrade_to === null || m.REGISTRY.some(x => x.type === r.downgrade_to))) })\""
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-api-remotes": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-connection": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-tool": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-invariants": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.6",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-api-remotes": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-connection": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-client-ui-tool": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-invariants": "^0.1.0-rc.6",
+    "@types/react": "~18.3.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsdown": "^0.22.0",
+    "typescript": "^5.4.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@tsdown/css": "^0.22.14",
+    "antd": "^6.6.2",
+    "echarts": "^6.1.0"
+  }
+}
