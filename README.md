@@ -1,84 +1,92 @@
 # dsh-aura
 
-Aura 通用展示层插件 —— 静态 cordis 插件包（dual-face：一个包同时承载 host 半与 browser 半）。
+**让 AI 的对话不再只有文字——用图表、表格、卡片把信息"画"出来。**
 
-- **host 半**：`aura_render` 工具（`host/tool.js`，标准 cordis 插件 `{ apply, inject, name }`），把结构化数据按 **8 类组件**渲染进对话流，schema 不匹配时降级为文字。
-- **browser 半**：`tool.call.toolview` keyed 渲染器（`client/src/`），读取工具结果 `{ text, components[] }` 分派 React 组件。
+`dsh-aura` 是一个 [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) 插件：当 agent（AI 助手）需要展示结构化信息时，它会把内容渲染成漂亮的视觉组件，直接嵌入对话流。
 
-## 组件（8 种，antd v6 + ECharts 实现）
+```
+💬 用户: 用图表展示上证指数近7日走势
+🤖 agent: [调用 aura_render]
+📊 对话流中出现：折线趋势图 + 指标卡片（antd/ECharts 渲染）
+```
 
-| 组件 | 实现 | data 结构 |
+## 为什么用
+
+- **Agent 结果更直观**：数字对比、趋势走势、流程步骤、层级结构——从"文字描述"变成"一眼看懂"的组件
+- **Agent 自动触发**：不需要用户指定组件，agent 依据内容自动选择最合适的呈现方式
+- **随对话常驻**：组件渲染进对话流，刷新页面不消失，历史可回看
+- **多入口兼容**：飞书/DSH GUI 同一会话——飞书看文字摘要，GUI 看完整视觉组件
+
+## 支持的组件（8 种）
+
+| 场景 | 组件 | 视觉 |
 |---|---|---|
-| metric_card | antd Statistic + Card | `{ metrics: [{label, value, change?, size?}] }` |
-| comparison_table | antd Table（降配） | `{ headers: string[], rows: string[][] }` |
-| step_bar | antd Steps | `{ steps: [{label, description?, badge?}] }` |
-| insight_cards | antd Card + Alert + Tag | `{ cards: [{title, rating, body, level?}] }` |
-| article_list | antd List | `{ articles: [{title, summary?, url?, source?}] }` |
-| trend_chart | ECharts（line/bar/area） | `{ chart_type, series: [{name, data:[{x,y}]}], unit? }` |
-| data_tree | ECharts tree（orient LR） | `{ root: {label, value?, children} }` |
-| timeline | antd Timeline（垂直/水平） | `{ events: [{time, title, description?, color?}], orientation? }` |
+| 关键指标（涨跌/数值） | metric_card | 指标卡片 |
+| 多维度对比 | comparison_table | 数据表格 |
+| 流程/步骤/阶段 | step_bar | 步骤条 |
+| 多维判断/风险 | insight_cards | 洞察卡片 |
+| 信息/新闻列表 | article_list | 条目列表 |
+| 走势/趋势/时序 | trend_chart | 折线/柱状/面积图 |
+| 层级/思维导图 | data_tree | 树状图 |
+| 事件时间线 | timeline | 时间线（垂直/水平） |
 
-- 风格：**antd/ECharts 默认**（`--dsw-*` token 映射为后置项）
-- 体积：8 组件 bundle gzip **~708KB**（antd 依赖树 + echarts 已打包；本地加载无感，网络端需 React.lazy 分割）
+## 快速开始
 
-## 目录结构
-
-```
-aura-dsh/
-├── host/                 # host 半（包主入口 = host/tool.js）
-│   ├── tool.js           # aura_render 工具定义（cordis 插件）
-│   ├── json-repair.js    # JSON 修复纯函数
-│   └── registry.js       # 8 组件注册表 + 降级链
-├── client/
-│   ├── src/              # browser 半源码（组件 + AuraToolRow + styles）
-│   └── dist/client.js    # 构建产物（exports["./client"] 指向它）
-├── cordis.patch.yml      # profile bundle 插入层
-├── package.json
-└── README.md
-```
-
-## 安装
-
-包必须能被 profile 目录解析（`~/.dsh/profiles/web`），两种路由任选其一：
-
-### 路由 1（推荐）：`dsh plugin add`
+### 安装
 
 ```bash
-dsh plugin --profile web add /Users/sifangwan/dsh-workspace/aura-dsh
-# 或已发布后：dsh plugin --profile web add dsh-aura
+# 本地开发 / 从源码
+dsh plugin --profile web add /path/to/dsh-aura
+
+# 从 GitHub（发布后）
+dsh plugin --profile web add github:clawdwan/dsh-aura
 ```
 
-`dsh plugin` 检测 `dsh.bundle.patch` 自动加入 profile bundles，**无需手改配置**。重启 dsh web 生效（client 半需先构建）。
+重启 dsh web 后生效。
 
-### 路由 2：手动 insert
+### 使用
 
-```yaml
-- insert:
-    - id: aura-render
-      name: dsh-aura
-```
+安装后 agent 自动获得 `aura_render` 工具。**无需配置**——在对话里自然表达即可：
 
-追加到 `~/.dsh/profiles/web/cordis.patch.yml` 后重启。
+- "用表格对比这几家公司"
+- "展示下这周的走势"
+- "把这个流程画成步骤图"
+
+agent 会判断内容是否需要视觉化，并选择合适的组件。
+
+## 技术概览（面向开发者）
+
+`dsh-aura` 是一个标准 DSH 静态插件包，包含两部分：
+
+- **工具端**（host）：`aura_render` 工具，接收 `{ text, components[] }` 结构化数据
+- **渲染端**（browser）：读取工具结果，把组件数据渲染成 React 组件（antd v6 + ECharts）
+
+构建产物（`client/dist/`）随仓库提供，安装即可用，无需本地构建。
+
+### 组件 data 契约
+
+每个组件接收 `{ title, data }`，data 结构见下表：
+
+| 组件 | data 结构 |
+|---|---|
+| metric_card | `{ metrics: [{label, value, change?, size?}] }` |
+| comparison_table | `{ headers: string[], rows: string[][] }` |
+| step_bar | `{ steps: [{label, description?, badge?}] }` |
+| insight_cards | `{ cards: [{title, rating, body, level?}] }` |
+| article_list | `{ articles: [{title, summary?, url?, source?}] }` |
+| trend_chart | `{ chart_type: 'line'\|'bar'\|'area', series: [{name, data:[{x,y}]}], unit? }` |
+| data_tree | `{ root: {label, value?, children} }` |
+| timeline | `{ events: [{time, title, description?, color?}], orientation? }` |
 
 ## 开发
 
 ```bash
-pnpm bundle          # tsdown → client/dist/client.js（含 antd/echarts 依赖树打包）
-pnpm check           # host 半语法自检
-pnpm test:registry   # 注册表一致性
-node check-tool.mjs  # 安装前自检（defineTool 编译 + execute 冒烟，避免启动崩）
+npm install          # 安装依赖
+npm run bundle       # 构建 client 半（tsdown → client/dist/client.js）
+node check-tool.mjs  # 安装前自检（避免启动崩溃）
+npm run watch        # 开发热重建
 ```
 
-**构建要点**（P0 验证定案）：
-- **子路径导入**（`antd/es/xxx`、`echarts/core`）——主入口摇树失败（820KB vs 351KB）
-- **alwaysBundle 正则**覆盖依赖树（`antd|echarts|rc-*|@rc-component|@ant-design`），react 保持 external（DSH shell 提供）
-- **define `process.env.NODE_ENV`** —— antd/echarts 引用 process，浏览器无此全局，构建时替换
+## 许可
 
-## 加载机制（静态包 host/client 两半）
-
-一个 loader 条目 = 一个包，两半共用包名：host 半 = 包主入口导出 cordis 插件；client 半 = `dsh.client` + `exports["./client"]`（dsh-client-modules 自动发现）；bundle 层 = `dsh.bundle.patch`。
-
-## 验证
-
-1. GUI 对话中让 agent 调 `aura_render` → 对话流出现 antd/ECharts 组件卡片
-2. 刷新页面卡片常驻（静态插件）；飞书发消息 → GUI 同会话可见
+Apache-2.0
