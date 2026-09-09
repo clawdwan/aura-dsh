@@ -32,6 +32,18 @@
 
 ## 快速开始
 
+### 版本要求
+
+| 依赖 | 最低版本 |
+|---|---|
+| DeepSeek Harness (DSH) | `0.1.2-rc.1`（peer 依赖 `@deepseek-ai/dsh-tools` `^0.1.2-rc.1`） |
+| Node.js | ≥ 22（dsh 要求） |
+
+> 本插件的 `@deepseek-ai/*` 全部声明为 **peerDependencies**（宿主提供）。经
+> `dsh plugin add` 装入 profile 后，运行时从 **DSH 宿主共享层**解析这些依赖——
+> 与宿主 dsh 版本天然一致，无本地副本混淆。请勿把 `node_modules/` 提交进发布物
+> （`files` 白名单已排除）。
+
 ### 安装
 
 ```bash
@@ -42,7 +54,11 @@ dsh plugin --profile web add /path/to/dsh-aura
 dsh plugin --profile web add github:clawdwan/dsh-aura
 ```
 
-重启 dsh web 后生效。
+重启 dsh web 后生效。安装前可运行自检确认与宿主兼容：
+
+```bash
+node check-tool.mjs   # 报告 dsh-tools 解析源/版本 + schema 编译 + execute 冒烟
+```
 
 ### 使用
 
