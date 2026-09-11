@@ -39,7 +39,7 @@
     "test:registry": "node -e \"import('./host/registry.js').then(m => { console.log('registry types:', m.REGISTRY.map(r => r.type).join(', ')); console.log('downgrade chain OK:', m.REGISTRY.every(r => r.downgrade_to === null || m.REGISTRY.some(x => x.type === r.downgrade_to))) })\""
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-tools": "^0.1.2-rc.1",
+    "@deepseek-ai/dsh-tools": "^0.1.2-rc.1 || ^0.1.5-rc.1",
     "@deepseek-ai/cordis": "^4.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
