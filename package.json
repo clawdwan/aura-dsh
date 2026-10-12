@@ -1,7 +1,7 @@
 {
   "name": "dsh-aura",
   "description": "Aura 通用展示层插件（候选2 静态 cordis 插件包）：host 半 aura_render 工具 + browser 半 tool.call.toolview 渲染器（5 组件）",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "type": "module",
   "main": "host/tool.js",
@@ -39,7 +39,7 @@
     "test:registry": "node -e \"import('./host/registry.js').then(m => { console.log('registry types:', m.REGISTRY.map(r => r.type).join(', ')); console.log('downgrade chain OK:', m.REGISTRY.every(r => r.downgrade_to === null || m.REGISTRY.some(x => x.type === r.downgrade_to))) })\""
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-tools": "^0.1.2-rc.1 || ^0.1.5-rc.1",
+    "@deepseek-ai/dsh-tools": "^0.1.2-rc.1 || ^0.1.5-rc.1 || ^0.2.0-rc.2",
     "@deepseek-ai/cordis": "^4.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
