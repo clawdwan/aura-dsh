@@ -34,10 +34,14 @@
 
 ### 版本要求
 
-| 依赖 | 最低版本 |
+| 依赖 | 要求 |
 |---|---|
-| DeepSeek Harness (DSH) | `0.1.2-rc.1`（peer 依赖 `@deepseek-ai/dsh-tools` `^0.1.2-rc.1`） |
+| DeepSeek Harness (DSH) | `>=0.1.2-rc.1 <0.3.0`（**实测兼容 0.1.2 ~ 0.2.0-rc.2**） |
 | Node.js | ≥ 22（dsh 要求） |
+
+> **DSH 0.2.0 起的行为变化**：工具调用会归入 Turn 的「工作过程」（process disclosure），
+> 完成后自动折叠。Aura 组件渲染在 **Turn 尾部**（`conversation.chat.turnTail`，属
+> `TURN_PROCESS_INDEPENDENT_KINDS` 白名单），**不随过程折叠**、常驻可见。
 
 > 本插件的 `@deepseek-ai/*` 全部声明为 **peerDependencies**（宿主提供）。经
 > `dsh plugin add` 装入 profile 后，运行时从 **DSH 宿主共享层**解析这些依赖——
@@ -102,6 +106,10 @@ npm run bundle       # 构建 client 半（tsdown → client/dist/client.js）
 node check-tool.mjs  # 安装前自检（避免启动崩溃）
 npm run watch        # 开发热重建
 ```
+
+## 变更记录
+
+各版本的重要变更见 [CHANGELOG.md](./CHANGELOG.md)。
 
 ## 许可
 
