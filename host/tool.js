@@ -16,13 +16,15 @@
  */
 
 import { defineTool } from '@deepseek-ai/dsh-tools';
+import { createPanelStore } from './panel-store.js';
+import { registerPanelTool } from './panel-tool.js';
 import { repairComponentsJson } from './json-repair.js';
 import { registryPrompt, downgradeOf } from './registry.js';
 
 const name = 'aura-render-host';
 const inject = ['tools'];
 
-const COMPONENT_TYPES = ['comparison_table', 'metric_card', 'step_bar', 'insight_cards', 'article_list', 'trend_chart', 'data_tree', 'timeline'];
+export const COMPONENT_TYPES = ['comparison_table', 'metric_card', 'step_bar', 'insight_cards', 'article_list', 'trend_chart', 'data_tree', 'timeline'];
 
 /** aura_render 参数 schema（property map 模式，符合 dsh-tools DSL）。 */
 export const auraParameters = {
@@ -87,6 +89,8 @@ export async function auraExecute(args, exec) {
 }
 
 function apply(ctx) {
+  // 侧边面板状态（跟 session 归属）
+  const panelStore = createPanelStore();
   ctx.tools.register(defineTool({
     name: 'aura_render',
     description: [
@@ -113,6 +117,9 @@ function apply(ctx) {
       return auraExecute(args, exec);
     },
   }));
+
+  // 侧边面板工具：agent 把卡片推送到会话右侧面板
+  registerPanelTool(ctx, panelStore);
 }
 
 export { apply, inject, name };

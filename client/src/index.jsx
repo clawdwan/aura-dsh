@@ -10,10 +10,12 @@
  * （官方 dsh-client-ui-tool 同款模式，见其 lib/client.js 的 css 注入）。
  * 注册模式与 define/client-body.js 完全一致。
  */
+import React from 'react';
 import auraCss from './styles';
 import AuraToolRow from './AuraToolRow';
 import AuraTurnTail from './AuraTurnTail';
 import { auraDefinition } from './auraDefinition';
+import AuraPanel from './AuraPanel';
 
 // 运行时注入 <style>（幂等：已注入则跳过；页面刷新后 bundle 重载会重新注入）
 const AURA_CSS_TAG = 'data-plugin-css="dsh-aura"';
@@ -27,7 +29,7 @@ if (typeof document !== 'undefined' && !document.querySelector(`style[${AURA_CSS
 
 export const name = 'aura-client';
 
-export const inject = ['slots', 'uiConversation'];
+export const inject = ['slots', 'uiConversation', 'sidebarRightTabs', 'sidebarRight', 'remote', 'remote.session', 'conversation', 'sessions'];
 
 export function apply(ctx) {
   ctx.slots.inject('tool.call.toolview', () =>
@@ -39,4 +41,48 @@ export function apply(ctx) {
   ctx.slots.inject('conversation.chat.turnTail', () =>
     ctx.slots.register({ name: 'conversation.chat.turnTail', id: 'dsh-aura' }, AuraTurnTail)
   );
+
+  // ==== SPIKE V1：右侧栏 tab ====
+  try {
+    ctx.sidebarRightTabs.register({
+      id: 'dsh-aura-panel',
+      kind: 'aura-panel',
+      priority: 'extension',
+      multiple: false,
+      keepMounted: true,
+      title: () => 'Aura 面板',
+    });
+    ctx.slots.inject('sidebar.right.pane.tab', () => {
+      const AuraPanelBody = (props) => (
+        <AuraPanel
+          {...props}
+          __auraSend={(t) => {
+            const sid = props?.sessionId;
+            if (!sid) return Promise.reject(new Error('aura: 面板缺少 sessionId'));
+            // 用全局 RPC（不依赖 session scope）：session/prompt
+            // 直接传 SessionPromptRequest 字段（client 侧 remote 由框架包信封；
+            // 外壳 {request:{...}} 会被判 gateway/input-invalid）
+            return ctx.remote.session.prompt({
+              requestId: `aura-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              sessionId: sid,
+              mode: 'queue',
+              content: [{ type: 'text', text: t }],
+            });
+          }}
+        />
+      );
+      return ctx.slots.register({ name: 'sidebar.right.pane.tab', key: 'dsh-aura-panel' }, AuraPanelBody);
+    });
+    // 首次使用时自动打开一次面板（之后由用户/tab 控制，避免每次刷新都弹出）
+    setTimeout(() => {
+      try {
+        if (!globalThis.sessionStorage?.getItem('aura-panel-opened')) {
+          globalThis.sessionStorage?.setItem('aura-panel-opened', '1');
+          ctx.sidebarRight.openTab('aura-panel');
+        }
+      } catch { /* 打开失败不影响插件 */ }
+    }, 1200);
+  } catch (e) {
+    console.error('[aura-spike] rightbar 注册失败:', e?.message ?? e);
+  }
 }

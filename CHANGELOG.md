@@ -2,6 +2,21 @@
 
 本项目所有重要变更记录于此。版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.2.0] — 2026-10-15
+
+### 新增
+
+- **侧边交互面板**：新增 `aura_panel` 工具，agent 可把卡片推送到会话**右侧面板**（常驻展示、可反复更新），
+  与对话流内嵌的 `aura_render` 分工——前者是状态型（监控/看板），后者是叙事型（一次性解释）。
+- **面板卡片按钮（actions）**：点击后经 `ctx.remote.session.prompt` 把指令发回**当前会话**，
+  形成「按钮 → session 消息 → agent 处理 → 面板更新」的交互闭环。
+- 面板数据基于**会话事件重放**（读会话节点还原卡片状态）：会话切换天然隔离、刷新/重开自动恢复。
+
+### 变更
+
+- 客户端 `inject` 增加 `sidebarRightTabs` / `sidebarRight` / `remote` / `remote.session` / `conversation` / `sessions`。
+- 面板以右侧栏 tab 形式注册（`sidebarRightTabs.register` + `sidebar.right.pane.tab`，key 用 definition 的 `id`）。
+
 ## [0.1.3] — 2026-10-15
 
 ### 修复

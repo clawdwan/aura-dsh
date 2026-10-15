@@ -128,5 +128,63 @@ const auraCss = `/* ============================================================
 }
 .aura-turn-tail-item > * + * { margin-top: 4px; }
 .aura-turn-tail .aura-fallback { margin-bottom: 2px; }
+/* ---- 侧边面板（rightbar tab） ---- */
+.aura-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 12px 18px;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+.aura-panel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.aura-panel-card-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  opacity: 0.75;
+}
+.aura-panel-card-body > * { margin: 0 !important; }
+.aura-panel-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: -2px;
+}
+.aura-panel-btn {
+  font-size: 12px;
+  line-height: 18px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.28));
+  transition: background 0.15s, border-color 0.15s;
+}
+.aura-panel-result {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 2px;
+  word-break: break-all;
+}
+.aura-panel-btn:disabled { opacity: 0.6; cursor: default; }
+.aura-panel-btn:hover {
+  background: var(--dsw-alias-interactive-bg-hover-solid, rgba(128, 128, 128, 0.08));
+  border-color: var(--dsw-alias-border-l1, rgba(128, 128, 128, 0.4));
+}
+.aura-panel-empty,
+.aura-panel-empty-state {
+  font-size: 12px;
+  opacity: 0.55;
+  padding: 4px 0;
+}
+.aura-panel-empty-state { padding: 16px 12px; line-height: 1.6; }
 `;
 export default auraCss;
