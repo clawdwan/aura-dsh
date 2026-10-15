@@ -23,7 +23,7 @@ import DataTree from './components/DataTree';
 import Timeline from './components/Timeline';
 
 /** 按 comp.type 分派到 8 个组件；未知类型降级为 JSON fallback。 */
-function renderComponent(comp) {
+export function renderComponent(comp) {
   switch (comp?.type) {
     case 'metric_card':
       return <MetricCard key={comp.title || 'm'} title={comp.title} data={comp.data} />;

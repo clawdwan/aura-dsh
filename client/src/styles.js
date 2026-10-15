@@ -119,5 +119,14 @@ const auraCss = `/* ============================================================
   opacity: 0.6;
   padding: 4px 0;
 }
+/* ---- turnTail（Turn 尾部的组件展示区，不随工作过程折叠） ---- */
+.aura-turn-tail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 2px;
+}
+.aura-turn-tail-item > * + * { margin-top: 4px; }
+.aura-turn-tail .aura-fallback { margin-bottom: 2px; }
 `;
 export default auraCss;
