@@ -63,6 +63,31 @@ function parseBlocks(blocks) {
   return null;
 }
 
+
+/** 卡片级错误边界：单个组件崩溃时只影响该卡片，不让整个面板空白。 */
+class CardBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  componentDidCatch(error) {
+    console.error('[aura-panel] 卡片渲染失败:', error?.message ?? error);
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="aura-panel-error">
+          ⚠️ 该卡片渲染失败：{String(this.state.error?.message ?? this.state.error)}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function AuraPanel(props) {
   const { useChat, __auraSend } = props;
   const [sendingId, setSendingId] = React.useState(null);
@@ -122,9 +147,11 @@ export default function AuraPanel(props) {
           <section key={card.id} className="aura-panel-card">
             {card.title ? <h4 className="aura-panel-card-title">{card.title}</h4> : null}
             <div className="aura-panel-card-body">
-              {card.data
-                ? renderComponent({ type: card.type, data: card.data })
-                : <div className="aura-panel-empty">（该卡片暂无数据）</div>}
+              <CardBoundary>
+                {card.data
+                  ? renderComponent({ type: card.type, data: card.data })
+                  : <div className="aura-panel-empty">（该卡片暂无数据）</div>}
+              </CardBoundary>
             </div>
             {lastResult ? <div className="aura-panel-result">{lastResult}</div> : null}
             {actions.length > 0 ? (

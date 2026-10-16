@@ -19,12 +19,13 @@ import { defineTool } from '@deepseek-ai/dsh-tools';
 import { createPanelStore } from './panel-store.js';
 import { registerPanelTool } from './panel-tool.js';
 import { repairComponentsJson } from './json-repair.js';
-import { registryPrompt, downgradeOf } from './registry.js';
+import { registryPrompt, downgradeOf, REGISTRY } from './registry.js';
 
 const name = 'aura-render-host';
 const inject = ['tools'];
 
-export const COMPONENT_TYPES = ['comparison_table', 'metric_card', 'step_bar', 'insight_cards', 'article_list', 'trend_chart', 'data_tree', 'timeline'];
+// 白名单从注册表派生（单一数据源：加组件只改 registry.js，避免多处不同步）
+export const COMPONENT_TYPES = REGISTRY.map((r) => r.type);
 
 /** aura_render 参数 schema（property map 模式，符合 dsh-tools DSL）。 */
 export const auraParameters = {

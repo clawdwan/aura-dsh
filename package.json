@@ -39,25 +39,28 @@
     "test:registry": "node -e \"import('./host/registry.js').then(m => { console.log('registry types:', m.REGISTRY.map(r => r.type).join(', ')); console.log('downgrade chain OK:', m.REGISTRY.every(r => r.downgrade_to === null || m.REGISTRY.some(x => x.type === r.downgrade_to))) })\""
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-tools": ">=0.1.2-rc.1 <0.3.0-0",
     "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-tools": ">=0.1.2-rc.1 <0.3.0-0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-tools": "^0.1.2-rc.1",
     "@types/react": "~18.3.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tsdown": "^0.22.0",
-    "typescript": "^5.4.0",
-    "@deepseek-ai/dsh-tools": "^0.1.2-rc.1"
+    "typescript": "^5.4.0"
   },
   "license": "MIT",
   "dependencies": {
     "@tsdown/css": "^0.22.14",
+    "@xyflow/react": "^12.12.0",
     "antd": "^6.6.2",
-    "echarts": "^6.1.0"
+    "dagre": "^0.8.5",
+    "echarts": "^6.1.0",
+    "mermaid": "^12.2.0"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-tools": {

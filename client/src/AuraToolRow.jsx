@@ -19,6 +19,8 @@ import StepBar from './components/StepBar';
 import InsightCards from './components/InsightCards';
 import ArticleList from './components/ArticleList';
 import TrendChart from './components/TrendChart';
+import Diagram from './components/Diagram';
+import Graph from './components/Graph';
 import DataTree from './components/DataTree';
 import Timeline from './components/Timeline';
 
@@ -37,6 +39,10 @@ export function renderComponent(comp) {
       return <ArticleList key={comp.title || 'a'} title={comp.title} data={comp.data} />;
     case 'trend_chart':
       return <TrendChart key={comp.title || 'c'} title={comp.title} data={comp.data} />;
+    case 'graph':
+      return <Graph key={comp.title || 'g'} title={comp.title} data={comp.data} />;
+    case 'diagram':
+      return <Diagram key={comp.title || 'd'} title={comp.title} data={comp.data} />;
     case 'data_tree':
       return <DataTree key={comp.title || 'd'} title={comp.title} data={comp.data} />;
     case 'timeline':

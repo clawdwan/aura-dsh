@@ -24,6 +24,11 @@ export default defineConfig({
   define: {
     'process.env.NODE_ENV': JSON.stringify('production'),
   },
+  // mermaid 内部按图表类型动态 import；DSH 模块加载器只加载 client.js，
+  // 因此必须内联所有动态导入（否则 chunk 加载不到）
+  outputOptions: {
+    inlineDynamicImports: true,
+  },
   deps: {
     // DSH shell 提供的基础（react 等）保持 external；antd/echarts 依赖树必须打包
     neverBundle: [
@@ -36,6 +41,6 @@ export default defineConfig({
       '@deepseek-ai/dsh-api-remotes',
       '@deepseek-ai/cordis',
     ],
-    alwaysBundle: [/^(antd|echarts|rc-|@rc-component|@ant-design|@babel\/runtime)/],
+    alwaysBundle: [/^(antd|echarts|mermaid|@xyflow|dagre|graphlib|lodash|d3|khroma|dompurify|cytoscape|stylis|ts-dedent|marked|@iconify|elkjs|katex|roughjs|uuid|micromark|mdast|unist|vfile|rc-|@rc-component|@ant-design|@babel\/runtime)/],
   },
 });
