@@ -26,9 +26,34 @@ import DataTree from './components/DataTree';
 import Timeline from './components/Timeline';
 
 /** 按 comp.type 分派到 8 个组件；未知类型降级为 JSON fallback。 */
+/** 卡片出场动画时长（秒）。
+ *  两类组件区别对待：
+ *   - 有【内容级动画】的（graph/trend_chart/metric_card/data_tree）：卡片快速就位(0.22s)，
+ *     把视觉焦点让给内部动画（节点生长 / 折线绘制 / 数字滚动）——否则两者重叠会互相掩盖
+ *   - 【静态内容】的（表格/列表/洞察/步骤/时间线）：卡片淡入 + 子项错峰浮现
+ */
+const ANIM_DURATION = {
+  graph: 0.22,
+  trend_chart: 0.22,
+  metric_card: 0.22,
+  data_tree: 0.22,
+  step_bar: 0.8,
+  comparison_table: 0.7,
+  timeline: 0.6,
+  insight_cards: 0.6,
+  article_list: 0.6,
+};
+
 export function renderComponent(comp) {
-  // 统一 Play 风主题：所有 antd 组件（card/table/statistic/steps/...）一次配置
-  return <ConfigProvider theme={auraTheme}>{renderInner(comp)}</ConfigProvider>;
+  const dur = ANIM_DURATION[comp?.type] ?? 0.5;
+  // 统一 Play 风主题 + 出场动画（时长按组件类型）
+  return (
+    <ConfigProvider theme={auraTheme}>
+      <div className="aura-anim-in" style={{ '--aura-anim-dur': `${dur}s` }}>
+        {renderInner(comp)}
+      </div>
+    </ConfigProvider>
+  );
 }
 
 function renderInner(comp) {

@@ -26,8 +26,12 @@ const NODE_H = 46;
 
 /** 自定义节点：纯 HTML/CSS，视觉由 auraCss 控制（不用 React Flow 默认样式）。 */
 function AuraNode({ data }) {
+  const delay = `${((data?.index ?? 0) % 16) * 0.13}s`;   // 节点间隔（录屏时更容易看清逐个落下）
   return (
-    <div className={`aura-graph-node${data?.kind ? ` aura-graph-node--${data.kind}` : ''}`}>
+    <div
+      className={`aura-graph-node${data?.kind ? ` aura-graph-node--${data.kind}` : ''}`}
+      style={{ animationDelay: delay }}
+    >
       <Handle type="target" position={Position.Top} className="aura-graph-handle" />
       {data?.tag ? <span className="aura-graph-node-tag">{data.tag}</span> : null}
       <span className="aura-graph-node-label">{data?.label}</span>
@@ -126,7 +130,9 @@ export default function Graph({ title, data }) {
         markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12 },
       }));
 
-    const laid = layoutWithDagre(rfNodes, rfEdges, direction);
+    const laidBase = layoutWithDagre(rfNodes, rfEdges, direction);
+    // 节点按顺序错峰出现（index 交给 AuraNode 做 animation-delay）
+    const laid = { ...laidBase, nodes: laidBase.nodes.map((n, i) => ({ ...n, data: { ...n.data, index: i } })) };
     // 依据节点纵向跨度估算画布高度（避免固定高度造成大片空白或裁切）
     const ys = laid.nodes.map((n) => n.position.y);
     const span = ys.length ? Math.max(...ys) - Math.min(...ys) + NODE_H : NODE_H;

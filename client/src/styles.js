@@ -1052,5 +1052,106 @@ svg.react-flow__connectionline {
 @media (prefers-reduced-motion: reduce) {
   .aura-skeleton-line { animation: none; }
 }
+/* ---- 出场动画（默认开；时长由 renderComponent 按组件类型注入 --aura-anim-dur） ---- */
+@keyframes aura-fade-up {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: none; }
+}
+.aura-anim-in {
+  animation: aura-fade-up var(--aura-anim-dur, 0.5s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+/* 列表/表格/卡片组：子项错峰浮现 */
+@keyframes aura-item-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+.aura-anim-in .ant-table-tbody > tr,
+.aura-anim-in .ant-list-item,
+.aura-anim-in .ant-timeline-item,
+.aura-anim-in .ant-alert {
+  animation: aura-item-in calc(var(--aura-anim-dur, 0.5s) * 0.85) cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.aura-anim-in .ant-table-tbody > tr:nth-child(1), .aura-anim-in .ant-list-item:nth-child(1),
+.aura-anim-in .ant-timeline-item:nth-child(1), .aura-anim-in .ant-alert:nth-child(1) { animation-delay: 0.06s; }
+.aura-anim-in .ant-table-tbody > tr:nth-child(2), .aura-anim-in .ant-list-item:nth-child(2),
+.aura-anim-in .ant-timeline-item:nth-child(2), .aura-anim-in .ant-alert:nth-child(2) { animation-delay: 0.16s; }
+.aura-anim-in .ant-table-tbody > tr:nth-child(3), .aura-anim-in .ant-list-item:nth-child(3),
+.aura-anim-in .ant-timeline-item:nth-child(3), .aura-anim-in .ant-alert:nth-child(3) { animation-delay: 0.26s; }
+.aura-anim-in .ant-table-tbody > tr:nth-child(4), .aura-anim-in .ant-list-item:nth-child(4),
+.aura-anim-in .ant-timeline-item:nth-child(4), .aura-anim-in .ant-alert:nth-child(4) { animation-delay: 0.36s; }
+.aura-anim-in .ant-table-tbody > tr:nth-child(n+5), .aura-anim-in .ant-list-item:nth-child(n+5),
+.aura-anim-in .ant-timeline-item:nth-child(n+5), .aura-anim-in .ant-alert:nth-child(n+5) { animation-delay: 0.44s; }
+@media (prefers-reduced-motion: reduce) {
+  .aura-anim-in, .aura-anim-in .ant-table-tbody > tr, .aura-anim-in .ant-list-item,
+  .aura-anim-in .ant-timeline-item, .aura-anim-in .ant-alert {
+    animation: none !important;
+  }
+}
+/* ---- 图表「笔刷画出」动画（clip-path 从左到右揭露） ---- */
+.aura-chart-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 6px;
+}
+.aura-chart-draw {
+  animation: aura-draw-x 1.5s cubic-bezier(0.33, 0, 0.2, 1) both;
+  will-change: clip-path;
+}
+@keyframes aura-draw-x {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aura-chart-draw { animation: none; }
+}
+/* ---- graph：节点逐个落下 + 连线生长（Play 风的「画出来」） ---- */
+@keyframes aura-node-drop {
+  0% { opacity: 0; transform: translateY(-9px) scale(0.94); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+/* 动画加在内层节点 div 上：外层由 React Flow 用 transform 定位，内层动画不会冲突 */
+.aura-graph-canvas .aura-graph-node {
+  animation: aura-node-drop 0.5s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+/* 连线：stroke-dashoffset 从"未画出"到"画出"，像笔刷生长 */
+@keyframes aura-edge-grow {
+  from { stroke-dashoffset: 2400; }
+  to { stroke-dashoffset: 0; }
+}
+.aura-graph-canvas .react-flow__edge-path {
+  stroke-dasharray: 2400;
+  animation: aura-edge-grow 0.75s cubic-bezier(0.33, 0, 0.2, 1) both;
+  animation-delay: 0.9s;   /* 等节点基本落完，线再依次生长 */
+}
+.aura-graph-canvas .react-flow__edge-text,
+.aura-graph-canvas .react-flow__edge-textbg {
+  animation: aura-fade-up 0.4s ease-out both;
+  animation-delay: 1.35s;
+}
+
+/* ---- step_bar：步骤依次点亮 ---- */
+@keyframes aura-step-in {
+  from { opacity: 0; transform: translateX(-5px); }
+  to { opacity: 1; transform: none; }
+}
+.aura-anim-in .ant-steps-item {
+  animation: aura-step-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.aura-anim-in .ant-steps-item:nth-child(1) { animation-delay: 0.05s; }
+.aura-anim-in .ant-steps-item:nth-child(2) { animation-delay: 0.2s; }
+.aura-anim-in .ant-steps-item:nth-child(3) { animation-delay: 0.35s; }
+.aura-anim-in .ant-steps-item:nth-child(4) { animation-delay: 0.5s; }
+.aura-anim-in .ant-steps-item:nth-child(n+5) { animation-delay: 0.62s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .aura-graph-canvas .aura-graph-node,
+  .aura-graph-canvas .react-flow__edge-path,
+  .aura-anim-in .ant-steps-item { animation: none !important; }
+}
 `;
 export default auraCss;
