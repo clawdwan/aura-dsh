@@ -73,15 +73,16 @@ export function apply(ctx) {
       );
       return ctx.slots.register({ name: 'sidebar.right.pane.tab', key: 'dsh-aura-panel' }, AuraPanelBody);
     });
-    // 首次使用时自动打开一次面板（之后由用户/tab 控制，避免每次刷新都弹出）
-    setTimeout(() => {
+    // 面板自动打开：仅在 tab 尚未打开时补开（幂等，不会重复弹）
+    // 注意：不要用 sessionStorage 记忆"已打开过"——那会导致后续会话看不到面板
+    const ensurePanelOpen = () => {
       try {
-        if (!globalThis.sessionStorage?.getItem('aura-panel-opened')) {
-          globalThis.sessionStorage?.setItem('aura-panel-opened', '1');
-          ctx.sidebarRight.openTab('aura-panel');
-        }
+        const tabs = ctx.sidebarRight.tabsIn?.() ?? [];
+        const already = Array.isArray(tabs) && tabs.some((x) => (x?.kind ?? x?.id) === 'aura-panel');
+        if (!already) ctx.sidebarRight.openTab('aura-panel');
       } catch { /* 打开失败不影响插件 */ }
-    }, 1200);
+    };
+    setTimeout(ensurePanelOpen, 1200);
   } catch (e) {
     console.error('[aura-spike] rightbar 注册失败:', e?.message ?? e);
   }

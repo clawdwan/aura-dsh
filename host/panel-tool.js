@@ -26,7 +26,8 @@ export const panelParameters = {
   card: {
     type: 'object',
     additionalProperties: true,
-    description: "卡片对象（action='upsert' 时必填）：{ id, type, title?, data?, actions?: [{id,label,prompt}] }。"
+    description: "卡片对象（action='upsert' 时必填）：{ id, type, title?, data?, actions?, pending? }。"
+      + "pending=true 或省略 data 时，面板显示骨架屏占位（适合多卡片任务：先推结构再填数据）。"
       + "type 与 data 契约同 aura_render；actions[].prompt 是点击按钮后注入会话的指令文本。"
       + "action='remove' 时只需 { id }。",
   },
@@ -68,6 +69,7 @@ function normalizeCard(raw) {
     ...(raw.data && typeof raw.data === 'object' ? { data: raw.data } : {}),
     ...(actions ? { actions } : {}),
     ...(raw.collapsed === true ? { collapsed: true } : {}),
+    ...(raw.pending === true ? { pending: true } : {}),
     ...(safeType !== type ? { downgradedFrom: type } : {}),
   };
 }

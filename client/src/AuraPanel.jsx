@@ -88,6 +88,33 @@ class CardBoundary extends React.Component {
   }
 }
 
+
+/** 骨架屏：卡片结构已声明、数据尚未就绪时的占位（Play 风：灰条 + shimmer 流光）。
+ *  触发方式（两种）：
+ *   ① 显式：card.pending === true
+ *   ② 隐式：card.data 缺失或为空对象（agent 先推结构、后填数据）
+ */
+function CardSkeleton({ type }) {
+  const rowCount = type === 'comparison_table' ? 4 : type === 'metric_card' ? 2 : 3;
+  const widths = [92, 66, 80, 52];
+  return (
+    <div className="aura-skeleton" aria-busy="true" aria-label="加载中">
+      {Array.from({ length: rowCount }).map((_, i) => (
+        <div key={i} className="aura-skeleton-line" style={{ width: `${widths[i % widths.length]}%` }} />
+      ))}
+    </div>
+  );
+}
+
+/** 判定卡片是否处于「待填充」状态。 */
+function isPendingCard(card) {
+  if (!card) return false;
+  if (card.pending === true) return true;
+  const d = card.data;
+  if (d === undefined || d === null) return true;
+  return typeof d === 'object' && !Array.isArray(d) && Object.keys(d).length === 0;
+}
+
 export default function AuraPanel(props) {
   const { useChat, __auraSend } = props;
   const [sendingId, setSendingId] = React.useState(null);
@@ -148,9 +175,9 @@ export default function AuraPanel(props) {
             {card.title ? <h4 className="aura-panel-card-title">{card.title}</h4> : null}
             <div className="aura-panel-card-body">
               <CardBoundary>
-                {card.data
-                  ? renderComponent({ type: card.type, data: card.data })
-                  : <div className="aura-panel-empty">（该卡片暂无数据）</div>}
+                {isPendingCard(card)
+                  ? <CardSkeleton type={card.type} />
+                  : renderComponent({ type: card.type, data: card.data })}
               </CardBoundary>
             </div>
             {lastResult ? <div className="aura-panel-result">{lastResult}</div> : null}

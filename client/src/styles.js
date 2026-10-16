@@ -1026,5 +1026,31 @@ svg.react-flow__connectionline {
 .aura-turn-tail .ant-timeline .ant-timeline-item {
   padding-bottom: 14px;
 }
+/* ---- 骨架屏（卡片待填充态） ---- */
+.aura-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 2px 0 4px;
+}
+.aura-skeleton-line {
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(
+    90deg,
+    rgba(128, 128, 128, 0.1) 25%,
+    rgba(128, 128, 128, 0.2) 37%,
+    rgba(128, 128, 128, 0.1) 63%
+  );
+  background-size: 400% 100%;
+  animation: aura-shimmer 1.4s ease infinite;
+}
+@keyframes aura-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aura-skeleton-line { animation: none; }
+}
 `;
 export default auraCss;
