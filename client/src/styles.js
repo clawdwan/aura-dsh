@@ -194,77 +194,6 @@ const auraCss = `/* ============================================================
   padding: 4px 0;
 }
 .aura-panel-empty-state { padding: 16px 12px; line-height: 1.6; }
-/* ---- diagram（mermaid 声明式图） ---- */
-.aura-diagram {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.aura-diagram-title {
-  font-size: 12px;
-  font-weight: 600;
-  opacity: 0.75;
-}
-.aura-diagram-svg {
-  overflow-x: auto;
-  border-radius: 6px;
-}
-.aura-diagram-svg svg {
-  max-width: 100%;
-  height: auto;
-}
-.aura-diagram-error {
-  font-size: 12px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.28));
-  background: var(--dsw-alias-bg-l1, rgba(128, 128, 128, 0.04));
-}
-.aura-diagram-error pre {
-  margin: 6px 0 0;
-  font-size: 11px;
-  white-space: pre-wrap;
-  word-break: break-all;
-  opacity: 0.8;
-}
-.aura-diagram-error details { margin-top: 6px; }
-.aura-diagram-empty { font-size: 12px; opacity: 0.55; }
-/* ---- diagram 精修（覆盖 mermaid 生成的 SVG） ---- */
-.aura-diagram-svg svg {
-  overflow: visible;
-}
-.aura-diagram-svg svg .node rect,
-.aura-diagram-svg svg .node polygon,
-.aura-diagram-svg svg .node circle,
-.aura-diagram-svg svg .node ellipse {
-  rx: 6px;
-  ry: 6px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05));
-}
-.aura-diagram-svg svg .nodeLabel {
-  font-weight: 500;
-}
-.aura-diagram-svg svg .edgePath path,
-.aura-diagram-svg svg .flowchart-link {
-  stroke-width: 1.1px;
-}
-.aura-diagram-svg svg .actor {
-  rx: 6px;
-  ry: 6px;
-}
-.aura-diagram-svg svg .messageLine0,
-.aura-diagram-svg svg .messageLine1 {
-  stroke-width: 1.1px;
-}
-.aura-diagram-svg svg .actor-line {
-  stroke-dasharray: 3 3;
-  opacity: 0.5;
-}
-.aura-diagram-svg svg .cluster rect {
-  rx: 8px;
-  ry: 8px;
-}
 /* ---- graph（React Flow 关系图） ---- */
 .aura-graph { margin: 0; display: flex; flex-direction: column; gap: 6px; }
 .aura-graph-title { font-size: 12px; font-weight: 600; opacity: 0.75; }
@@ -1009,5 +938,93 @@ svg.react-flow__connectionline {
   fill: var(--xy-edge-label-color, var(--xy-edge-label-color-default));
 }
 
+/* ---- Play 风：antd 组件的统一样式覆盖 ---- */
+/* 卡片：去边框 + 轻阴影（Play 风靠层次而不是描边） */
+.aura-panel .ant-card,
+.aura-turn-tail .ant-card {
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+/* 卡片标题：小号大写 + 字距（与 Graph 的 tag 一致） */
+.aura-panel .ant-card-head,
+.aura-turn-tail .ant-card-head {
+  min-height: auto;
+  padding: 0 14px;
+  border-bottom: none;
+}
+.aura-panel .ant-card-head-title,
+.aura-turn-tail .ant-card-head-title {
+  padding: 12px 0 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+.aura-panel .ant-card-small > .ant-card-body,
+.aura-turn-tail .ant-card-small > .ant-card-body {
+  padding: 8px 14px 12px;
+}
+/* 指标：数值粗体、标签小号大写 */
+.aura-panel .ant-statistic-title,
+.aura-turn-tail .ant-statistic-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 2px;
+}
+.aura-panel .ant-statistic-content,
+.aura-turn-tail .ant-statistic-content {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+/* 表格：无外框、表头小号大写、行分割线极淡 */
+.aura-panel .ant-table,
+.aura-turn-tail .ant-table {
+  background: transparent;
+}
+.aura-panel .ant-table-thead > tr > th,
+.aura-turn-tail .ant-table-thead > tr > th {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  padding-top: 4px !important;
+  padding-bottom: 6px !important;
+}
+.aura-panel .ant-table-tbody > tr > td,
+.aura-turn-tail .ant-table-tbody > tr > td {
+  border-bottom-color: rgba(128, 128, 128, 0.12);
+}
+/* 标签（Tag）：描边胶囊化 */
+.aura-panel .ant-tag,
+.aura-turn-tail .ant-tag {
+  border-radius: 999px;
+  padding-inline: 8px;
+}
+/* Play 风补充（原 theme token 改为 CSS，避免 token 名不合法导致渲染异常） */
+.aura-panel .ant-table-tbody > tr > td,
+.aura-turn-tail .ant-table-tbody > tr > td {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+.aura-panel .ant-list-item,
+.aura-turn-tail .ant-list-item {
+  padding: 8px 0;
+}
+.aura-panel .ant-steps .ant-steps-item-icon,
+.aura-turn-tail .ant-steps .ant-steps-item-icon {
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  font-size: 12px;
+}
+.aura-panel .ant-timeline .ant-timeline-item,
+.aura-turn-tail .ant-timeline .ant-timeline-item {
+  padding-bottom: 14px;
+}
 `;
 export default auraCss;

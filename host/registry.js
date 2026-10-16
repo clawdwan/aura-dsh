@@ -77,16 +77,6 @@ export const REGISTRY = [
     category: 'display',
   },
   {
-    type: 'diagram',
-    label: '声明式图',
-    description: '用 mermaid 文本画图（架构图/流程图/时序图/ER 图/状态机/类图），适合系统结构、数据流、模块依赖、实体关系、状态流转',
-    best_for: ['业务架构', '数据流', '模块依赖', '实体关系(ontology)', '状态机', '交互时序'],
-    input_shape: 'mermaid_text',
-    data_schema: '{ code: "flowchart TD\\n  A-->B", kind?: "flowchart"|"sequenceDiagram"|"erDiagram"|"stateDiagram-v2"|"classDiagram" }',
-    downgrade_to: 'data_tree',
-    category: 'display',
-  },
-  {
     type: 'data_tree',
     label: '树干图',
     description: 'SVG 贝塞尔层级数据树，适合有层级归属的信息展示（思维导图）',

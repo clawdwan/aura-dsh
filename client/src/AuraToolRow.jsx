@@ -13,19 +13,25 @@
  *  解析结果 {text, components}；components 为空 → 降级为 fallback 文本。
  */
 import React from 'react';
+import { ConfigProvider } from 'antd';
+import { auraTheme } from './auraTheme';
 import MetricCard from './components/MetricCard';
 import ComparisonTable from './components/ComparisonTable';
 import StepBar from './components/StepBar';
 import InsightCards from './components/InsightCards';
 import ArticleList from './components/ArticleList';
 import TrendChart from './components/TrendChart';
-import Diagram from './components/Diagram';
 import Graph from './components/Graph';
 import DataTree from './components/DataTree';
 import Timeline from './components/Timeline';
 
 /** 按 comp.type 分派到 8 个组件；未知类型降级为 JSON fallback。 */
 export function renderComponent(comp) {
+  // 统一 Play 风主题：所有 antd 组件（card/table/statistic/steps/...）一次配置
+  return <ConfigProvider theme={auraTheme}>{renderInner(comp)}</ConfigProvider>;
+}
+
+function renderInner(comp) {
   switch (comp?.type) {
     case 'metric_card':
       return <MetricCard key={comp.title || 'm'} title={comp.title} data={comp.data} />;
@@ -41,8 +47,6 @@ export function renderComponent(comp) {
       return <TrendChart key={comp.title || 'c'} title={comp.title} data={comp.data} />;
     case 'graph':
       return <Graph key={comp.title || 'g'} title={comp.title} data={comp.data} />;
-    case 'diagram':
-      return <Diagram key={comp.title || 'd'} title={comp.title} data={comp.data} />;
     case 'data_tree':
       return <DataTree key={comp.title || 'd'} title={comp.title} data={comp.data} />;
     case 'timeline':

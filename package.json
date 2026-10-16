@@ -55,12 +55,11 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@dagrejs/dagre": "^3.1.1",
     "@tsdown/css": "^0.22.14",
     "@xyflow/react": "^12.12.0",
     "antd": "^6.6.2",
-    "dagre": "^0.8.5",
-    "echarts": "^6.1.0",
-    "mermaid": "^12.2.0"
+    "echarts": "^6.1.0"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-tools": {

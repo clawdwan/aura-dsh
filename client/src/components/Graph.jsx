@@ -1,19 +1,21 @@
 /**
  * aura-dsh / client / src / components / Graph.jsx
- * 现代关系图组件 —— React Flow + dagre 自动布局。
+ * 现代关系图组件 —— React Flow + @dagrejs/dagre 自动布局。
  *
  * 数据：{ title?, direction?: 'TB'|'LR', nodes: [{id, label, kind?}], edges: [{source, target, label?}] }
  *
- * 与 diagram(mermaid) 的区别：
- *  - 节点是 **HTML/CSS**（不是 SVG 基础形状）→ 可用与 app 一致的现代视觉（圆角/阴影/字重/留白）
- *  - 交互：画布缩放/平移，节点悬停高亮
- *  - 体积：~80KB（vs mermaid 2.6MB）
- *  - 代价：agent 输出结构化 {nodes, edges}（mermaid 是写文本）
+ * 特点：
+ *  - 节点是 **HTML/CSS**（不是 SVG 基础形状）→ 可用与 app 一致的现代视觉（Play 风）
+ *  - 交互：画布缩放/平移，节点悬停上浮
+ *  - 布局：@dagrejs/dagre 自动层次排布
+ *  - agent 输出结构化 {nodes, edges}
  */
-import React, { useMemo } from 'react';
-import { ReactFlow, Background, BackgroundVariant, Controls, Handle, Position, MarkerType } from '@xyflow/react';
+import React, { useEffect, useMemo, useRef } from 'react';
+import {
+  ReactFlow, ReactFlowProvider, useReactFlow, Background, BackgroundVariant, Controls, Handle, Position, MarkerType,
+} from '@xyflow/react';
 import { theme as antdTheme } from 'antd';
-import dagreImport from 'dagre';
+import dagreImport from '@dagrejs/dagre';
 
 // dagre 是 CJS 包：打包后 default 可能被包一层（{ default: exports }），这里做兼容
 const dagre = dagreImport?.graphlib ? dagreImport : (dagreImport?.default ?? dagreImport);
@@ -142,26 +144,52 @@ export default function Graph({ title, data }) {
   return (
     <figure className="aura-graph">
       {title ? <figcaption className="aura-graph-title">{title}</figcaption> : null}
-      <div className="aura-graph-canvas" style={{ height, ...vars }}>
-        <ReactFlow
-          nodes={flowNodes}
-          edges={flowEdges}
-          nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.12 }}
-          minZoom={0.35}
-          maxZoom={1.6}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          zoomOnDoubleClick={false}
-          proOptions={{ hideAttribution: true }}
-          defaultEdgeOptions={{ type: 'smoothstep' }}
-        >
-          <Background variant={BackgroundVariant.Dots} gap={16} size={1.4} color="var(--aura-graph-dot, rgba(0,0,0,0.14))" />
-          <Controls showInteractive={false} className="aura-graph-controls" />
-        </ReactFlow>
-      </div>
+      <ReactFlowProvider>
+        <GraphCanvas nodes={flowNodes} edges={flowEdges} height={height} vars={vars} />
+      </ReactFlowProvider>
     </figure>
+  );
+}
+
+/** 画布内层：容器尺寸变化时重新 fitView（面板宽度可拖拽，必须自适应）。 */
+function GraphCanvas({ nodes, edges, height, vars }) {
+  const { fitView } = useReactFlow();
+  const boxRef = useRef(null);
+
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    let raf = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        try { fitView({ padding: 0.12, duration: 0 }); } catch { /* 忽略瞬时错误 */ }
+      });
+    });
+    observer.observe(el);
+    return () => { observer.disconnect(); cancelAnimationFrame(raf); };
+  }, [fitView]);
+
+  return (
+    <div ref={boxRef} className="aura-graph-canvas" style={{ height, ...vars }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        fitView
+        fitViewOptions={{ padding: 0.12 }}
+        minZoom={0.25}
+        maxZoom={1.6}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={false}
+        zoomOnDoubleClick={false}
+        proOptions={{ hideAttribution: true }}
+        defaultEdgeOptions={{ type: 'smoothstep' }}
+      >
+        <Background variant={BackgroundVariant.Dots} gap={16} size={1.4} color="var(--aura-graph-dot, rgba(0,0,0,0.14))" />
+        <Controls showInteractive={false} className="aura-graph-controls" />
+      </ReactFlow>
+    </div>
   );
 }
