@@ -25,7 +25,7 @@ import Graph from './components/Graph';
 import DataTree from './components/DataTree';
 import Timeline from './components/Timeline';
 
-/** 按 comp.type 分派到 8 个组件；未知类型降级为 JSON fallback。 */
+/** 按 comp.type 分派到 9 个组件；未知类型降级为 JSON fallback。 */
 /** 卡片出场动画时长（秒）。
  *  两类组件区别对待：
  *   - 有【内容级动画】的（graph/trend_chart/metric_card/data_tree）：卡片快速就位(0.22s)，

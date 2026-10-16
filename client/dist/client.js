@@ -182731,7 +182731,7 @@ function TimelineViz({ title, data }) {
 *  3. 运行中（RunningToolCall）保底：block.call.argsRaw JSON.parse。
 *  解析结果 {text, components}；components 为空 → 降级为 fallback 文本。
 */
-/** 按 comp.type 分派到 8 个组件；未知类型降级为 JSON fallback。 */
+/** 按 comp.type 分派到 9 个组件；未知类型降级为 JSON fallback。 */
 /** 卡片出场动画时长（秒）。
 *  两类组件区别对待：
 *   - 有【内容级动画】的（graph/trend_chart/metric_card/data_tree）：卡片快速就位(0.22s)，

@@ -2,6 +2,34 @@
 
 本项目所有重要变更记录于此。版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.3.0] — 2026-10-16
+
+### 新增
+
+- **graph 组件**（React Flow + @dagrejs/dagre）：节点 + 边的现代关系图。
+  Play 风视觉——实心块 + 双层文字（大写小标签 + 粗体标题）+ 大圆角 + 点阵背景 + 贝塞尔曲线；
+  四种节点变体（`default` / `primary`(品牌蓝实心) / `accent`(淡蓝底) / `muted`(虚线次级)）。
+- **骨架屏**：`aura_panel` 的卡片支持 `pending: true`（或省略 `data`）→ 面板渲染骨架占位
+  （灰条 + shimmer 流光）。适合多卡片任务「先声明结构、再逐个填数据」，让等待过程可见。
+- **出场动画**（默认开启，尊重 `prefers-reduced-motion`）：
+  · graph：节点逐个落下（错峰 0.13s/个）+ 连线 `stroke-dashoffset` 生长
+  · trend_chart：`clip-path` 遮罩笔刷效果（线 + 点 + 坐标区一起从左到右画出）
+  · metric_card：数字从 0 滚到目标值（easeOutCubic，精度跟随原值小数位）
+  · comparison_table / article_list / timeline / insight_cards / step_bar：子项错峰淡入
+- **视觉统一**：所有 antd 组件经 `ConfigProvider` 统一主题（Play 风）——圆角、轻阴影、
+  卡片去边框、标题小号大写 + 字距、标签胶囊化、表头大写等。
+
+### 变更 / 修复
+
+- **移除 mermaid 依赖**（bundle 16.2MB → 1.4MB）：撤掉 `diagram` 组件；声明式图
+  （时序图/ER 图等）留待后续按需以专门组件覆盖。`dagre` → `@dagrejs/dagre`（去掉 lodash）。
+- **组件白名单改为从注册表派生**（`COMPONENT_TYPES = REGISTRY.map(r => r.type)`），
+  根治「新增组件却因白名单未同步而被降级为表格」的问题。
+- **面板卡片级错误边界**：单个组件渲染失败只影响该卡片，不再让整个面板空白。
+- **修复面板自动打开**：去掉 `sessionStorage` 的「只开一次」记忆（会导致刷新/后续会话看不到面板），
+  改为检查 tab 当前状态后幂等补开。
+- **Graph 画布自适应**：`ResizeObserver` → `fitView`，拖动侧边栏宽度时图形跟随缩放。
+
 ## [0.2.0] — 2026-10-15
 
 ### 新增
