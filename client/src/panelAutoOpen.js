@@ -6,12 +6,12 @@
  *   - 所有可调参数集中在 DEFAULT_CONFIG
  *   - 数据来源、打开动作都通过参数注入（换成订阅/提示/其他 tab 都不用改这里的使用方式）
  *
- * 当前策略（v1）：
+ * 当前策略（v2）：
  *   每 intervalMs 检查一次当前会话：
- *     · 会话变了 → 重置"本会话是否已自动打开过"
- *     · tab 已经开着 → 记为已打开，不再动作
- *     · tab 没开，但该会话已经有 aura_panel 卡片，且本会话还没自动打开过 → 打开一次
- *   用户手动收起后不会再被打开（openedFor 已记录），直到切到另一个有卡片的会话。
+ *     · 会话变了 → 重置状态（允许新会话重新自动打开）
+ *     · tab 已经开着 → 记录为已打开，不再动作
+ *     · tab 没开、且本会话还没自动开过 → 请求打开一次（最多 maxAttempts 次）
+ *   用户手动收起后不会再被打开（openedFor 已记录），直到切到另一个会话。
  */
 
 export const DEFAULT_CONFIG = {
@@ -23,6 +23,8 @@ export const DEFAULT_CONFIG = {
   openOnHistory: true,
   /** 单次检查的成本保护：事件数超过这个值时只做前缀扫描 */
   maxEntriesScan: 5000,
+  /** 每个会话最多尝试打开几次（约 intervalMs * maxAttempts 秒后放弃，避免无限打扰） */
+  maxAttempts: 8,
 };
 
 /** 读取当前会话 id（sidebarRight.onScreen 是 ObservableSnapshot） */
@@ -34,11 +36,18 @@ function readScreenSession(sidebarRight) {
   }
 }
 
-/** 当前会话的 tab 列表里是否已有 aura 面板 */
-function isAuraTabOpen(sidebarRight, tabKind) {
+/** 指定会话的 tab 列表里是否已有 aura 面板（tabsIn 需要 sessionId） */
+function isAuraTabOpen(sidebarRight, sessionId, tabKind) {
+  if (!sessionId) return false;
   try {
-    const tabs = sidebarRight?.tabsIn?.() ?? [];
-    return Array.isArray(tabs) && tabs.some((x) => (x?.kind ?? x?.id) === tabKind);
+    const tabs = sidebarRight?.tabsIn?.(sessionId) ?? [];
+    return (
+      Array.isArray(tabs)
+      && tabs.some((tab) => {
+        const kind = tab?.kind ?? tab?.type ?? tab?.id;
+        return kind === tabKind || String(kind).includes(tabKind);
+      })
+    );
   } catch {
     return false;
   }
@@ -91,31 +100,34 @@ export function createPanelAutoOpen({ sidebarRight, sessions, tabKind = 'aura-pa
     openedFor = null;
   };
 
+  let attempts = 0;
+
   const tick = () => {
     if (!cfg.enabled) return;
     const sid = readScreenSession(sidebarRight);
-    if (!sid) return;
+    if (!sid) return; // onScreen 未就绪 → 下个 tick 再看
 
     if (sid !== lastSid) {
       lastSid = sid;
       openedFor = null; // 切会话 → 允许重新自动打开
+      attempts = 0;
     }
 
-    if (isAuraTabOpen(sidebarRight, tabKind)) {
-      openedFor = sid; // 已经开着（用户/系统打开）→ 记录下来，用户关掉后不再强开
+    if (isAuraTabOpen(sidebarRight, sid, tabKind)) {
+      openedFor = sid; // 已经开着 → 记录，用户之后收起就不再打扰
+      attempts = 0;
       return;
     }
-    if (openedFor === sid) return; // 本会话已自动开过 → 用户收起后不打扰
-    if (!cfg.openOnHistory) return;
+    if (openedFor === sid) return;   // 本会话已自动开过，用户收起后不打扰
+    if (attempts >= cfg.maxAttempts) return;
 
-    const { known, count } = probePanelCards(sessions, sid, cfg);
-    if (!known || count <= 0) return; // 拿不到会话事件源时下个 tick 再试
-
+    // 首次进入某会话：直接请求打开一次（不依赖能否读到历史卡片——
+    // 之前依赖 sessions.binding(id) 判断，拿不到就永不打开，是根本 bug）
+    attempts += 1;
     try {
       sidebarRight?.openTab?.(tabKind);
-      openedFor = sid;
     } catch {
-      /* 打开失败，下个 tick 重试 */
+      /* 打开失败，下个 tick 重试（受 maxAttempts 限制） */
     }
   };
 

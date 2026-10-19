@@ -182736,12 +182736,12 @@ function AuraPanel(props) {
 *   - 所有可调参数集中在 DEFAULT_CONFIG
 *   - 数据来源、打开动作都通过参数注入（换成订阅/提示/其他 tab 都不用改这里的使用方式）
 *
-* 当前策略（v1）：
+* 当前策略（v2）：
 *   每 intervalMs 检查一次当前会话：
-*     · 会话变了 → 重置"本会话是否已自动打开过"
-*     · tab 已经开着 → 记为已打开，不再动作
-*     · tab 没开，但该会话已经有 aura_panel 卡片，且本会话还没自动打开过 → 打开一次
-*   用户手动收起后不会再被打开（openedFor 已记录），直到切到另一个有卡片的会话。
+*     · 会话变了 → 重置状态（允许新会话重新自动打开）
+*     · tab 已经开着 → 记录为已打开，不再动作
+*     · tab 没开、且本会话还没自动开过 → 请求打开一次（最多 maxAttempts 次）
+*   用户手动收起后不会再被打开（openedFor 已记录），直到切到另一个会话。
 */
 const DEFAULT_CONFIG = {
 	/** 总开关 */
@@ -182751,7 +182751,9 @@ const DEFAULT_CONFIG = {
 	/** 会话已有卡片时是否自动打开 */
 	openOnHistory: true,
 	/** 单次检查的成本保护：事件数超过这个值时只做前缀扫描 */
-	maxEntriesScan: 5e3
+	maxEntriesScan: 5e3,
+	/** 每个会话最多尝试打开几次（约 intervalMs * maxAttempts 秒后放弃，避免无限打扰） */
+	maxAttempts: 8
 };
 /** 读取当前会话 id（sidebarRight.onScreen 是 ObservableSnapshot） */
 function readScreenSession(sidebarRight) {
@@ -182761,11 +182763,15 @@ function readScreenSession(sidebarRight) {
 		return;
 	}
 }
-/** 当前会话的 tab 列表里是否已有 aura 面板 */
-function isAuraTabOpen(sidebarRight, tabKind) {
+/** 指定会话的 tab 列表里是否已有 aura 面板（tabsIn 需要 sessionId） */
+function isAuraTabOpen(sidebarRight, sessionId, tabKind) {
+	if (!sessionId) return false;
 	try {
-		const tabs = sidebarRight?.tabsIn?.() ?? [];
-		return Array.isArray(tabs) && tabs.some((x) => (x?.kind ?? x?.id) === tabKind);
+		const tabs = sidebarRight?.tabsIn?.(sessionId) ?? [];
+		return Array.isArray(tabs) && tabs.some((tab) => {
+			const kind = tab?.kind ?? tab?.type ?? tab?.id;
+			return kind === tabKind || String(kind).includes(tabKind);
+		});
 	} catch {
 		return false;
 	}
@@ -182828,6 +182834,7 @@ function createPanelAutoOpen({ sidebarRight, sessions, tabKind = "aura-panel", c
 		lastSid = void 0;
 		openedFor = null;
 	};
+	let attempts = 0;
 	const tick = () => {
 		if (!cfg.enabled) return;
 		const sid = readScreenSession(sidebarRight);
@@ -182835,18 +182842,18 @@ function createPanelAutoOpen({ sidebarRight, sessions, tabKind = "aura-panel", c
 		if (sid !== lastSid) {
 			lastSid = sid;
 			openedFor = null;
+			attempts = 0;
 		}
-		if (isAuraTabOpen(sidebarRight, tabKind)) {
+		if (isAuraTabOpen(sidebarRight, sid, tabKind)) {
 			openedFor = sid;
+			attempts = 0;
 			return;
 		}
 		if (openedFor === sid) return;
-		if (!cfg.openOnHistory) return;
-		const { known, count } = probePanelCards(sessions, sid, cfg);
-		if (!known || count <= 0) return;
+		if (attempts >= cfg.maxAttempts) return;
+		attempts += 1;
 		try {
 			sidebarRight?.openTab?.(tabKind);
-			openedFor = sid;
 		} catch {}
 	};
 	return {
