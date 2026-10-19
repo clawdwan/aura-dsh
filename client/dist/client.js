@@ -183859,8 +183859,19 @@ function apply(ctx) {
 		};
 		ctx.effect(() => {
 			ensurePanelOpen();
-			const timer = setInterval(ensurePanelOpen, 1e3);
-			return () => clearInterval(timer);
+			const obs = ctx.sidebarRight?.onScreen;
+			if (!obs || typeof obs.subscribe !== "function") return void 0;
+			let last;
+			const unsub = obs.subscribe((sid) => {
+				if (!sid || sid === last) return;
+				last = sid;
+				ensurePanelOpen();
+			});
+			return () => {
+				try {
+					unsub?.();
+				} catch {}
+			};
 		});
 	} catch (e) {
 		console.error("[aura-spike] rightbar 注册失败:", e?.message ?? e);

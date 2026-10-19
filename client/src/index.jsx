@@ -83,11 +83,20 @@ export function apply(ctx) {
         if (!already) ctx.sidebarRight.openTab('aura-panel');
       } catch { /* 打开失败不影响插件 */ }
     };
-    // 幂等补开：启动后立即 + 持续检查（切换会话/新建会话后 tab 若被关掉会自动补开）
+    // 只在这两个时机补开，避免"用户主动收起后又被强制弹出"：
+    //   ① 插件启动（首次进页面）
+    //   ② 切换到另一个会话（新会话默认展示面板）
     ctx.effect(() => {
       ensurePanelOpen();
-      const timer = setInterval(ensurePanelOpen, 1000);
-      return () => clearInterval(timer);
+      const obs = ctx.sidebarRight?.onScreen;
+      if (!obs || typeof obs.subscribe !== 'function') return undefined;
+      let last;
+      const unsub = obs.subscribe((sid) => {
+        if (!sid || sid === last) return;   // 同一会话的重复通知不处理
+        last = sid;
+        ensurePanelOpen();
+      });
+      return () => { try { unsub?.(); } catch { /* ignore */ } };
     });
   } catch (e) {
     console.error('[aura-spike] rightbar 注册失败:', e?.message ?? e);
