@@ -108,7 +108,9 @@ export const REGISTRY = [
       + '【必须】用预设结构类写骨架，禁止写死颜色/字号/自创卡片样式：'
       + "<div class='a-h1'>标题</div><div class='a-kpi'><div><b>2021</b><span>成立</span></div></div>"
       + "<h3 class='a-h2'>小节</h3><table class='a-table'><tr><th>键</th><td>值</td></tr></table>"
-      + "<p>正文</p><span class='a-chip'>A级</span><div class='a-note'>提示</div><div class='a-warn'>警告</div>"
+      + "<p>正文</p><span class='a-chip'>A级</span><span class='a-chip a-chip--ok'>已核实</span>"
+      + "<span class='a-chip a-chip--bad'>已落标</span><span class='a-chip a-chip--warn'>待确认</span>"
+      + "<div class='a-note'>提示</div><div class='a-warn'>警告</div>"
       + "<div class='a-ok'>正向</div><div class='a-bad'>负向</div><blockquote class='a-quote'>引用</blockquote>"
       + "<ul class='a-list'><li>条目</li></ul>。"
       + '可用类：a-card/a-kpi/a-h1/a-h2/a-table/a-chip/a-note/a-warn/a-ok/a-bad/a-quote/a-list/a-muted/a-accent/a-dim。'

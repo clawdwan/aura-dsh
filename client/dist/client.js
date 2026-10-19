@@ -181769,7 +181769,8 @@ img { max-width: 100%; }
 .a-table th,
 .a-table td {
   border-bottom: 1px solid var(--aura-border);
-  padding: 6px 8px;
+  padding: 7px 9px;
+  line-height: 1.6;
   text-align: left;
   vertical-align: top;
 }
@@ -181787,12 +181788,31 @@ img { max-width: 100%; }
   font-size: var(--aura-font-xs);
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: 1px 7px;
+  line-height: 1.45;
+  padding: 2px 8px;
   border-radius: 999px;
   background: var(--aura-accent-soft);
   color: var(--aura-accent-strong);
-  margin-right: 5px;
-  vertical-align: 1px;
+  margin: 2px 5px 2px 0;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+/* 语义色 chip（用类而不是内联样式） */
+.a-chip--ok {
+  background: rgba(31, 157, 85, 0.12);
+  color: #1a7f45;
+}
+.a-chip--bad {
+  background: rgba(207, 59, 59, 0.10);
+  color: #b13434;
+}
+.a-chip--warn {
+  background: rgba(212, 130, 10, 0.12);
+  color: #9a6208;
+}
+.a-chip--muted {
+  background: rgba(128, 128, 128, 0.12);
+  color: var(--aura-text-2);
 }
 .a-note {
   background: color-mix(in srgb, var(--aura-accent-soft) 55%, transparent);
@@ -181832,7 +181852,7 @@ img { max-width: 100%; }
   margin: 8px 0;
 }
 .a-list { padding-left: 18px; margin: 4px 0 8px; }
-.a-list li { margin: 3px 0; }
+.a-list li { margin: 5px 0; line-height: 1.7; }
 .a-muted { color: var(--aura-text-2); }
 .a-accent { color: var(--aura-accent); }
 .a-dim { font-size: 11.5px; color: var(--aura-text-2); }
