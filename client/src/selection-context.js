@@ -21,8 +21,8 @@ function traceSource(nodes, cardId) {
     if (!raw.includes(cardId)) continue;
     if (node.kind !== 'tool-call' && node.kind !== 'tool-result') continue;
 
-    // 尝试拿 turn 号与工具名
-    const turn = node.data?.turn ?? node.turn;
+    // turn 号：不同版本挂在 data / location / anchorSeq 上，逐一兜底
+    const turn = node.data?.turn ?? node.location?.turn ?? node.turn ?? node.anchorSeq;
     const name = node.data?.root?.name ?? node.data?.call?.name ?? node.data?.name;
     if (name && name !== 'aura_panel') continue;
 
@@ -102,7 +102,8 @@ export function buildSelectionContext({ cards, rect, question, nodes, panelWidth
     lines.push('');
     lines.push('【来源（自动追溯）】');
     for (const t of traces) {
-      lines.push(`- 「${t.id}」：由 turn #${t.turn ?? '?'} 的 ${t.tool} 调用生成`);
+      const where = Number.isFinite(t.turn) ? `turn #${t.turn}` : '本会话';
+      lines.push(`- 「${t.id}」：由${where}的 ${t.tool} 调用生成`);
       if (t.userMsg) lines.push(`  · 该轮用户说：「${t.userMsg}」`);
       if (t.tools?.length) lines.push(`  · 该轮工具：${t.tools.join(', ')}`);
     }

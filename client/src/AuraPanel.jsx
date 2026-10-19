@@ -123,6 +123,7 @@ export default function AuraPanel(props) {
   const [lastResult, setLastResult] = React.useState(null);
   const [selecting, setSelecting] = React.useState(false);
   const panelRef = React.useRef(null);
+  const cardsRef = React.useRef([]);
   const nodesRef = React.useRef([]);
 
   // 会话节点（供圈选提问时做来源追溯；与卡片选择器分开，避免互相影响引用稳定性）
@@ -132,8 +133,10 @@ export default function AuraPanel(props) {
   /** 圈选提问：拼上下文 → 发到当前会话（消息在对话流可见） */
   const handleInquiry = React.useCallback(async ({ cards: hitCards, rect, question }) => {
     if (typeof __auraSend !== 'function') throw new Error('未注入发送函数');
+    // SelectionLayer 只拿得到 DOM 上的 id/title，这里用 id 从完整卡片列表补全 type/data
+    const full = hitCards.map((h) => cardsRef.current.find((c) => c.id === h.id) ?? h);
     const ctx = buildSelectionContext({
-      cards: hitCards,
+      cards: full,
       rect,
       question,
       nodes: nodesRef.current,
@@ -181,6 +184,7 @@ export default function AuraPanel(props) {
         (a, b) => a === b || (a.length === b.length && a.every((x, i) => x?.id === b[i]?.id)),
       )
     : EMPTY;
+  cardsRef.current = cards;
 
   if (cards.length === 0) {
     return (

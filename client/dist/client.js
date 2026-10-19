@@ -183296,7 +183296,7 @@ function traceSource(nodes, cardId) {
 		if (!node) continue;
 		if (!JSON.stringify(node.data ?? node).includes(cardId)) continue;
 		if (node.kind !== "tool-call" && node.kind !== "tool-result") continue;
-		const turn = node.data?.turn ?? node.turn;
+		const turn = node.data?.turn ?? node.location?.turn ?? node.turn ?? node.anchorSeq;
 		const name = node.data?.root?.name ?? node.data?.call?.name ?? node.data?.name;
 		if (name && name !== "aura_panel") continue;
 		return {
@@ -183364,7 +183364,8 @@ function buildSelectionContext({ cards, rect, question, nodes, panelWidth, panel
 		lines.push("");
 		lines.push("【来源（自动追溯）】");
 		for (const t of traces) {
-			lines.push(`- 「${t.id}」：由 turn #${t.turn ?? "?"} 的 ${t.tool} 调用生成`);
+			const where = Number.isFinite(t.turn) ? `turn #${t.turn}` : "本会话";
+			lines.push(`- 「${t.id}」：由${where}的 ${t.tool} 调用生成`);
 			if (t.userMsg) lines.push(`  · 该轮用户说：「${t.userMsg}」`);
 			if (t.tools?.length) lines.push(`  · 该轮工具：${t.tools.join(", ")}`);
 		}
@@ -183482,13 +183483,14 @@ function AuraPanel(props) {
 	const [lastResult, setLastResult] = react$1.default.useState(null);
 	const [selecting, setSelecting] = react$1.default.useState(false);
 	const panelRef = react$1.default.useRef(null);
+	const cardsRef = react$1.default.useRef([]);
 	const nodesRef = react$1.default.useRef([]);
 	nodesRef.current = useChat ? useChat((snapshot) => snapshot?.nodes?.values?.() ?? []) : [];
 	/** 圈选提问：拼上下文 → 发到当前会话（消息在对话流可见） */
 	const handleInquiry = react$1.default.useCallback(async ({ cards: hitCards, rect, question }) => {
 		if (typeof __auraSend !== "function") throw new Error("未注入发送函数");
 		const ctx = buildSelectionContext({
-			cards: hitCards,
+			cards: hitCards.map((h) => cardsRef.current.find((c) => c.id === h.id) ?? h),
 			rect,
 			question,
 			nodes: nodesRef.current,
@@ -183526,6 +183528,7 @@ function AuraPanel(props) {
 		}
 		return (Array.isArray(found?.cards) ? found.cards : null) ?? EMPTY;
 	}, (a, b) => a === b || a.length === b.length && a.every((x, i) => x?.id === b[i]?.id)) : EMPTY;
+	cardsRef.current = cards;
 	if (cards.length === 0) return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 		className: "aura-panel-empty-state",
 		children: [
