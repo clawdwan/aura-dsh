@@ -181684,8 +181684,7 @@ function themeVars() {
 }
 function HtmlCard({ data }) {
 	const html = typeof data?.html === "string" ? data.html : "";
-	const fixedHeight = typeof data?.height === "number" && data.height > 0 ? data.height : null;
-	const [height, setHeight] = (0, react$1.useState)(fixedHeight ?? 180);
+	const [height, setHeight] = (0, react$1.useState)(180);
 	const frameRef = (0, react$1.useRef)(null);
 	const srcdoc = (0, react$1.useMemo)(() => {
 		return `<!doctype html>
@@ -181851,19 +181850,25 @@ img { max-width: 100%; }
 .a-text-warn { color: #9a6208; font-weight: 600; }
 .a-text-accent { color: var(--aura-accent); font-weight: 600; }
 
-/* 语义块被放进表格单元格时自动降级：去掉背景/边框/内边距/外边距 */
-td.a-ok, th.a-ok, td.a-bad, th.a-bad, td.a-warn, th.a-warn, td.a-note, th.a-note {
+/* 语义类用在行内元素/表格单元格时自动降级为文字色：
+   （agent 常写 <b class='a-ok'>、<span class='a-bad'>、<td class='a-ok'>，
+     块级样式套上去会撑高行高、行间压叠） */
+b.a-ok, span.a-ok, strong.a-ok, em.a-ok, i.a-ok, a.a-ok, td.a-ok, th.a-ok,
+b.a-bad, span.a-bad, strong.a-bad, em.a-bad, i.a-bad, a.a-bad, td.a-bad, th.a-bad,
+b.a-warn, span.a-warn, strong.a-warn, em.a-warn, i.a-warn, a.a-warn, td.a-warn, th.a-warn,
+b.a-note, span.a-note, strong.a-note, em.a-note, i.a-note, a.a-note, td.a-note, th.a-note {
   background: none;
   border: none;
   border-radius: 0;
   padding: 0;
   margin: 0;
   font-size: inherit;
+  display: inline;
 }
-td.a-ok, th.a-ok { color: #1a7f45; }
-td.a-bad, th.a-bad { color: #b13434; }
-td.a-warn, th.a-warn { color: #9a6208; }
-td.a-note, th.a-note { color: var(--aura-text-2); }
+b.a-ok, span.a-ok, strong.a-ok, em.a-ok, i.a-ok, a.a-ok, td.a-ok, th.a-ok { color: #1a7f45; }
+b.a-bad, span.a-bad, strong.a-bad, em.a-bad, i.a-bad, a.a-bad, td.a-bad, th.a-bad { color: #b13434; }
+b.a-warn, span.a-warn, strong.a-warn, em.a-warn, i.a-warn, a.a-warn, td.a-warn, th.a-warn { color: #9a6208; }
+b.a-note, span.a-note, strong.a-note, em.a-note, i.a-note, a.a-note, td.a-note, th.a-note { color: var(--aura-text-2); }
 
 .a-quote {
   border-left: 3px solid var(--aura-border-strong);
@@ -181898,7 +181903,6 @@ ${html}
 </html>`;
 	}, [html]);
 	(0, react$1.useEffect)(() => {
-		if (fixedHeight) return void 0;
 		const onMessage = (e) => {
 			const d = e.data;
 			if (!d || d.__auraHtmlHeight !== true || typeof d.height !== "number") return;
@@ -181907,7 +181911,7 @@ ${html}
 		};
 		window.addEventListener("message", onMessage);
 		return () => window.removeEventListener("message", onMessage);
-	}, [fixedHeight]);
+	}, []);
 	if (!html) return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 		className: "aura-html-empty",
 		children: "（html 卡内容为空）"
@@ -181918,7 +181922,7 @@ ${html}
 		title: "aura-html",
 		sandbox: "allow-scripts",
 		srcDoc: srcdoc,
-		style: fixedHeight ? { height: `${fixedHeight}px` } : { height: `${height}px` }
+		style: { height: `${height}px` }
 	});
 }
 //#endregion
