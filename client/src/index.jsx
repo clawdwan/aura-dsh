@@ -55,6 +55,7 @@ export function apply(ctx) {
     ctx.slots.inject('sidebar.right.pane.tab', () => {
       const AuraPanelBody = (props) => (
         <AuraPanel
+          key={props?.sessionId}
           {...props}
           __auraSend={(t) => {
             const sid = props?.sessionId;
@@ -82,7 +83,12 @@ export function apply(ctx) {
         if (!already) ctx.sidebarRight.openTab('aura-panel');
       } catch { /* 打开失败不影响插件 */ }
     };
-    setTimeout(ensurePanelOpen, 1200);
+    // 幂等补开：启动后立即 + 持续检查（切换会话/新建会话后 tab 若被关掉会自动补开）
+    ctx.effect(() => {
+      ensurePanelOpen();
+      const timer = setInterval(ensurePanelOpen, 1000);
+      return () => clearInterval(timer);
+    });
   } catch (e) {
     console.error('[aura-spike] rightbar 注册失败:', e?.message ?? e);
   }

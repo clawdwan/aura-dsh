@@ -24,6 +24,7 @@ import TrendChart from './components/TrendChart';
 import Graph from './components/Graph';
 import DataTree from './components/DataTree';
 import Timeline from './components/Timeline';
+import HtmlCard from './components/HtmlCard';
 
 /** 按 comp.type 分派到 9 个组件；未知类型降级为 JSON fallback。 */
 /** 卡片出场动画时长（秒）。
@@ -40,6 +41,7 @@ const ANIM_DURATION = {
   step_bar: 0.8,
   comparison_table: 0.7,
   timeline: 0.6,
+  html: 0.35,
   insight_cards: 0.6,
   article_list: 0.6,
 };
@@ -74,6 +76,8 @@ function renderInner(comp) {
       return <Graph key={comp.title || 'g'} title={comp.title} data={comp.data} />;
     case 'data_tree':
       return <DataTree key={comp.title || 'd'} title={comp.title} data={comp.data} />;
+    case 'html':
+      return <HtmlCard key={comp.title || 'h'} data={comp.data} />;
     case 'timeline':
       return <Timeline key={comp.title || 'l'} title={comp.title} data={comp.data} />;
     default:

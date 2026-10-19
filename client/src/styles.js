@@ -1260,5 +1260,34 @@ svg.react-flow__connectionline {
   padding: 4px 8px;
   word-break: break-all;
 }
+/* ---- HTML 富文档卡片（沙箱 iframe） ---- */
+.aura-html-card {
+  width: 100%;
+  border: 1px solid rgba(128, 128, 128, 0.12);
+  border-radius: 10px;
+  background: transparent;
+  display: block;
+  overflow: hidden;
+}
+.aura-html-empty {
+  padding: 16px;
+  font-size: 12px;
+  opacity: 0.6;
+  text-align: center;
+  border: 1px dashed rgba(128, 128, 128, 0.25);
+  border-radius: 10px;
+}
+/* ---- 面板加载中（会话历史异步加载的兜底） ---- */
+.aura-panel-loading-state {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 12px;
+}
+.aura-panel-loading-text {
+  font-size: 11px;
+  opacity: 0.5;
+  margin-top: 4px;
+}
 `;
 export default auraCss;

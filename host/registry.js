@@ -96,6 +96,16 @@ export const REGISTRY = [
     downgrade_to: 'comparison_table',
     category: 'structure',
   },
+  {
+    type: 'html',
+    label: 'HTML 富文档',
+    description: 'agent 直接生成的 HTML，在沙箱 iframe 中渲染（安全隔离、跟随主题），适合调研报告、长文档、富排版、自由布局',
+    best_for: ['调研报告', '长文档', '富排版', '自由布局', '自定义布局'],
+    input_shape: 'html_document',
+    data_schema: '{ html: "完整 HTML 片段（用 var(--aura-*) 跟随主题）", height?: number }',
+    downgrade_to: 'comparison_table',
+    category: 'content',
+  },
 ];
 
 

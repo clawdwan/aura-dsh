@@ -122,6 +122,12 @@ export default function AuraPanel(props) {
   const [sendingId, setSendingId] = React.useState(null);
   const [lastResult, setLastResult] = React.useState(null);
   const [selecting, setSelecting] = React.useState(false);
+  const [hydrated, setHydrated] = React.useState(false);
+  React.useEffect(() => {
+    // 会话历史是异步加载的：短暂窗口内没卡片先显示"加载中"，避免误报"暂无卡片"
+    const timer = setTimeout(() => setHydrated(true), 900);
+    return () => clearTimeout(timer);
+  }, []);
   const panelRef = React.useRef(null);
   const cardsRef = React.useRef([]);
   const nodesRef = React.useRef([]);
@@ -188,6 +194,16 @@ export default function AuraPanel(props) {
   cardsRef.current = cards;
 
   if (cards.length === 0) {
+    if (!hydrated) {
+      return (
+        <div className="aura-panel-loading-state">
+          <div className="aura-skeleton-line" style={{ width: '72%' }} />
+          <div className="aura-skeleton-line" style={{ width: '88%' }} />
+          <div className="aura-skeleton-line" style={{ width: '60%' }} />
+          <span className="aura-panel-loading-text">正在读取面板…</span>
+        </div>
+      );
+    }
     return (
       <div className="aura-panel-empty-state">
         面板暂无卡片。agent 调用 <code>aura_panel</code> 推送后会显示在这里。
