@@ -74,29 +74,23 @@ export function apply(ctx) {
       );
       return ctx.slots.register({ name: 'sidebar.right.pane.tab', key: 'dsh-aura-panel' }, AuraPanelBody);
     });
-    // 面板自动打开：仅在 tab 尚未打开时补开（幂等，不会重复弹）
-    // 注意：不要用 sessionStorage 记忆"已打开过"——那会导致后续会话看不到面板
-    const ensurePanelOpen = () => {
-      try {
-        const tabs = ctx.sidebarRight.tabsIn?.() ?? [];
-        const already = Array.isArray(tabs) && tabs.some((x) => (x?.kind ?? x?.id) === 'aura-panel');
-        if (!already) ctx.sidebarRight.openTab('aura-panel');
-      } catch { /* 打开失败不影响插件 */ }
-    };
-    // 只在这两个时机补开，避免"用户主动收起后又被强制弹出"：
-    //   ① 插件启动（首次进页面）
-    //   ② 切换到另一个会话（新会话默认展示面板）
+    // 面板自动打开：只在启动窗口内尝试一次（打开成功或发出指令后就不再管）。
+    // 刻意不做轮询/不做会话切换自动打开——用户主动收起后绝不能再打扰。
     ctx.effect(() => {
-      ensurePanelOpen();
-      const obs = ctx.sidebarRight?.onScreen;
-      if (!obs || typeof obs.subscribe !== 'function') return undefined;
-      let last;
-      const unsub = obs.subscribe((sid) => {
-        if (!sid || sid === last) return;   // 同一会话的重复通知不处理
-        last = sid;
-        ensurePanelOpen();
-      });
-      return () => { try { unsub?.(); } catch { /* ignore */ } };
+      let settled = false;
+      const tryOpen = () => {
+        if (settled) return;
+        try {
+          const tabs = ctx.sidebarRight?.tabsIn?.() ?? [];
+          const isOpen = Array.isArray(tabs) && tabs.some((x) => (x?.kind ?? x?.id) === 'aura-panel');
+          if (isOpen) { settled = true; return; }
+          ctx.sidebarRight?.openTab?.('aura-panel');
+          settled = true;   // 发出打开指令即视为完成，不再重试
+        } catch { /* 等下一次（仅启动窗口内）重试 */ }
+      };
+      tryOpen();
+      const retry = setTimeout(tryOpen, 1500);
+      return () => clearTimeout(retry);
     });
   } catch (e) {
     console.error('[aura-spike] rightbar 注册失败:', e?.message ?? e);
