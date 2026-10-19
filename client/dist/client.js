@@ -181845,6 +181845,26 @@ img { max-width: 100%; }
   font-size: var(--aura-font-sm);
   margin: 8px 0;
 }
+/* 行内/表格里的语义色（无背景无边框，只改文字色）——配合表格单元格使用 */
+.a-text-ok { color: #1a7f45; font-weight: 600; }
+.a-text-bad { color: #b13434; font-weight: 600; }
+.a-text-warn { color: #9a6208; font-weight: 600; }
+.a-text-accent { color: var(--aura-accent); font-weight: 600; }
+
+/* 语义块被放进表格单元格时自动降级：去掉背景/边框/内边距/外边距 */
+td.a-ok, th.a-ok, td.a-bad, th.a-bad, td.a-warn, th.a-warn, td.a-note, th.a-note {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+}
+td.a-ok, th.a-ok { color: #1a7f45; }
+td.a-bad, th.a-bad { color: #b13434; }
+td.a-warn, th.a-warn { color: #9a6208; }
+td.a-note, th.a-note { color: var(--aura-text-2); }
+
 .a-quote {
   border-left: 3px solid var(--aura-border-strong);
   padding-left: 10px;
