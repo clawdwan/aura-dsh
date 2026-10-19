@@ -24,6 +24,11 @@ export default defineConfig({
   define: {
     'process.env.NODE_ENV': JSON.stringify('production'),
   },
+  // DSH 模块加载器只加载 client.js（不含额外 chunk），
+  // 因此内联所有动态导入，避免产物被拆成加载不到的文件
+  outputOptions: {
+    inlineDynamicImports: true,
+  },
   deps: {
     // DSH shell 提供的基础（react 等）保持 external；antd/echarts 依赖树必须打包
     neverBundle: [
@@ -36,6 +41,6 @@ export default defineConfig({
       '@deepseek-ai/dsh-api-remotes',
       '@deepseek-ai/cordis',
     ],
-    alwaysBundle: [/^(antd|echarts|rc-|@rc-component|@ant-design|@babel\/runtime)/],
+    alwaysBundle: [/^(antd|echarts|@xyflow|@dagrejs|graphlib|d3|khroma|dompurify|cytoscape|stylis|ts-dedent|marked|@iconify|elkjs|katex|roughjs|uuid|micromark|mdast|unist|vfile|rc-|@rc-component|@ant-design|@babel\/runtime)/],
   },
 });

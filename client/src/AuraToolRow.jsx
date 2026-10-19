@@ -13,17 +13,52 @@
  *  解析结果 {text, components}；components 为空 → 降级为 fallback 文本。
  */
 import React from 'react';
+import { ConfigProvider } from 'antd';
+import { auraTheme } from './auraTheme';
 import MetricCard from './components/MetricCard';
 import ComparisonTable from './components/ComparisonTable';
 import StepBar from './components/StepBar';
 import InsightCards from './components/InsightCards';
 import ArticleList from './components/ArticleList';
 import TrendChart from './components/TrendChart';
+import Graph from './components/Graph';
 import DataTree from './components/DataTree';
 import Timeline from './components/Timeline';
+import HtmlCard from './components/HtmlCard';
 
-/** 按 comp.type 分派到 8 个组件；未知类型降级为 JSON fallback。 */
+/** 按 comp.type 分派到 9 个组件；未知类型降级为 JSON fallback。 */
+/** 卡片出场动画时长（秒）。
+ *  两类组件区别对待：
+ *   - 有【内容级动画】的（graph/trend_chart/metric_card/data_tree）：卡片快速就位(0.22s)，
+ *     把视觉焦点让给内部动画（节点生长 / 折线绘制 / 数字滚动）——否则两者重叠会互相掩盖
+ *   - 【静态内容】的（表格/列表/洞察/步骤/时间线）：卡片淡入 + 子项错峰浮现
+ */
+const ANIM_DURATION = {
+  graph: 0.22,
+  trend_chart: 0.22,
+  metric_card: 0.22,
+  data_tree: 0.22,
+  step_bar: 0.8,
+  comparison_table: 0.7,
+  timeline: 0.6,
+  html: 0.35,
+  insight_cards: 0.6,
+  article_list: 0.6,
+};
+
 export function renderComponent(comp) {
+  const dur = ANIM_DURATION[comp?.type] ?? 0.5;
+  // 统一 Play 风主题 + 出场动画（时长按组件类型）
+  return (
+    <ConfigProvider theme={auraTheme}>
+      <div className="aura-anim-in" style={{ '--aura-anim-dur': `${dur}s` }}>
+        {renderInner(comp)}
+      </div>
+    </ConfigProvider>
+  );
+}
+
+function renderInner(comp) {
   switch (comp?.type) {
     case 'metric_card':
       return <MetricCard key={comp.title || 'm'} title={comp.title} data={comp.data} />;
@@ -37,8 +72,12 @@ export function renderComponent(comp) {
       return <ArticleList key={comp.title || 'a'} title={comp.title} data={comp.data} />;
     case 'trend_chart':
       return <TrendChart key={comp.title || 'c'} title={comp.title} data={comp.data} />;
+    case 'graph':
+      return <Graph key={comp.title || 'g'} title={comp.title} data={comp.data} />;
     case 'data_tree':
       return <DataTree key={comp.title || 'd'} title={comp.title} data={comp.data} />;
+    case 'html':
+      return <HtmlCard key={comp.title || 'h'} data={comp.data} />;
     case 'timeline':
       return <Timeline key={comp.title || 'l'} title={comp.title} data={comp.data} />;
     default:

@@ -12,7 +12,7 @@ export const REGISTRY = [
     description: '单个数据卡片的网格排列，每张卡有标签+数值+变化量',
     best_for: ['关键指标', '涨跌展示', '数量对比'],
     input_shape: 'list_of_label_value_pairs_with_change',
-    data_schema: '{ metrics: [{ label, value, change?, size? }] }',
+    data_schema: '{ metrics: [{ label, value, change?, size?, kind? }] }（kind 决定数字表现：amount=金额/市值→千分位+滚动；count=计数、year=年份、ratio=比率、index=指数点位→原样显示不滚动；缺省=原样显示。value 用字符串原样传）',
     downgrade_to: 'comparison_table',
     category: 'display',
   },
@@ -67,6 +67,16 @@ export const REGISTRY = [
     category: 'display',
   },
   {
+    type: 'graph',
+    label: '关系图',
+    description: '现代交互式关系图（节点+连线，自动层次布局，可缩放平移），适合架构、依赖、调用链、实体关系；节点用界面同款样式渲染',
+    best_for: ['架构关系', '依赖拓扑', '调用链', '实体关系网', '流程节点'],
+    input_shape: 'graph_nodes_edges',
+    data_schema: '{ direction?: "TB"|"LR", nodes: [{ id, label, tag?, kind? }], edges: [{ source, target, label? }] }（tag 是小号大写标签，如 "BUILD"/"PLAN"；kind 取 primary(暖橙强调)/accent(淡色)/muted(虚线弱化)）',
+    downgrade_to: 'data_tree',
+    category: 'display',
+  },
+  {
     type: 'data_tree',
     label: '树干图',
     description: 'SVG 贝塞尔层级数据树，适合有层级归属的信息展示（思维导图）',
@@ -85,6 +95,28 @@ export const REGISTRY = [
     data_schema: '{ events: [{ time|date, title, description?, color? }] }',
     downgrade_to: 'comparison_table',
     category: 'structure',
+  },
+  {
+    type: 'html',
+    label: 'HTML 富文档',
+    description: 'agent 直接生成的 HTML，在沙箱 iframe 中渲染（安全隔离、跟随主题），适合调研报告、长文档、富排版、自由布局',
+    best_for: ['调研报告', '长文档', '富排版', '自由布局', '自定义布局'],
+    input_shape: 'html_document',
+    data_schema: '{ html: string, height?: number }。'
+      + '【安全】HTML 属性一律用单引号（class=\'a-h1\'），避免 JSON 双引号转义出错；'
+      + '【长度】单卡 html 建议 ≤ 6000 字符，超长请拆成多张卡分别 upsert；'
+      + '【必须】用预设结构类写骨架，禁止写死颜色/字号/自创卡片样式：'
+      + "<div class='a-h1'>标题</div><div class='a-kpi'><div><b>2021</b><span>成立</span></div></div>"
+      + "<h3 class='a-h2'>小节</h3><table class='a-table'><tr><th>键</th><td>值</td></tr></table>"
+      + "<p>正文</p><span class='a-chip'>A级</span><span class='a-chip a-chip--ok'>已核实</span>"
+      + "<span class='a-chip a-chip--bad'>已落标</span><span class='a-chip a-chip--warn'>待确认</span>"
+      + "<div class='a-note'>提示</div><div class='a-warn'>警告</div>"
+      + "<div class='a-ok'>正向</div><div class='a-bad'>负向</div><blockquote class='a-quote'>引用</blockquote>"
+      + "<ul class='a-list'><li>条目</li></ul>。"
+      + '可用类：a-card/a-kpi/a-h1/a-h2/a-table/a-chip/a-note/a-warn/a-ok/a-bad/a-quote/a-list/a-muted/a-accent/a-dim。'
+      + '需要颜色时用 var(--aura-text|--aura-text-2|--aura-accent|--aura-surface|--aura-border)',
+    downgrade_to: 'comparison_table',
+    category: 'content',
   },
 ];
 

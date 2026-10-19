@@ -36,6 +36,11 @@ function buildOption(data) {
   const unit = data?.unit ?? '';
   const categories = series[0]?.points.map((p) => p.x) ?? [];
   return {
+    // 画出动画：折线从左到右展开（录屏友好）
+    animation: true,
+    animationDuration: 1400,
+    animationEasing: 'cubicOut',
+    animationThreshold: 2000,
     grid: { left: 44, right: 16, top: 24, bottom: 28 },
     tooltip: { trigger: 'axis' },
     legend: series.length > 1 ? { bottom: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 8 } : undefined,
@@ -75,8 +80,11 @@ export default function TrendChart({ title, data }) {
 
   return (
     <div style={{ margin: '4px 0' }}>
-      {title ? <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{title}</div> : null}
-      <div ref={ref} style={{ width: '100%', height: 240 }} />
+      {title ? <div className="aura-chart-title">{title}</div> : null}
+      {/* clip-path 遮罩：让整张图（线+点+坐标区）像笔刷一样从左到右画出 */}
+      <div className="aura-chart-draw">
+        <div ref={ref} style={{ width: '100%', height: 240 }} />
+      </div>
     </div>
   );
 }
