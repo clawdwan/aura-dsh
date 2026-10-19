@@ -11,8 +11,6 @@
  */
 import React, { useMemo } from 'react';
 import { renderComponent } from './AuraToolRow';
-import SelectionLayer from './SelectionLayer';
-import { buildSelectionContext } from './selection-context';
 
 /**
  * 从会话节点提取 aura_panel 的返回值 {cards}。
@@ -121,28 +119,6 @@ export default function AuraPanel(props) {
   const { useChat, __auraSend } = props;
   const [sendingId, setSendingId] = React.useState(null);
   const [lastResult, setLastResult] = React.useState(null);
-  const [selecting, setSelecting] = React.useState(false);
-  const panelRef = React.useRef(null);
-  const nodesRef = React.useRef([]);
-
-  // 会话节点（供圈选提问时做来源追溯；与卡片选择器分开，避免互相影响引用稳定性）
-  const liveNodes = useChat ? useChat((snapshot) => snapshot?.nodes?.values?.() ?? []) : [];
-  nodesRef.current = liveNodes;
-
-  /** 圈选提问：拼上下文 → 发到当前会话（消息在对话流可见） */
-  const handleInquiry = React.useCallback(async ({ cards: hitCards, rect, question }) => {
-    if (typeof __auraSend !== 'function') throw new Error('未注入发送函数');
-    const ctx = buildSelectionContext({
-      cards: hitCards,
-      rect,
-      question,
-      nodes: nodesRef.current,
-      panelWidth: panelRef.current?.offsetWidth,
-      panelHeight: panelRef.current?.offsetHeight,
-    });
-    const res = await __auraSend(ctx);
-    if (!res?.ok) throw new Error(res?.error?.message ?? '发送失败');
-  }, [__auraSend]);
 
   const handleAction = React.useCallback(async (action) => {
     if (typeof __auraSend !== 'function') {
@@ -191,26 +167,11 @@ export default function AuraPanel(props) {
   }
 
   return (
-    <div className="aura-panel" ref={panelRef}>
-      <div className="aura-panel-toolbar">
-        <button
-          type="button"
-          className={`aura-panel-tool${selecting ? ' aura-panel-tool--active' : ''}`}
-          onClick={() => setSelecting((v) => !v)}
-        >
-          {selecting ? '✕ 退出圈选' : '🔍 圈选提问'}
-        </button>
-        {selecting ? <span className="aura-panel-tool-hint">在面板上拖拽圈选要提问的区域</span> : null}
-      </div>
+    <div className="aura-panel">
       {cards.map((card) => {
         const actions = Array.isArray(card.actions) ? card.actions : [];
         return (
-          <section
-            key={card.id}
-            className="aura-panel-card"
-            data-aura-card-id={card.id}
-            data-aura-card-title={card.title ?? card.id}
-          >
+          <section key={card.id} className="aura-panel-card">
             {card.title ? <h4 className="aura-panel-card-title">{card.title}</h4> : null}
             <div className="aura-panel-card-body">
               <CardBoundary>
@@ -238,12 +199,6 @@ export default function AuraPanel(props) {
           </section>
         );
       })}
-      <SelectionLayer
-        active={selecting}
-        containerRef={panelRef}
-        onInquiry={handleInquiry}
-        onCancel={() => setSelecting(false)}
-      />
     </div>
   );
 }
