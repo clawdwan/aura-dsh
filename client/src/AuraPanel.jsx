@@ -181,7 +181,8 @@ export default function AuraPanel(props) {
           const list = Array.isArray(found?.cards) ? found.cards : null;
           return list ?? EMPTY;
         },
-        (a, b) => a === b || (a.length === b.length && a.every((x, i) => x?.id === b[i]?.id)),
+        // 卡片数量很少，用全量 JSON 比较：只比 id 会让「同 id 更新 data」被漏掉
+        (a, b) => a === b || JSON.stringify(a) === JSON.stringify(b),
       )
     : EMPTY;
   cardsRef.current = cards;

@@ -183521,7 +183521,7 @@ function AuraPanel(props) {
 			if (r) found = r;
 		}
 		return (Array.isArray(found?.cards) ? found.cards : null) ?? EMPTY;
-	}, (a, b) => a === b || a.length === b.length && a.every((x, i) => x?.id === b[i]?.id)) : EMPTY;
+	}, (a, b) => a === b || JSON.stringify(a) === JSON.stringify(b)) : EMPTY;
 	cardsRef.current = cards;
 	if (cards.length === 0) return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 		className: "aura-panel-empty-state",
