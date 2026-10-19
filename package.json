@@ -1,6 +1,6 @@
 {
   "name": "dsh-aura",
-  "description": "Aura 通用展示层插件（候选2 静态 cordis 插件包）：host 半 aura_render 工具 + browser 半 tool.call.toolview 渲染器（5 组件）",
+  "description": "Aura 通用展示层插件：对话流内嵌组件（aura_render）+ 会话右侧面板（aura_panel），10 种视觉组件，支持 HTML 富文档、圈选提问、骨架屏与出场动画",
   "version": "0.5.0",
   "private": false,
   "type": "module",
@@ -74,5 +74,23 @@
     "react-dom": {
       "optional": false
     }
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clawdwan/aura-dsh.git"
+  },
+  "homepage": "https://github.com/clawdwan/aura-dsh#readme",
+  "bugs": {
+    "url": "https://github.com/clawdwan/aura-dsh/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "aura",
+    "visualization",
+    "antd",
+    "echarts",
+    "chart",
+    "dashboard"
+  ]
 }
