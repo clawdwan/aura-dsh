@@ -1,0 +1,190 @@
+/**
+ * aura-dsh / client / src / SelectionLayer.jsx
+ * 面板圈选提问层（MVP-1）。
+ *
+ * 交互：点面板顶部「圈选提问」→ 进入圈选模式（十字光标）→ 在面板上拖拽画框
+ *      → 命中检测（矩形 ∩ 卡片）→ 浮层输入问题 → 回调 onInquiry。
+ *
+ * 设计要点：
+ *  - 圈选层覆盖整个面板（absolute inset-0），只在 active 时可交互
+ *  - 命中检测用 getBoundingClientRect 的矩形相交（不要求完全包含）
+ *  - 浮层输入框就地弹出（不跳对话区），提交后由父组件拼上下文发到会话
+ */
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+
+/** 两矩形是否相交 */
+function intersects(a, b) {
+  return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+}
+
+export default function SelectionLayer({ active, containerRef, onInquiry, onCancel }) {
+  const [rect, setRect] = useState(null);        // 正在画的选框 { left, top, width, height }
+  const [hits, setHits] = useState(null);        // 命中卡片 [{ id, title }]
+  const [question, setQuestion] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const startRef = useRef(null);                 // 起点（相对容器）
+  const inputRef = useRef(null);
+
+  // 进入圈选模式时聚焦输入（若已有浮层）
+  useEffect(() => {
+    if (!active) {
+      setRect(null);
+      setHits(null);
+      setQuestion('');
+    }
+  }, [active]);
+
+  /** 把鼠标事件转成相对容器的坐标 */
+  const toLocal = useCallback((e) => {
+    const box = containerRef.current?.getBoundingClientRect();
+    if (!box) return { x: 0, y: 0 };
+    return { x: e.clientX - box.left, y: e.clientY - box.top };
+  }, [containerRef]);
+
+  const handlePointerDown = useCallback((e) => {
+    if (!active || hits) return;                 // 已有结果时不重复圈选
+    e.preventDefault();
+    const p = toLocal(e);
+    startRef.current = p;
+    setRect({ left: p.x, top: p.y, width: 0, height: 0 });
+  }, [active, hits, toLocal]);
+
+  const handlePointerMove = useCallback((e) => {
+    if (!startRef.current || hits) return;
+    const p = toLocal(e);
+    const s = startRef.current;
+    setRect({
+      left: Math.min(s.x, p.x),
+      top: Math.min(s.y, p.y),
+      width: Math.abs(p.x - s.x),
+      height: Math.abs(p.y - s.y),
+    });
+  }, [hits, toLocal]);
+
+  const handlePointerUp = useCallback((e) => {
+    if (!startRef.current || hits) return;
+    const p = toLocal(e);
+    const s = startRef.current;
+    const sel = {
+      left: Math.min(s.x, p.x),
+      top: Math.min(s.y, p.y),
+      width: Math.abs(p.x - s.x),
+      height: Math.abs(p.y - s.y),
+    };
+    startRef.current = null;
+
+    // 太小的框视为误操作
+    if (sel.width < 12 || sel.height < 12) {
+      setRect(null);
+      return;
+    }
+
+    // 命中检测：面板内所有带 data-aura-card-id 的卡片
+    const box = containerRef.current?.getBoundingClientRect();
+    const found = [];
+    if (box) {
+      const selAbs = {
+        left: sel.left + box.left,
+        top: sel.top + box.top,
+        right: sel.left + box.left + sel.width,
+        bottom: sel.top + box.top + sel.height,
+      };
+      containerRef.current.querySelectorAll('[data-aura-card-id]').forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (intersects(selAbs, { left: r.left, top: r.top, right: r.right, bottom: r.bottom })) {
+          found.push({
+            id: el.dataset.auraCardId,
+            title: el.dataset.auraCardTitle || el.dataset.auraCardId,
+          });
+        }
+      });
+    }
+    setRect(sel);
+    setHits(found);
+    if (found.length === 0) {
+      // 没命中卡片 → 提示后自动退出
+      setTimeout(() => { setRect(null); setHits(null); }, 1200);
+    }
+  }, [hits, toLocal, containerRef]);
+
+  const submit = useCallback(async () => {
+    if (!hits?.length || busy) return;
+    const q = question.trim();
+    if (!q) { inputRef.current?.focus(); return; }
+    setBusy(true);
+    setError(null);
+    try {
+      await onInquiry?.({ cards: hits, rect, question: q });
+      setRect(null);
+      setHits(null);
+      setQuestion('');
+    } catch (e) {
+      console.error('[aura-select] 发送失败:', e);
+      setError(e?.message ?? String(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [hits, busy, question, rect, onInquiry]);
+
+  if (!active) return null;
+
+  return (
+    <div
+      className={`aura-select-layer${hits ? ' aura-select-layer--done' : ''}`}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      role="button"
+      tabIndex={-1}
+      aria-label="圈选提问"
+    >
+      {rect ? (
+        <div
+          className="aura-select-box"
+          style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }}
+        />
+      ) : (
+        <div className="aura-select-hint">拖拽圈选要提问的区域（Esc 退出）</div>
+      )}
+
+      {hits ? (
+        <div
+          className="aura-select-popover"
+          style={{ left: Math.min(rect.left, 240), top: Math.min(rect.top + rect.height + 10, 320) }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="aura-select-popover-title">
+            {hits.length === 0
+              ? '没有命中卡片，请重新圈选'
+              : `命中 ${hits.length} 张卡：${hits.map((h) => h.title).join('、')}`}
+          </div>
+          {hits.length > 0 ? (
+            <>
+              <textarea
+                ref={inputRef}
+                className="aura-select-input"
+                rows={2}
+                placeholder="你想问什么？（例如：这段为什么突然跳升）"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
+                }}
+              />
+              {error ? <div className="aura-select-error">❌ {error}</div> : null}
+              <div className="aura-select-actions">
+                <button type="button" className="aura-select-btn aura-select-btn--primary" disabled={busy} onClick={submit}>
+                  {busy ? '发送中…' : '发送'}
+                </button>
+                <button type="button" className="aura-select-btn" onClick={() => { setRect(null); setHits(null); setQuestion(''); setError(null); }}>
+                  取消
+                </button>
+              </div>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
