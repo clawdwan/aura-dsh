@@ -35,6 +35,20 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
     }
   }, [active]);
 
+  // Esc 直接退出圈选模式
+  useEffect(() => {
+    if (!active) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        onCancel?.();
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [active, onCancel]);
+
   /** 把鼠标事件转成相对容器的坐标 */
   const toLocal = useCallback((e) => {
     const box = containerRef.current?.getBoundingClientRect();
@@ -119,6 +133,7 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
       setRect(null);
       setHits(null);
       setQuestion('');
+      onCancel?.();   // 发送后退出圈选模式（一次提问即完成）
     } catch (e) {
       console.error('[aura-select] 发送失败:', e);
       setError(e?.message ?? String(e));
@@ -177,7 +192,7 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
                 <button type="button" className="aura-select-btn aura-select-btn--primary" disabled={busy} onClick={submit}>
                   {busy ? '发送中…' : '发送'}
                 </button>
-                <button type="button" className="aura-select-btn" onClick={() => { setRect(null); setHits(null); setQuestion(''); setError(null); }}>
+                <button type="button" className="aura-select-btn" onClick={() => onCancel?.()}>
                   取消
                 </button>
               </div>

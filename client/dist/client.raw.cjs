@@ -69,26 +69,39 @@ const auraCss = `/* ============================================================
   margin-bottom: 8px;
 }
 
-/* ---- metric_card ---- */
+/* ---- metric_card（自渲染：数字格式由 kind 决定） ---- */
 .aura-metric-grid {
   display: flex;
-  gap: 8px;
+  gap: 16px;
   flex-wrap: wrap;
 }
-.aura-metric {
-  flex: 1 1 140px;
-  min-width: 120px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(128, 128, 128, 0.08);
+.aura-metric-item {
+  flex: 1 1 110px;
+  min-width: 100px;
 }
-.aura-metric .label { font-size: 12px; opacity: 0.7; }
-.aura-metric .value { font-size: 16px; font-weight: 700; }
-.aura-metric .value.positive { color: #22c55e; }
-.aura-metric .value.negative { color: #ef4444; }
-.aura-metric .change { font-size: 12px; }
-.aura-metric .change.positive { color: #22c55e; }
-.aura-metric .change.negative { color: #ef4444; }
+.aura-metric-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+.aura-metric-value {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.aura-metric-change {
+  font-size: 13px;
+  font-weight: 600;
+}
 
 /* ---- comparison_table ---- */
 .aura-table {
@@ -110650,7 +110663,7 @@ const genBaseStyle$4 = (token) => {
       `]: { ...genSkeletonColor(token) } }
 	};
 };
-const prepareComponentToken$16 = (token) => {
+const prepareComponentToken$15 = (token) => {
 	const { colorFillContent, colorFill } = token;
 	const gradientFromColor = colorFillContent;
 	const gradientToColor = colorFill;
@@ -110665,7 +110678,7 @@ const prepareComponentToken$16 = (token) => {
 		paragraphLiHeight: token.controlHeight / 2
 	};
 };
-var style_default$23 = genStyleHooks("Skeleton", (token) => {
+var style_default$22 = genStyleHooks("Skeleton", (token) => {
 	const { componentCls, calc } = token;
 	const skeletonToken = (0, import_lib$13.mergeToken)(token, {
 		skeletonAvatarCls: `${componentCls}-avatar`,
@@ -110681,14 +110694,14 @@ var style_default$23 = genStyleHooks("Skeleton", (token) => {
 		skeletonLoadingMotionDuration: "1.4s"
 	});
 	return genBaseStyle$4(skeletonToken);
-}, prepareComponentToken$16, { deprecatedTokens: [["color", "gradientFromColor"], ["colorGradientEnd", "gradientToColor"]] });
+}, prepareComponentToken$15, { deprecatedTokens: [["color", "gradientFromColor"], ["colorGradientEnd", "gradientToColor"]] });
 //#endregion
 //#region node_modules/.pnpm/antd@6.6.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/antd/es/skeleton/Avatar.js
 const SkeletonAvatar = (props) => {
 	const { prefixCls: customizePrefixCls, className, classNames, rootClassName, active, style, styles, shape = "circle", size: customSize, ...rest } = props;
 	const { getPrefixCls } = react.useContext(ConfigContext);
 	const prefixCls = getPrefixCls("skeleton", customizePrefixCls);
-	const [hashId, cssVarCls] = style_default$23(prefixCls);
+	const [hashId, cssVarCls] = style_default$22(prefixCls);
 	const mergedSize = useSize((ctx) => customSize ?? ctx);
 	const cls = clsx(prefixCls, `${prefixCls}-element`, { [`${prefixCls}-active`]: active }, classNames?.root, className, rootClassName, hashId, cssVarCls);
 	return /*#__PURE__*/ react.createElement("div", {
@@ -110712,7 +110725,7 @@ const SkeletonButton = (props) => {
 	const { prefixCls: customizePrefixCls, className, rootClassName, classNames, active, style, styles, block = false, size: customSize, ...rest } = props;
 	const { getPrefixCls } = react.useContext(ConfigContext);
 	const prefixCls = getPrefixCls("skeleton", customizePrefixCls);
-	const [hashId, cssVarCls] = style_default$23(prefixCls);
+	const [hashId, cssVarCls] = style_default$22(prefixCls);
 	const mergedSize = useSize((ctx) => customSize ?? ctx);
 	const cls = clsx(prefixCls, `${prefixCls}-element`, {
 		[`${prefixCls}-active`]: active,
@@ -110738,7 +110751,7 @@ const SkeletonNode = (props) => {
 	const { prefixCls: customizePrefixCls, className, classNames, rootClassName, internalClassName, style, styles, active, children } = props;
 	const { getPrefixCls } = react.useContext(ConfigContext);
 	const prefixCls = getPrefixCls("skeleton", customizePrefixCls);
-	const [hashId, cssVarCls] = style_default$23(prefixCls);
+	const [hashId, cssVarCls] = style_default$22(prefixCls);
 	const cls = clsx(prefixCls, `${prefixCls}-element`, { [`${prefixCls}-active`]: active }, hashId, classNames?.root, className, rootClassName, cssVarCls);
 	return /*#__PURE__*/ react.createElement("div", {
 		className: cls,
@@ -110776,7 +110789,7 @@ const SkeletonInput = (props) => {
 	const { prefixCls: customizePrefixCls, className, classNames, rootClassName, active, block, style, styles, size: customSize, ...rest } = props;
 	const { getPrefixCls } = react.useContext(ConfigContext);
 	const prefixCls = getPrefixCls("skeleton", customizePrefixCls);
-	const [hashId, cssVarCls] = style_default$23(prefixCls);
+	const [hashId, cssVarCls] = style_default$22(prefixCls);
 	const mergedSize = useSize((ctx) => customSize ?? ctx);
 	const cls = clsx(prefixCls, `${prefixCls}-element`, {
 		[`${prefixCls}-active`]: active,
@@ -110855,7 +110868,7 @@ const Skeleton = /*#__PURE__*/ react.default.forwardRef((props, ref) => {
 	const { prefixCls: customizePrefixCls, loading, className, rootClassName, classNames, style, styles, children, avatar = false, title = true, paragraph = true, active, round } = props;
 	const { getPrefixCls, direction, className: contextClassName, style: contextStyle, classNames: contextClassNames, styles: contextStyles } = useComponentConfig("skeleton");
 	const prefixCls = getPrefixCls("skeleton", customizePrefixCls);
-	const [hashId, cssVarCls] = style_default$23(prefixCls);
+	const [hashId, cssVarCls] = style_default$22(prefixCls);
 	const mergedProps = {
 		...props,
 		avatar,
@@ -112580,7 +112593,7 @@ const genTabsStyle = (token) => {
 		[`${componentCls}-centered`]: { [`> ${componentCls}-nav, > div > ${componentCls}-nav`]: { [`${componentCls}-nav-wrap`]: { [`&:not([class*='${componentCls}-nav-wrap-ping']) > ${componentCls}-nav-list`]: { margin: "auto" } } } }
 	};
 };
-const prepareComponentToken$15 = (token) => {
+const prepareComponentToken$14 = (token) => {
 	const { cardHeight, cardHeightSM, cardHeightLG, controlHeight, controlHeightLG } = token;
 	const mergedCardHeight = cardHeight || controlHeightLG;
 	const mergedCardHeightSM = cardHeightSM || controlHeight;
@@ -112614,7 +112627,7 @@ const prepareComponentToken$15 = (token) => {
 		cardGutter: token.marginXXS / 2
 	};
 };
-var style_default$22 = genStyleHooks("Tabs", (token) => {
+var style_default$21 = genStyleHooks("Tabs", (token) => {
 	const tabsToken = (0, import_lib$13.mergeToken)(token, {
 		tabsCardPadding: token.cardPadding,
 		dropdownEdgeChildVerticalPadding: token.paddingXXS,
@@ -112632,7 +112645,7 @@ var style_default$22 = genStyleHooks("Tabs", (token) => {
 		genTabsStyle(tabsToken),
 		genMotionStyle(tabsToken)
 	];
-}, prepareComponentToken$15);
+}, prepareComponentToken$14);
 //#endregion
 //#region node_modules/.pnpm/antd@6.6.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/antd/es/tabs/TabPane.js
 const TabPane = () => null;
@@ -112645,7 +112658,7 @@ const Tabs = /* @__PURE__ */ react.forwardRef((props, ref) => {
 	const { tabs } = react.useContext(ConfigContext);
 	const prefixCls = getPrefixCls("tabs", customizePrefixCls);
 	const rootCls = useCSSVarCls(prefixCls);
-	const [hashId, cssVarCls] = style_default$22(prefixCls, rootCls);
+	const [hashId, cssVarCls] = style_default$21(prefixCls, rootCls);
 	const tabsRef = react.useRef(null);
 	react.useImperativeHandle(ref, () => ({ nativeElement: tabsRef.current }));
 	let editable;
@@ -112981,7 +112994,7 @@ const genCardSizeStyle = (token) => {
 		} } }
 	};
 };
-const prepareComponentToken$14 = (token) => ({
+const prepareComponentToken$13 = (token) => ({
 	headerBg: "transparent",
 	headerFontSize: token.fontSizeLG,
 	headerFontSizeSM: token.fontSize,
@@ -112996,7 +113009,7 @@ const prepareComponentToken$14 = (token) => ({
 	bodyPadding: token.bodyPadding ?? token.paddingLG,
 	headerPadding: token.headerPadding ?? token.paddingLG
 });
-var style_default$21 = genStyleHooks("Card", (token) => {
+var style_default$20 = genStyleHooks("Card", (token) => {
 	const cardToken = (0, import_lib$13.mergeToken)(token, {
 		cardShadow: token.boxShadowCard,
 		cardHeadPadding: token.padding,
@@ -113004,7 +113017,7 @@ var style_default$21 = genStyleHooks("Card", (token) => {
 		cardActionsIconSize: token.fontSize
 	});
 	return [genCardStyle(cardToken), genCardSizeStyle(cardToken)];
-}, prepareComponentToken$14);
+}, prepareComponentToken$13);
 //#endregion
 //#region node_modules/.pnpm/antd@6.6.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/antd/es/card/Card.js
 const ActionNode = (props) => {
@@ -113044,7 +113057,7 @@ const Card$1 = /*#__PURE__*/ react.forwardRef((props, ref) => {
 	const childNodes = react.useMemo(() => (0, import_lib$19.toArray)(children), [children]);
 	const isContainGrid = react.useMemo(() => childNodes.some((child) => /*#__PURE__*/ react.isValidElement(child) && child.type === CardGrid), [childNodes]);
 	const prefixCls = getPrefixCls("card", customizePrefixCls);
-	const [hashId, cssVarCls] = style_default$21(prefixCls);
+	const [hashId, cssVarCls] = style_default$20(prefixCls);
 	const loadingBlock = /*#__PURE__*/ react.createElement(skeleton_default, {
 		loading: true,
 		active: true,
@@ -113178,282 +113191,40 @@ const Card = Card$1;
 Card.Grid = CardGrid;
 Card.Meta = CardMeta;
 //#endregion
-//#region node_modules/.pnpm/antd@6.6.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/antd/es/statistic/Number.js
-const StatisticNumber = (props) => {
-	const { value, formatter, precision, decimalSeparator, groupSeparator = "", prefixCls, className, style } = props;
-	let valueNode;
-	if (isFunction$1(formatter)) valueNode = formatter(value);
-	else {
-		const val = String(value);
-		const cells = val.match(/^(-?)(\d*)(\.(\d+))?$/);
-		if (!cells || val === "-") valueNode = val;
-		else {
-			const negative = cells[1];
-			let int = cells[2] || "0";
-			let decimal = cells[4] || "";
-			int = int.replace(/\B(?=(\d{3})+(?!\d))/g, groupSeparator);
-			if (isNumber$1(precision)) decimal = decimal.padEnd(precision, "0").slice(0, precision > 0 ? precision : 0);
-			if (decimal) decimal = `${decimalSeparator}${decimal}`;
-			valueNode = [/*#__PURE__*/ react.createElement("span", {
-				key: "int",
-				className: `${prefixCls}-content-value-int`
-			}, negative, int), decimal && /*#__PURE__*/ react.createElement("span", {
-				key: "decimal",
-				className: `${prefixCls}-content-value-decimal`
-			}, decimal)];
-		}
-	}
-	return /*#__PURE__*/ react.createElement("span", {
-		className,
-		style
-	}, valueNode);
-};
-//#endregion
-//#region node_modules/.pnpm/antd@6.6.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/antd/es/statistic/style/index.js
-const genStatisticStyle = (token) => {
-	const { componentCls, marginXXS, padding, colorTextDescription, titleFontSize, colorTextHeading, contentFontSize, fontFamily } = token;
-	return { [componentCls]: {
-		...resetComponent(token),
-		[`${componentCls}-header`]: {
-			paddingBottom: marginXXS,
-			[`${componentCls}-title`]: {
-				color: colorTextDescription,
-				fontSize: titleFontSize
-			}
-		},
-		[`${componentCls}-skeleton`]: { paddingTop: padding },
-		[`${componentCls}-content`]: {
-			color: colorTextHeading,
-			fontSize: contentFontSize,
-			fontFamily,
-			[`${componentCls}-content-value`]: {
-				display: "inline-block",
-				direction: "ltr"
-			},
-			[`${componentCls}-content-prefix, ${componentCls}-content-suffix`]: { display: "inline-block" },
-			[`${componentCls}-content-prefix`]: { marginInlineEnd: marginXXS },
-			[`${componentCls}-content-suffix`]: { marginInlineStart: marginXXS }
-		}
-	} };
-};
-const prepareComponentToken$13 = (token) => {
-	const { fontSizeHeading3, fontSize } = token;
-	return {
-		titleFontSize: fontSize,
-		contentFontSize: fontSizeHeading3
-	};
-};
-var style_default$20 = genStyleHooks("Statistic", (token) => {
-	const statisticToken = (0, import_lib$13.mergeToken)(token, {});
-	return genStatisticStyle(statisticToken);
-}, prepareComponentToken$13);
-//#endregion
-//#region node_modules/.pnpm/antd@6.6.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/antd/es/statistic/Statistic.js
-const Statistic = /*#__PURE__*/ react.forwardRef((props, ref) => {
-	const { prefixCls: customizePrefixCls, className, rootClassName, style, valueStyle, value = 0, title, valueRender, prefix, suffix, loading = false, formatter, precision, decimalSeparator = ".", groupSeparator = ",", onMouseEnter, onMouseLeave, styles, classNames, ...rest } = props;
-	const { getPrefixCls, direction, className: contextClassName, style: contextStyle, classNames: contextClassNames, styles: contextStyles } = useComponentConfig("statistic");
-	const prefixCls = getPrefixCls("statistic", customizePrefixCls);
-	const [hashId, cssVarCls] = style_default$20(prefixCls);
-	const mergedProps = {
-		...props,
-		decimalSeparator,
-		groupSeparator,
-		loading,
-		value
-	};
-	const contextStyleRoot = useSemanticRootStyle(contextStyle);
-	const styleRoot = useSemanticRootStyle(style);
-	const [mergedClassNames, mergedStyles] = useMergeSemantic([contextClassNames, classNames], [
-		contextStyles,
-		contextStyleRoot,
-		styles,
-		styleRoot
-	], { props: mergedProps });
-	const rootClassNames = clsx(prefixCls, { [`${prefixCls}-rtl`]: direction === "rtl" }, contextClassName, className, rootClassName, mergedClassNames.root, hashId, cssVarCls);
-	const headerClassNames = clsx(`${prefixCls}-header`, mergedClassNames.header);
-	const titleClassNames = clsx(`${prefixCls}-title`, mergedClassNames.title);
-	const contentClassNames = clsx(`${prefixCls}-content`, mergedClassNames.content);
-	const valueClassNames = clsx(`${prefixCls}-content-value`, mergedClassNames.value);
-	const prefixClassNames = clsx(`${prefixCls}-content-prefix`, mergedClassNames.prefix);
-	const suffixClassNames = clsx(`${prefixCls}-content-suffix`, mergedClassNames.suffix);
-	const valueNode = /*#__PURE__*/ react.createElement(StatisticNumber, {
-		decimalSeparator,
-		groupSeparator,
-		prefixCls,
-		formatter,
-		precision,
-		value,
-		className: valueClassNames,
-		style: mergedStyles.value
-	});
-	const internalRef = react.useRef(null);
-	react.useImperativeHandle(ref, () => ({ nativeElement: internalRef.current }));
-	const restProps = (0, import_lib$19.pickAttrs)(rest, {
-		aria: true,
-		data: true
-	});
-	return /*#__PURE__*/ react.createElement("div", {
-		...restProps,
-		className: rootClassNames,
-		style: mergedStyles.root,
-		ref: internalRef,
-		onMouseEnter,
-		onMouseLeave
-	}, (0, import_lib$19.isReactRenderable)(title) && /*#__PURE__*/ react.createElement("div", {
-		className: headerClassNames,
-		style: mergedStyles.header
-	}, /*#__PURE__*/ react.createElement("div", {
-		className: titleClassNames,
-		style: mergedStyles.title
-	}, title)), /*#__PURE__*/ react.createElement(skeleton_default, {
-		paragraph: false,
-		loading,
-		className: `${prefixCls}-skeleton`,
-		active: true
-	}, /*#__PURE__*/ react.createElement("div", {
-		className: contentClassNames,
-		style: {
-			...valueStyle,
-			...mergedStyles.content
-		}
-	}, (0, import_lib$19.isReactRenderable)(prefix) && /*#__PURE__*/ react.createElement("span", {
-		className: prefixClassNames,
-		style: mergedStyles.prefix
-	}, prefix), isFunction$1(valueRender) ? valueRender(valueNode) : valueNode, (0, import_lib$19.isReactRenderable)(suffix) && /*#__PURE__*/ react.createElement("span", {
-		className: suffixClassNames,
-		style: mergedStyles.suffix
-	}, suffix))));
-});
-//#endregion
-//#region node_modules/.pnpm/antd@6.6.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/antd/es/statistic/utils.js
-const timeUnits$1 = [
-	["Y", 31536e6],
-	["M", 2592e6],
-	["D", 864e5],
-	["H", 36e5],
-	["m", 6e4],
-	["s", 1e3],
-	["S", 1]
-];
-function formatTimeStr(duration, format) {
-	let leftDuration = duration;
-	const escapeRegex = /\[[^\]]*]/g;
-	const keepList = (format.match(escapeRegex) || []).map((str) => str.slice(1, -1));
-	const templateText = format.replace(escapeRegex, "[]");
-	const replacedText = timeUnits$1.reduce((current, [name, unit]) => {
-		if (current.includes(name)) {
-			const value = Math.floor(leftDuration / unit);
-			leftDuration -= value * unit;
-			return current.replace(new RegExp(`${name}+`, "g"), (match) => {
-				const len = match.length;
-				return value.toString().padStart(len, "0");
-			});
-		}
-		return current;
-	}, templateText);
-	let index = 0;
-	return replacedText.replace(escapeRegex, () => {
-		const match = keepList[index];
-		index += 1;
-		return match;
-	});
-}
-function formatCounter(value, config, down) {
-	const { format = "" } = config;
-	const target = new Date(value).getTime();
-	const current = Date.now();
-	return formatTimeStr(down ? Math.max(target - current, 0) : Math.max(current - target, 0), format);
-}
-//#endregion
-//#region node_modules/.pnpm/antd@6.6.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/antd/es/statistic/Timer.js
-const UPDATE_INTERVAL = 1e3 / 60;
-function getTime$1(value) {
-	return new Date(value).getTime();
-}
-const StatisticTimer = (props) => {
-	const { value, format = "HH:mm:ss", onChange, onFinish, type, ...rest } = props;
-	const down = type === "countdown";
-	const [showTime, setShowTime] = react.useState(null);
-	const update = (0, import_lib$19.useEvent)(() => {
-		const now = Date.now();
-		const timestamp = getTime$1(value);
-		setShowTime({});
-		const timeDiff = !down ? now - timestamp : timestamp - now;
-		onChange?.(timeDiff);
-		if (down && timestamp < now) {
-			onFinish?.();
-			return false;
-		}
-		return true;
-	});
-	react.useEffect(() => {
-		let intervalId;
-		const tick = () => {
-			if (!update()) window.clearInterval(intervalId);
-		};
-		const startTimer = () => {
-			intervalId = window.setInterval(tick, UPDATE_INTERVAL);
-		};
-		const stopTimer = () => {
-			window.clearInterval(intervalId);
-		};
-		startTimer();
-		return () => {
-			stopTimer();
-		};
-	}, [value, down]);
-	react.useEffect(() => {
-		setShowTime({});
-	}, []);
-	const formatter = (formatValue, config) => showTime ? formatCounter(formatValue, {
-		...config,
-		format
-	}, down) : "-";
-	const valueRender = (node) => cloneElement(node, { title: void 0 });
-	return /*#__PURE__*/ react.createElement(Statistic, {
-		...rest,
-		value,
-		valueRender,
-		formatter
-	});
-};
-//#endregion
-//#region node_modules/.pnpm/antd@6.6.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/antd/es/statistic/Countdown.js
-const Countdown = (props) => {
-	return /*#__PURE__*/ react.createElement(StatisticTimer, {
-		...props,
-		type: "countdown"
-	});
-};
-var Countdown_default = /*#__PURE__*/ react.memo(Countdown);
-//#endregion
-//#region node_modules/.pnpm/antd@6.6.3_react-dom@18.3.1_react@18.3.1__react@18.3.1/node_modules/antd/es/statistic/index.js
-Statistic.Timer = StatisticTimer;
-Statistic.Countdown = Countdown_default;
-var statistic_default = Statistic;
-//#endregion
 //#region client/src/components/MetricCard.jsx
 /**
 * aura-dsh / client / src / components / MetricCard.jsx
-* 组件：metric_card（指标卡）—— antd 版（样板验证）。
-* data 结构：{ metrics?: MetricItem[] } 或 { items?: MetricItem[] }
-* MetricItem: { label, value, change?, size?: 'large' }
-* 涨跌判断：change 以 '+' 开头 → positive（绿），'-' 开头 → negative（红）。
-* 实现：antd Card + Statistic（子路径导入，见 P0 验证结论）。
-* 风格：暂用 antd 默认（token 映射后置）。
+* 组件：metric_card（指标卡）。
+*
+* MetricItem: { label, value, change?, size?: 'large', kind? }
+*   kind: 'amount' | 'count' | 'year' | 'ratio' | 'index'（缺省 = 不滚动、无千分位）
+*
+* 数字表现由语义决定，不靠客户端猜：
+*   - kind='amount'（金额/市值/营收）→ 千分位 + 从 0 滚动
+*   - 其他 / 缺省 → 原样显示（年份 2026 不会变 2,026，也不会滚动）
+*
+* 这样 agent 只需在「金额类」标 amount，其余不用管；漏标时行为保守可预测。
 */
 const UP = "#3f8600";
 const DOWN = "#cf1322";
-/** 数字滚动动画（easeOutCubic）——把目标值解析成数字后从 0 滚上去。 */
-function useCountUp(target, duration = 1100) {
+/** 金额格式化：保留原小数位 + 千分位 */
+function formatAmount(n, decimals) {
+	if (!Number.isFinite(n)) return "";
+	return n.toLocaleString("en-US", {
+		minimumFractionDigits: decimals,
+		maximumFractionDigits: decimals
+	});
+}
+/** 数字滚动（easeOutCubic）；enabled=false 时直接返回原值 */
+function useCountUp(target, duration = 1100, enabled = true) {
 	const numeric = react$1.default.useMemo(() => {
 		if (typeof target === "number") return target;
 		const n = parseFloat(String(target ?? "").replace(/[^0-9.-]/g, ""));
 		return Number.isFinite(n) ? n : null;
 	}, [target]);
-	const [value, setValue] = react$1.default.useState(numeric === null ? target : 0);
+	const [value, setValue] = react$1.default.useState(enabled && numeric !== null ? 0 : target);
 	react$1.default.useEffect(() => {
-		if (numeric === null) {
+		if (!enabled || numeric === null) {
 			setValue(target);
 			return;
 		}
@@ -113479,7 +113250,8 @@ function useCountUp(target, duration = 1100) {
 	}, [
 		numeric,
 		target,
-		duration
+		duration,
+		enabled
 	]);
 	return value;
 }
@@ -113489,54 +113261,38 @@ function MetricCard({ title, data }) {
 		size: "small",
 		title,
 		style: { margin: "4px 0" },
-		styles: { body: {
-			display: "flex",
-			gap: 16,
-			flexWrap: "wrap"
-		} },
-		children: items.map((m) => {
-			const chg = String(m.change || "");
-			const color = chg.startsWith("+") ? UP : chg.startsWith("-") ? DOWN : void 0;
-			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(StatisticWithCountUp, {
-				label: m.label,
-				value: m.value,
-				color,
-				large: m.size === "large",
-				change: m.change
-			}, m.label);
+		styles: { body: { padding: "12px 14px" } },
+		children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+			className: "aura-metric-grid",
+			children: items.map((m, i) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(MetricItem, { m }, m.label ?? i))
 		})
 	});
 }
-/** 单个指标（带动画） */
-function StatisticWithCountUp({ label, value, color, large, change }) {
-	const animated = useCountUp(value, 1100);
-	const chg = String(change || "");
-	const chgColor = chg.startsWith("+") ? UP : chg.startsWith("-") ? DOWN : color;
+function MetricItem({ m }) {
+	const isAmount = m.kind === "amount";
+	const raw = m.value;
+	const animated = useCountUp(raw, 1100, isAmount);
 	const decimals = react$1.default.useMemo(() => {
-		const m = String(value ?? "").match(/\.(\d+)/);
-		return m ? m[1].length : 0;
-	}, [value]);
-	return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(statistic_default, {
-		title: label,
-		value: animated,
-		precision: decimals,
-		groupSeparator: ",",
-		valueStyle: {
-			fontSize: large ? 26 : 20,
-			color,
-			fontWeight: 600
-		},
-		suffix: change ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-			style: {
-				fontSize: 13,
-				color: chgColor
-			},
-			children: change
-		}) : void 0,
-		styles: { root: {
-			flex: 1,
-			minWidth: 120
-		} }
+		const match = String(raw ?? "").match(/\.(\d+)/);
+		return match ? match[1].length : 0;
+	}, [raw]);
+	const display = isAmount ? formatAmount(Number(animated), decimals) : String(raw ?? "");
+	const chg = String(m.change || "");
+	const chgColor = chg.startsWith("+") ? UP : chg.startsWith("-") ? DOWN : void 0;
+	return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+		className: "aura-metric-item",
+		children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+			className: "aura-metric-label",
+			children: m.label
+		}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+			className: "aura-metric-value",
+			style: { fontSize: m.size === "large" ? 26 : 20 },
+			children: [display, chg ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+				className: "aura-metric-change",
+				style: { color: chgColor },
+				children: chg
+			}) : null]
+		})]
 	});
 }
 //#endregion
@@ -182224,6 +181980,18 @@ function SelectionLayer({ active, containerRef, onInquiry, onCancel }) {
 			setQuestion("");
 		}
 	}, [active]);
+	(0, react$1.useEffect)(() => {
+		if (!active) return void 0;
+		const onKey = (e) => {
+			if (e.key === "Escape") {
+				e.preventDefault();
+				e.stopPropagation();
+				onCancel?.();
+			}
+		};
+		window.addEventListener("keydown", onKey, true);
+		return () => window.removeEventListener("keydown", onKey, true);
+	}, [active, onCancel]);
 	/** 把鼠标事件转成相对容器的坐标 */
 	const toLocal = (0, react$1.useCallback)((e) => {
 		const box = containerRef.current?.getBoundingClientRect();
@@ -182329,6 +182097,7 @@ function SelectionLayer({ active, containerRef, onInquiry, onCancel }) {
 			setRect(null);
 			setHits(null);
 			setQuestion("");
+			onCancel?.();
 		} catch (e) {
 			console.error("[aura-select] 发送失败:", e);
 			setError(e?.message ?? String(e));
@@ -182402,12 +182171,7 @@ function SelectionLayer({ active, containerRef, onInquiry, onCancel }) {
 					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 						type: "button",
 						className: "aura-select-btn",
-						onClick: () => {
-							setRect(null);
-							setHits(null);
-							setQuestion("");
-							setError(null);
-						},
+						onClick: () => onCancel?.(),
 						children: "取消"
 					})]
 				})

@@ -30,26 +30,39 @@ const auraCss = `/* ============================================================
   margin-bottom: 8px;
 }
 
-/* ---- metric_card ---- */
+/* ---- metric_card（自渲染：数字格式由 kind 决定） ---- */
 .aura-metric-grid {
   display: flex;
-  gap: 8px;
+  gap: 16px;
   flex-wrap: wrap;
 }
-.aura-metric {
-  flex: 1 1 140px;
-  min-width: 120px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(128, 128, 128, 0.08);
+.aura-metric-item {
+  flex: 1 1 110px;
+  min-width: 100px;
 }
-.aura-metric .label { font-size: 12px; opacity: 0.7; }
-.aura-metric .value { font-size: 16px; font-weight: 700; }
-.aura-metric .value.positive { color: #22c55e; }
-.aura-metric .value.negative { color: #ef4444; }
-.aura-metric .change { font-size: 12px; }
-.aura-metric .change.positive { color: #22c55e; }
-.aura-metric .change.negative { color: #ef4444; }
+.aura-metric-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+.aura-metric-value {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.aura-metric-change {
+  font-size: 13px;
+  font-weight: 600;
+}
 
 /* ---- comparison_table ---- */
 .aura-table {

@@ -12,7 +12,7 @@ export const REGISTRY = [
     description: '单个数据卡片的网格排列，每张卡有标签+数值+变化量',
     best_for: ['关键指标', '涨跌展示', '数量对比'],
     input_shape: 'list_of_label_value_pairs_with_change',
-    data_schema: '{ metrics: [{ label, value, change?, size? }] }',
+    data_schema: '{ metrics: [{ label, value, change?, size?, kind? }] }（kind 决定数字表现：amount=金额/市值→千分位+滚动；count=计数、year=年份、ratio=比率、index=指数点位→原样显示不滚动；缺省=原样显示。value 用字符串原样传）',
     downgrade_to: 'comparison_table',
     category: 'display',
   },
