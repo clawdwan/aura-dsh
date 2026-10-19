@@ -84,7 +84,25 @@ export function apply(ctx) {
         tabKind: 'aura-panel',
       });
       controller.start();
-      return () => controller.stop();
+      // 诊断钩子：在浏览器 Console 执行 window.__auraProbe() 可查看策略内部状态
+      try {
+        window.__auraProbe = () => {
+          const out = { probe: null, tabs: null, api: {} };
+          try { out.probe = controller.probe(); } catch (e) { out.probe = `error: ${e?.message ?? e}`; }
+          try { out.tabs = ctx.sidebarRight?.tabsIn?.(); } catch (e) { out.tabs = `error: ${e?.message ?? e}`; }
+          out.api = {
+            onScreen: typeof ctx.sidebarRight?.onScreen?.getSnapshot === 'function',
+            tabsIn: typeof ctx.sidebarRight?.tabsIn === 'function',
+            openTab: typeof ctx.sidebarRight?.openTab === 'function',
+            binding: typeof ctx.sessions?.binding === 'function',
+          };
+          return out;
+        };
+      } catch { /* ignore */ }
+      return () => {
+        controller.stop();
+        try { delete window.__auraProbe; } catch { /* ignore */ }
+      };
     });
   } catch (e) {
     console.error('[aura-spike] rightbar 注册失败:', e?.message ?? e);

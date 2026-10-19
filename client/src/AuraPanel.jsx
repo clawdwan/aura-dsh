@@ -200,8 +200,13 @@ export default function AuraPanel(props) {
             && JSON.stringify(a.cards) === JSON.stringify(b.cards)),
       )
     : EMPTY_DIAG;
-  const cards = state.cards;
-  const diag = { nodeCount: state.nodeCount, panelNodes: state.panelNodes };
+  // 防御：useChat 在会话未就绪时可能返回 undefined，这里兜底成空状态，避免渲染崩溃
+  const safeState = state && typeof state === 'object' ? state : EMPTY_DIAG;
+  const cards = Array.isArray(safeState.cards) ? safeState.cards : EMPTY;
+  const diag = {
+    nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
+    panelNodes: Number.isFinite(safeState.panelNodes) ? safeState.panelNodes : 0,
+  };
   cardsRef.current = cards;
 
   if (cards.length === 0) {
