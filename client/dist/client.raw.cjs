@@ -182749,10 +182749,14 @@ const DEFAULT_CONFIG = {
 	/** 每个会话最多尝试打开几次（约 intervalMs * maxAttempts 秒后放弃，避免无限打扰） */
 	maxAttempts: 8
 };
-/** 读取当前会话 id（sidebarRight.onScreen 是 ObservableSnapshot） */
+/**
+* 读取当前会话 id。
+* DSH 对外面是 `mounted`（ObservableSnapshot<SessionId|undefined>）；
+* `onScreen` 只存在于内部控制器接口，对外不可见——这里以 mounted 为准并保留兜底。
+*/
 function readScreenSession(sidebarRight) {
 	try {
-		return sidebarRight?.onScreen?.getSnapshot?.() ?? void 0;
+		return (sidebarRight?.mounted ?? sidebarRight?.onScreen)?.getSnapshot?.() ?? void 0;
 	} catch {
 		return;
 	}
@@ -182970,6 +182974,7 @@ function apply(ctx) {
 						out.tabs = `error: ${e?.message ?? e}`;
 					}
 					out.api = {
+						mounted: typeof ctx.sidebarRight?.mounted?.getSnapshot === "function",
 						onScreen: typeof ctx.sidebarRight?.onScreen?.getSnapshot === "function",
 						tabsIn: typeof ctx.sidebarRight?.tabsIn === "function",
 						openTab: typeof ctx.sidebarRight?.openTab === "function",

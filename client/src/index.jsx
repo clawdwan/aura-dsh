@@ -91,6 +91,7 @@ export function apply(ctx) {
           try { out.probe = controller.probe(); } catch (e) { out.probe = `error: ${e?.message ?? e}`; }
           try { out.tabs = ctx.sidebarRight?.tabsIn?.(); } catch (e) { out.tabs = `error: ${e?.message ?? e}`; }
           out.api = {
+            mounted: typeof ctx.sidebarRight?.mounted?.getSnapshot === 'function',
             onScreen: typeof ctx.sidebarRight?.onScreen?.getSnapshot === 'function',
             tabsIn: typeof ctx.sidebarRight?.tabsIn === 'function',
             openTab: typeof ctx.sidebarRight?.openTab === 'function',

@@ -27,10 +27,15 @@ export const DEFAULT_CONFIG = {
   maxAttempts: 8,
 };
 
-/** 读取当前会话 id（sidebarRight.onScreen 是 ObservableSnapshot） */
+/**
+ * 读取当前会话 id。
+ * DSH 对外面是 `mounted`（ObservableSnapshot<SessionId|undefined>）；
+ * `onScreen` 只存在于内部控制器接口，对外不可见——这里以 mounted 为准并保留兜底。
+ */
 function readScreenSession(sidebarRight) {
   try {
-    return sidebarRight?.onScreen?.getSnapshot?.() ?? undefined;
+    const source = sidebarRight?.mounted ?? sidebarRight?.onScreen;
+    return source?.getSnapshot?.() ?? undefined;
   } catch {
     return undefined;
   }
