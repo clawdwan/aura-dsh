@@ -92,14 +92,59 @@ const auraCss = `/* ============================================================
 }
 
 /* ---- insight_cards ---- */
-.aura-insight {
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(128, 128, 128, 0.08);
-  margin-bottom: 6px;
+/* ---- insight_cards：Play 风（左侧强调色条 + 极淡底，不再用 Alert 的满色块） ---- */
+.aura-insight-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.aura-insight .rating { font-size: 12px; font-weight: 650; opacity: 0.8; }
-.aura-insight .body { font-size: 12px; margin-top: 2px; opacity: 0.85; }
+.aura-insight-item {
+  position: relative;
+  padding: 10px 12px 11px 14px;
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.055);
+  border-left: 3px solid var(--aura-insight-accent, var(--dsw-static-deepseek-500, #4176e6));
+}
+.aura-insight-item--info {
+  --aura-insight-accent: var(--dsw-static-deepseek-500, #4176e6);
+}
+.aura-insight-item--warning {
+  --aura-insight-accent: #d4820a;
+}
+.aura-insight-item--positive {
+  --aura-insight-accent: #1f9d55;
+}
+.aura-insight-item--negative {
+  --aura-insight-accent: #cf3b3b;
+}
+.aura-insight-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.aura-insight-title {
+  font-size: 15.5px;
+  font-weight: 620;
+  line-height: 1.45;
+}
+.aura-insight-rating {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 700;
+  opacity: 0.7;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(128, 128, 128, 0.13);
+  white-space: nowrap;
+}
+.aura-insight-body {
+  font-size: 14.5px;
+  line-height: 1.72;
+  margin-top: 5px;
+  opacity: 0.94;
+}
 
 /* ---- article_list ---- */
 .aura-article {
