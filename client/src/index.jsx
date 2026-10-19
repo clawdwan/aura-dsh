@@ -16,7 +16,7 @@ import AuraToolRow from './AuraToolRow';
 import AuraTurnTail from './AuraTurnTail';
 import { auraDefinition } from './auraDefinition';
 import AuraPanel from './AuraPanel';
-import { createPanelAutoOpen } from './panelAutoOpen';
+import { createPanelSignal } from './panelSignal';
 
 // 运行时注入 <style>（幂等：已注入则跳过；页面刷新后 bundle 重载会重新注入）
 const AURA_CSS_TAG = 'data-plugin-css="dsh-aura"';
@@ -75,33 +75,22 @@ export function apply(ctx) {
       );
       return ctx.slots.register({ name: 'sidebar.right.pane.tab', key: 'dsh-aura-panel' }, AuraPanelBody);
     });
-    // 面板自动打开：策略集中在 panelAutoOpen.js（间隔/开关/是否按历史卡片打开都可配），
-    // 便于后续整体替换（例如改 host 推送或提示而非打开）。
+    // 面板打开：事件驱动（panelSignal）。
+    //   append  → 实时推送（tool/call + aura_panel）→ 打开目标 tab（用户关掉后，下一条新推送仍会打开）
+    //   replace → 进入会话首帧（历史）→ 历史里有推送才恢复一次，不会因回放反复弹
+    // 目标 tab 由 resolveTargets 决定（默认 ['aura-panel']），未来多 tab 只需换路由函数。
     ctx.effect(() => {
-      const controller = createPanelAutoOpen({
-        sidebarRight: ctx.sidebarRight,
+      const signal = createPanelSignal({
         sessions: ctx.sessions,
-        tabKind: 'aura-panel',
+        sidebarRight: ctx.sidebarRight,
+        config: { tabKind: 'aura-panel', restoreOnHistory: true },
       });
-      controller.start();
-      // 诊断钩子：在浏览器 Console 执行 window.__auraProbe() 可查看策略内部状态
+      const stop = signal.start();
       try {
-        window.__auraProbe = () => {
-          const out = { probe: null, tabs: null, api: {} };
-          try { out.probe = controller.probe(); } catch (e) { out.probe = `error: ${e?.message ?? e}`; }
-          try { out.tabs = ctx.sidebarRight?.tabsIn?.(); } catch (e) { out.tabs = `error: ${e?.message ?? e}`; }
-          out.api = {
-            mounted: typeof ctx.sidebarRight?.mounted?.getSnapshot === 'function',
-            onScreen: typeof ctx.sidebarRight?.onScreen?.getSnapshot === 'function',
-            tabsIn: typeof ctx.sidebarRight?.tabsIn === 'function',
-            openTab: typeof ctx.sidebarRight?.openTab === 'function',
-            binding: typeof ctx.sessions?.binding === 'function',
-          };
-          return out;
-        };
+        window.__auraProbe = () => signal.probe();
       } catch { /* ignore */ }
       return () => {
-        controller.stop();
+        try { stop?.(); } catch { /* ignore */ }
         try { delete window.__auraProbe; } catch { /* ignore */ }
       };
     });
