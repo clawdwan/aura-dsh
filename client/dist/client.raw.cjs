@@ -182419,7 +182419,6 @@ function AuraPanel(props) {
 		setLastResult("发送中…");
 		try {
 			const res = await __auraSend(action.prompt ?? action.label);
-			console.log("[aura-panel] send 返回:", JSON.stringify(res));
 			setLastResult(res?.ok ? "✅ 已发送" : `⚠️ 返回：${JSON.stringify(res)?.slice(0, 120)}`);
 		} catch (e) {
 			console.error("[aura-panel] send 失败:", e?.message ?? e);
