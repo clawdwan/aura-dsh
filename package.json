@@ -1,7 +1,7 @@
 {
   "name": "dsh-aura",
   "description": "Aura 通用展示层插件（候选2 静态 cordis 插件包）：host 半 aura_render 工具 + browser 半 tool.call.toolview 渲染器（5 组件）",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": false,
   "type": "module",
   "main": "host/tool.js",

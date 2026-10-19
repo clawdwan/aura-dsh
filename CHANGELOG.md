@@ -2,6 +2,36 @@
 
 本项目所有重要变更记录于此。版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.5.0] — 2026-10-19
+
+### 新增
+
+- **HTML 卡片设计系统**：`html` 卡从"agent 自由发挥"升级为「Token + 预设结构类」三层体系
+  · Token 层：`--aura-text / --aura-text-2 / --aura-surface / --aura-border / --aura-accent /
+    --aura-radius / --aura-gap / --aura-font*`（未来换风格只改这一层）
+  · 结构类：`a-card / a-kpi / a-h1 / a-h2 / a-table / a-chip / a-note / a-warn / a-ok / a-bad /
+    a-quote / a-list / a-muted / a-accent / a-dim`，agent 只写结构不写样式
+  · 语义变体：`a-chip--ok/--bad/--warn/--muted`、`a-text-ok/bad/warn/accent`（行内）
+  · 上下文自适应：语义块（`a-ok` 等）用在 `b/span/td` 等行内位置时**自动降级为文字色**，
+    不再撑高行高或压叠
+- **事件驱动面板打开**：订阅当前会话事件流，`append` 中出现 `aura_panel` 的 `tool/call`
+  即打开面板（有新内容才打扰）；`replace`（进入会话首帧）只用于历史恢复，不会因回放反复弹
+- **面板 tab 多目标预留**：信号层只产出"有推送"事件，打开哪个 tab 由注入的
+  `resolveTargets` 决定（默认 `['aura-panel']`），未来一个会话开多个 aura tab 无需改信号层
+
+### 修复
+
+- **面板渲染崩溃**：诊断版本把选择器返回值从数组改成对象后未防御 `useChat` 返回
+  `undefined`，导致 `state.cards` 抛错、面板整体空白（刷新也不恢复）
+- **新会话面板永不出现**：`tabsIn()` 实际签名为 `tabsIn(sessionId)`（此前无参调用恒为空）；
+  且策略先依赖 `sessions.binding(id)` 判断有无卡片，拿不到就 return，导致 `openTab` 从未被调用
+- **当前会话读不到**：`ctx.sidebarRight` 对外面是 `mounted`，`onScreen` 只存在于内部控制器
+- **html 卡 JSON 转义失败**：长 HTML 里的双引号属性需转义为 `\"`，模型易漏导致
+  `tool input is invalid JSON`；改为要求属性一律用单引号（`class='a-h1'`），并限制单卡 ≤ 6000 字符
+- **html 卡固定高度引入内部滚动条**：改为忽略 `data.height`，始终按内容自适应
+  （长内容交给外层面板滚动）
+- **chip 上下行重叠**：`.a-chip` 未设行高，inline-block 高度溢出；补 `line-height` 与垂直间距
+
 ## [0.4.0] — 2026-10-19
 
 ### 新增
