@@ -1386,6 +1386,15 @@ svg.react-flow__connectionline {
   opacity: 0.5;
   margin-top: 4px;
 }
+.aura-panel-diag {
+  margin-top: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(128, 128, 128, 0.08);
+  font-size: 11px;
+  opacity: 0.75;
+  line-height: 1.6;
+}
 `;
 //#endregion
 //#region node_modules/.pnpm/@babel+runtime@7.29.7/node_modules/@babel/runtime/helpers/interopRequireDefault.js
@@ -182577,15 +182586,36 @@ function AuraPanel(props) {
 		}
 	}, [__auraSend]);
 	const EMPTY = (0, react$1.useMemo)(() => [], []);
-	const cards = useChat ? useChat((snapshot) => {
-		const nodes = snapshot?.nodes?.values?.() ?? [];
+	const EMPTY_DIAG = (0, react$1.useMemo)(() => ({
+		cards: EMPTY,
+		nodeCount: 0,
+		panelNodes: 0
+	}), [EMPTY]);
+	const state = useChat ? useChat((snapshot) => {
+		let nodes = [];
+		try {
+			nodes = snapshot?.nodes?.values?.() ?? [];
+		} catch {
+			nodes = [];
+		}
 		let found = null;
-		for (const node of nodes) {
+		let panelNodes = 0;
+		for (const node of nodes) try {
+			if ((node?.data?.root?.name ?? node?.data?.name ?? node?.data?.call?.name) === "aura_panel") panelNodes += 1;
 			const r = extractPanelResult(node);
 			if (r) found = r;
-		}
-		return (Array.isArray(found?.cards) ? found.cards : null) ?? EMPTY;
-	}, (a, b) => a === b || JSON.stringify(a) === JSON.stringify(b)) : EMPTY;
+		} catch {}
+		return {
+			cards: Array.isArray(found?.cards) ? found.cards : EMPTY,
+			nodeCount: nodes.length,
+			panelNodes
+		};
+	}, (a, b) => a === b || a.nodeCount === b.nodeCount && a.panelNodes === b.panelNodes && JSON.stringify(a.cards) === JSON.stringify(b.cards)) : EMPTY_DIAG;
+	const cards = state.cards;
+	const diag = {
+		nodeCount: state.nodeCount,
+		panelNodes: state.panelNodes
+	};
 	cardsRef.current = cards;
 	if (cards.length === 0) {
 		if (!hydrated) return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
@@ -182605,7 +182635,7 @@ function AuraPanel(props) {
 				}),
 				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 					className: "aura-panel-loading-text",
-					children: "正在读取面板…"
+					children: "正在读取面板… · v0.4.0 diag"
 				})
 			]
 		});
@@ -182614,7 +182644,18 @@ function AuraPanel(props) {
 			children: [
 				"面板暂无卡片。agent 调用 ",
 				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("code", { children: "aura_panel" }),
-				" 推送后会显示在这里。"
+				" 推送后会显示在这里。",
+				/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+					className: "aura-panel-diag",
+					children: [
+						"[v0.4.0 diag] 会话节点 ",
+						diag.nodeCount,
+						" 个 · aura_panel 节点 ",
+						diag.panelNodes,
+						" 个",
+						diag.panelNodes > 0 ? "（有节点但没解析出卡片）" : "（未收到 aura_panel 事件）"
+					]
+				})
 			]
 		});
 	}
@@ -182677,6 +182718,151 @@ function AuraPanel(props) {
 			})
 		]
 	});
+}
+//#endregion
+//#region client/src/panelAutoOpen.js
+/**
+* aura-dsh / client / src / panelAutoOpen.js
+* 「什么时候自动打开 Aura 面板」的策略模块。
+*
+* 设计目标：策略与 React 组件解耦，便于后续整体替换或改成可配置。
+*   - 所有可调参数集中在 DEFAULT_CONFIG
+*   - 数据来源、打开动作都通过参数注入（换成订阅/提示/其他 tab 都不用改这里的使用方式）
+*
+* 当前策略（v1）：
+*   每 intervalMs 检查一次当前会话：
+*     · 会话变了 → 重置"本会话是否已自动打开过"
+*     · tab 已经开着 → 记为已打开，不再动作
+*     · tab 没开，但该会话已经有 aura_panel 卡片，且本会话还没自动打开过 → 打开一次
+*   用户手动收起后不会再被打开（openedFor 已记录），直到切到另一个有卡片的会话。
+*/
+const DEFAULT_CONFIG = {
+	/** 总开关 */
+	enabled: true,
+	/** 检测间隔（毫秒） */
+	intervalMs: 1500,
+	/** 会话已有卡片时是否自动打开 */
+	openOnHistory: true,
+	/** 单次检查的成本保护：事件数超过这个值时只做前缀扫描 */
+	maxEntriesScan: 5e3
+};
+/** 读取当前会话 id（sidebarRight.onScreen 是 ObservableSnapshot） */
+function readScreenSession(sidebarRight) {
+	try {
+		return sidebarRight?.onScreen?.getSnapshot?.() ?? void 0;
+	} catch {
+		return;
+	}
+}
+/** 当前会话的 tab 列表里是否已有 aura 面板 */
+function isAuraTabOpen(sidebarRight, tabKind) {
+	try {
+		const tabs = sidebarRight?.tabsIn?.() ?? [];
+		return Array.isArray(tabs) && tabs.some((x) => (x?.kind ?? x?.id) === tabKind);
+	} catch {
+		return false;
+	}
+}
+/**
+* 探查某会话里 aura_panel 是否已经推过卡片。
+* 返回：{ known: boolean, count: number }
+*   known=false 表示当前拿不到该会话的事件源（例如尚未 retain），调用方应稍后重试。
+*
+* 未来若改用其他数据源（如 host 推送 / panel-store API），只需替换这个函数。
+*/
+function probePanelCards(sessions, sessionId, config) {
+	if (!sessionId) return {
+		known: false,
+		count: 0
+	};
+	try {
+		const entries = (sessions?.binding?.(sessionId)?.eventSource)?.getSnapshot?.()?.entries;
+		if (!Array.isArray(entries)) return {
+			known: false,
+			count: 0
+		};
+		const limit = Math.min(entries.length, config.maxEntriesScan);
+		let count = 0;
+		for (let i = 0; i < limit; i += 1) {
+			const event = entries[i]?.event;
+			if (!event) continue;
+			if (event.type === "tool/call" && event.data?.name === "aura_panel") count += 1;
+		}
+		return {
+			known: true,
+			count
+		};
+	} catch {
+		return {
+			known: false,
+			count: 0
+		};
+	}
+}
+/**
+* 创建自动打开控制器。
+* @param {object} deps
+* @param {object} deps.sidebarRight - ctx.sidebarRight（需 tabsIn / openTab / onScreen）
+* @param {object} deps.sessions     - ctx.sessions（需 binding(id)）
+* @param {string} [deps.tabKind]    - 面板的 tab kind/id，默认 'aura-panel'
+* @param {object} [deps.config]     - 覆盖 DEFAULT_CONFIG 的配置
+* @returns {{ start: () => void, stop: () => void, probe: () => object }}
+*/
+function createPanelAutoOpen({ sidebarRight, sessions, tabKind = "aura-panel", config } = {}) {
+	const cfg = {
+		...DEFAULT_CONFIG,
+		...config ?? {}
+	};
+	let timer = null;
+	let lastSid;
+	/** 本会话是否已经自动打开过（或用户已经打开过） */
+	let openedFor = null;
+	const reset = () => {
+		lastSid = void 0;
+		openedFor = null;
+	};
+	const tick = () => {
+		if (!cfg.enabled) return;
+		const sid = readScreenSession(sidebarRight);
+		if (!sid) return;
+		if (sid !== lastSid) {
+			lastSid = sid;
+			openedFor = null;
+		}
+		if (isAuraTabOpen(sidebarRight, tabKind)) {
+			openedFor = sid;
+			return;
+		}
+		if (openedFor === sid) return;
+		if (!cfg.openOnHistory) return;
+		const { known, count } = probePanelCards(sessions, sid, cfg);
+		if (!known || count <= 0) return;
+		try {
+			sidebarRight?.openTab?.(tabKind);
+			openedFor = sid;
+		} catch {}
+	};
+	return {
+		start() {
+			if (timer) return;
+			tick();
+			timer = setInterval(tick, cfg.intervalMs);
+		},
+		stop() {
+			if (timer) clearInterval(timer);
+			timer = null;
+			reset();
+		},
+		/** 供调试/未来策略使用：返回当前探查结果 */
+		probe() {
+			const sid = readScreenSession(sidebarRight);
+			return {
+				sessionId: sid,
+				...probePanelCards(sessions, sid, cfg),
+				openedFor
+			};
+		}
+	};
 }
 //#endregion
 //#region client/src/index.jsx
@@ -182752,22 +182938,13 @@ function apply(ctx) {
 			}, AuraPanelBody);
 		});
 		ctx.effect(() => {
-			let settled = false;
-			const tryOpen = () => {
-				if (settled) return;
-				try {
-					const tabs = ctx.sidebarRight?.tabsIn?.() ?? [];
-					if (Array.isArray(tabs) && tabs.some((x) => (x?.kind ?? x?.id) === "aura-panel")) {
-						settled = true;
-						return;
-					}
-					ctx.sidebarRight?.openTab?.("aura-panel");
-					settled = true;
-				} catch {}
-			};
-			tryOpen();
-			const retry = setTimeout(tryOpen, 1500);
-			return () => clearTimeout(retry);
+			const controller = createPanelAutoOpen({
+				sidebarRight: ctx.sidebarRight,
+				sessions: ctx.sessions,
+				tabKind: "aura-panel"
+			});
+			controller.start();
+			return () => controller.stop();
 		});
 	} catch (e) {
 		console.error("[aura-spike] rightbar 注册失败:", e?.message ?? e);

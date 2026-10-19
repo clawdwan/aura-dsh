@@ -1347,5 +1347,14 @@ svg.react-flow__connectionline {
   opacity: 0.5;
   margin-top: 4px;
 }
+.aura-panel-diag {
+  margin-top: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(128, 128, 128, 0.08);
+  font-size: 11px;
+  opacity: 0.75;
+  line-height: 1.6;
+}
 `;
 export default auraCss;

@@ -174,22 +174,34 @@ export default function AuraPanel(props) {
 
   // 选择器返回"最后一次 aura_panel 调用的卡片列表"；用 eq 比较避免引用抖动导致重渲染。
   const EMPTY = useMemo(() => [], []);
-  const cards = useChat
+  const EMPTY_DIAG = useMemo(() => ({ cards: EMPTY, nodeCount: 0, panelNodes: 0 }), [EMPTY]);
+  const state = useChat
     ? useChat(
         (snapshot) => {
-          const nodes = snapshot?.nodes?.values?.() ?? [];
+          let nodes = [];
+          try { nodes = snapshot?.nodes?.values?.() ?? []; } catch { nodes = []; }
           let found = null;
+          let panelNodes = 0;
           for (const node of nodes) {
-            const r = extractPanelResult(node);
-            if (r) found = r;
+            try {
+              const name = node?.data?.root?.name ?? node?.data?.name ?? node?.data?.call?.name;
+              if (name === 'aura_panel') panelNodes += 1;
+              const r = extractPanelResult(node);
+              if (r) found = r;
+            } catch { /* 单个节点解析失败不影响其它 */ }
           }
-          const list = Array.isArray(found?.cards) ? found.cards : null;
-          return list ?? EMPTY;
+          const list = Array.isArray(found?.cards) ? found.cards : EMPTY;
+          return { cards: list, nodeCount: nodes.length, panelNodes };
         },
-        // 卡片数量很少，用全量 JSON 比较：只比 id 会让「同 id 更新 data」被漏掉
-        (a, b) => a === b || JSON.stringify(a) === JSON.stringify(b),
+        (a, b) =>
+          a === b
+          || (a.nodeCount === b.nodeCount
+            && a.panelNodes === b.panelNodes
+            && JSON.stringify(a.cards) === JSON.stringify(b.cards)),
       )
-    : EMPTY;
+    : EMPTY_DIAG;
+  const cards = state.cards;
+  const diag = { nodeCount: state.nodeCount, panelNodes: state.panelNodes };
   cardsRef.current = cards;
 
   if (cards.length === 0) {
@@ -199,13 +211,17 @@ export default function AuraPanel(props) {
           <div className="aura-skeleton-line" style={{ width: '72%' }} />
           <div className="aura-skeleton-line" style={{ width: '88%' }} />
           <div className="aura-skeleton-line" style={{ width: '60%' }} />
-          <span className="aura-panel-loading-text">正在读取面板…</span>
+          <span className="aura-panel-loading-text">正在读取面板… · v0.4.0 diag</span>
         </div>
       );
     }
     return (
       <div className="aura-panel-empty-state">
         面板暂无卡片。agent 调用 <code>aura_panel</code> 推送后会显示在这里。
+        <div className="aura-panel-diag">
+          [v0.4.0 diag] 会话节点 {diag.nodeCount} 个 · aura_panel 节点 {diag.panelNodes} 个
+          {diag.panelNodes > 0 ? '（有节点但没解析出卡片）' : '（未收到 aura_panel 事件）'}
+        </div>
       </div>
     );
   }

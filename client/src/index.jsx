@@ -16,6 +16,7 @@ import AuraToolRow from './AuraToolRow';
 import AuraTurnTail from './AuraTurnTail';
 import { auraDefinition } from './auraDefinition';
 import AuraPanel from './AuraPanel';
+import { createPanelAutoOpen } from './panelAutoOpen';
 
 // 运行时注入 <style>（幂等：已注入则跳过；页面刷新后 bundle 重载会重新注入）
 const AURA_CSS_TAG = 'data-plugin-css="dsh-aura"';
@@ -74,23 +75,16 @@ export function apply(ctx) {
       );
       return ctx.slots.register({ name: 'sidebar.right.pane.tab', key: 'dsh-aura-panel' }, AuraPanelBody);
     });
-    // 面板自动打开：只在启动窗口内尝试一次（打开成功或发出指令后就不再管）。
-    // 刻意不做轮询/不做会话切换自动打开——用户主动收起后绝不能再打扰。
+    // 面板自动打开：策略集中在 panelAutoOpen.js（间隔/开关/是否按历史卡片打开都可配），
+    // 便于后续整体替换（例如改 host 推送或提示而非打开）。
     ctx.effect(() => {
-      let settled = false;
-      const tryOpen = () => {
-        if (settled) return;
-        try {
-          const tabs = ctx.sidebarRight?.tabsIn?.() ?? [];
-          const isOpen = Array.isArray(tabs) && tabs.some((x) => (x?.kind ?? x?.id) === 'aura-panel');
-          if (isOpen) { settled = true; return; }
-          ctx.sidebarRight?.openTab?.('aura-panel');
-          settled = true;   // 发出打开指令即视为完成，不再重试
-        } catch { /* 等下一次（仅启动窗口内）重试 */ }
-      };
-      tryOpen();
-      const retry = setTimeout(tryOpen, 1500);
-      return () => clearTimeout(retry);
+      const controller = createPanelAutoOpen({
+        sidebarRight: ctx.sidebarRight,
+        sessions: ctx.sessions,
+        tabKind: 'aura-panel',
+      });
+      controller.start();
+      return () => controller.stop();
     });
   } catch (e) {
     console.error('[aura-spike] rightbar 注册失败:', e?.message ?? e);
