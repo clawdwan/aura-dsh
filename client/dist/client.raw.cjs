@@ -182461,46 +182461,72 @@ const FINE_SELECTORS = [
 	"li",
 	"blockquote"
 ];
-/** rect 包含判断 */
-function rectContains(outer, inner) {
-	return outer.left <= inner.left + 1 && outer.top <= inner.top + 1 && outer.right >= inner.right - 1 && outer.bottom >= inner.bottom - 1;
-}
-/** 收集圈选矩形命中的卡片内子元素（取最深层、互不包含） */
+/**
+* 收集圈选矩形命中的卡片内子元素。
+* 策略：
+*   1. 表格行 <tr> 若被完整框住 → 用「整行」一条（单元格文本以 " / " 连接）
+*   2. 其余项级元素（aura-* / ant-* / li 等）按 DOM 顺序收集
+*   3. 结果按 DOM 顺序排列（不是面积），去重互不包含
+*/
 function collectFineHits(containerEl, selAbs) {
 	const hits = [];
-	if (!containerEl) return hits;
+	if (!containerEl || !selAbs) return hits;
+	const inSel = (r) => selAbs.left < r.right && selAbs.right > r.left && selAbs.top < r.bottom && selAbs.bottom > r.top;
+	const fullyIn = (r) => selAbs.left <= r.left + 1 && selAbs.top <= r.top + 1 && selAbs.right >= r.right - 1 && selAbs.bottom >= r.bottom - 1;
 	for (const card of containerEl.querySelectorAll("[data-aura-card-id]")) {
 		const cr = card.getBoundingClientRect();
-		if (![{
+		if (!inSel({
 			left: cr.left,
 			top: cr.top,
 			right: cr.right,
 			bottom: cr.bottom
-		}].some((r) => selAbs.left < r.right && selAbs.right > r.left && selAbs.top < r.bottom && selAbs.bottom > r.top)) continue;
+		})) continue;
+		const cardId = card.dataset.auraCardId;
+		const cardTitle = card.dataset.auraCardTitle || cardId;
+		const rowEls = [];
+		for (const tr of card.querySelectorAll("tr")) {
+			const r = tr.getBoundingClientRect();
+			if (r.width < 4 || r.height < 4 || !fullyIn(r)) continue;
+			const cells = [...tr.querySelectorAll("td,th")].map((td) => (td.textContent || "").replace(/\s+/g, " ").trim()).filter(Boolean);
+			if (!cells.length) continue;
+			rowEls.push({
+				tr,
+				r,
+				text: cells.join(" / ")
+			});
+		}
+		for (const row of rowEls) hits.push({
+			cardId,
+			cardTitle,
+			text: row.text,
+			rect: row.r,
+			domIndex: hits.length,
+			order: row.r.top
+		});
+		const coveredRows = new Set(rowEls.map((x) => x.tr));
 		for (const el of card.querySelectorAll(FINE_SELECTORS.join(","))) {
+			if (el.closest("tr") && coveredRows.has(el.closest("tr"))) continue;
 			const r = el.getBoundingClientRect();
-			if (r.width < 4 || r.height < 4) continue;
-			if (!(selAbs.left < r.right && selAbs.right > r.left && selAbs.top < r.bottom && selAbs.bottom > r.top)) continue;
+			if (r.width < 4 || r.height < 4 || !inSel({
+				left: r.left,
+				top: r.top,
+				right: r.right,
+				bottom: r.bottom
+			})) continue;
 			const text = (el.textContent || "").replace(/\s+/g, " ").trim();
 			if (!text) continue;
 			hits.push({
-				cardId: card.dataset.auraCardId,
-				cardTitle: card.dataset.auraCardTitle || card.dataset.auraCardId,
+				cardId,
+				cardTitle,
 				text: text.slice(0, 120),
-				rect: {
-					left: r.left,
-					top: r.top,
-					right: r.right,
-					bottom: r.bottom
-				},
-				area: r.width * r.height
+				rect: r,
+				domIndex: hits.length,
+				order: r.top
 			});
 		}
 	}
-	hits.sort((a, b) => a.area - b.area);
-	const kept = [];
-	for (const h of hits) if (!kept.some((k) => rectContains(k.rect, h.rect) || rectContains(h.rect, k.rect))) kept.push(h);
-	return kept.map(({ cardId, cardTitle, text }) => ({
+	hits.sort((a, b) => a.order - b.order || a.domIndex - b.domIndex);
+	return hits.map(({ cardId, cardTitle, text }) => ({
 		cardId,
 		cardTitle,
 		text
