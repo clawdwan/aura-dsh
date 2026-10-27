@@ -156,24 +156,6 @@ export default function AuraPanel(props) {
     return () => clearTimeout(timer);
   }, []);
 
-  // 会话窗口不足以覆盖历史推送时（panelNodes=0 但有节点），主动往前加载历史。
-  // DSH 的 useChat 只加载最近约 100+ 节点，早期 aura_panel 调用会滑出窗口；
-  // binding.loadOlder() 会 prepend 更早的页，加载后 useChat 自然更新。
-  const loadOlderRef = React.useRef(false);
-  React.useEffect(() => {
-    if (loadOlderRef.current) return;
-    if (typeof __auraLoadOlder !== 'function') return;
-    if (diag.nodeCount === 0) return;
-    if (diag.panelNodes > 0) return; // 窗口里已经有 aura_panel 节点，无需加载
-    loadOlderRef.current = true;
-    const sid = props?.sessionId;
-    if (!sid) return;
-    console.log('[aura-panel] 窗口内无 aura_panel 节点，尝试加载更早历史…');
-    __auraLoadOlder(sid)
-      .then((r) => console.log('[aura-panel] loadOlder 完成:', r))
-      .catch((e) => console.error('[aura-panel] loadOlder 异常:', e?.message ?? e));
-  }, [diag.nodeCount, diag.panelNodes, __auraLoadOlder, props?.sessionId]);
-
   // 快捷键（⌘⌥S / Ctrl+Alt+S）进入圈选：多 tab 同时挂载时只让可见的那个响应
   React.useEffect(() => {
     console.log('[aura-panel] mounted, tabKey =', tabKey);
@@ -305,6 +287,25 @@ export default function AuraPanel(props) {
     firstKeys: safeState.firstKeys ?? null,
   };
   cardsRef.current = cards;
+
+  // 会话窗口不足以覆盖历史推送时（panelNodes=0 但有节点），主动往前加载历史。
+  // DSH 的 useChat 只加载最近约 100+ 节点，早期 aura_panel 调用会滑出窗口；
+  // binding.loadOlder() 会 prepend 更早的页，加载后 useChat 自然更新。
+  const loadOlderRef = React.useRef(false);
+  React.useEffect(() => {
+    if (loadOlderRef.current) return;
+    if (typeof __auraLoadOlder !== 'function') return;
+    if (diag.nodeCount === 0) return;
+    if (diag.panelNodes > 0) return; // 窗口里已经有 aura_panel 节点，无需加载
+    loadOlderRef.current = true;
+    const sid = props?.sessionId;
+    if (!sid) return;
+    console.log('[aura-panel] 窗口内无 aura_panel 节点，尝试加载更早历史…');
+    __auraLoadOlder(sid)
+      .then((r) => console.log('[aura-panel] loadOlder 完成:', r))
+      .catch((e) => console.error('[aura-panel] loadOlder 异常:', e?.message ?? e));
+  }, [diag.nodeCount, diag.panelNodes, __auraLoadOlder, props?.sessionId]);
+
 
   if (cards.length === 0) {
     if (!hydrated) {

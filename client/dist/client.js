@@ -183050,23 +183050,6 @@ function AuraPanel(props) {
 		const timer = setTimeout(() => setHydrated(true), 900);
 		return () => clearTimeout(timer);
 	}, []);
-	const loadOlderRef = react$1.default.useRef(false);
-	react$1.default.useEffect(() => {
-		if (loadOlderRef.current) return;
-		if (typeof __auraLoadOlder !== "function") return;
-		if (diag.nodeCount === 0) return;
-		if (diag.panelNodes > 0) return;
-		loadOlderRef.current = true;
-		const sid = props?.sessionId;
-		if (!sid) return;
-		console.log("[aura-panel] 窗口内无 aura_panel 节点，尝试加载更早历史…");
-		__auraLoadOlder(sid).then((r) => console.log("[aura-panel] loadOlder 完成:", r)).catch((e) => console.error("[aura-panel] loadOlder 异常:", e?.message ?? e));
-	}, [
-		diag.nodeCount,
-		diag.panelNodes,
-		__auraLoadOlder,
-		props?.sessionId
-	]);
 	react$1.default.useEffect(() => {
 		console.log("[aura-panel] mounted, tabKey =", tabKey);
 		const onEnter = () => {
@@ -183184,6 +183167,23 @@ function AuraPanel(props) {
 		firstKeys: safeState.firstKeys ?? null
 	};
 	cardsRef.current = cards;
+	const loadOlderRef = react$1.default.useRef(false);
+	react$1.default.useEffect(() => {
+		if (loadOlderRef.current) return;
+		if (typeof __auraLoadOlder !== "function") return;
+		if (diag.nodeCount === 0) return;
+		if (diag.panelNodes > 0) return;
+		loadOlderRef.current = true;
+		const sid = props?.sessionId;
+		if (!sid) return;
+		console.log("[aura-panel] 窗口内无 aura_panel 节点，尝试加载更早历史…");
+		__auraLoadOlder(sid).then((r) => console.log("[aura-panel] loadOlder 完成:", r)).catch((e) => console.error("[aura-panel] loadOlder 异常:", e?.message ?? e));
+	}, [
+		diag.nodeCount,
+		diag.panelNodes,
+		__auraLoadOlder,
+		props?.sessionId
+	]);
 	if (cards.length === 0) {
 		if (!hydrated) return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 			className: "aura-panel-loading-state",
