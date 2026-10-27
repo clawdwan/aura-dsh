@@ -61,7 +61,7 @@
 dsh plugin --profile web add /path/to/aura-dsh
 
 # 从 GitHub（钉版本更稳）
-dsh plugin --profile web add github:clawdwan/aura-dsh#v0.5.0
+dsh plugin --profile web add github:clawdwan/aura-dsh#v0.6.0
 ```
 
 重启 dsh web 后生效。安装前可运行自检确认与宿主兼容：
@@ -182,6 +182,7 @@ npm run watch        # 开发热重建
 | 0.3.0 | `graph` 组件 + Play 风视觉 + 骨架屏 + 出场动画（移除 mermaid，体积 16.2MB→1.4MB） |
 | 0.4.0 | `html` 卡片 + 圈选提问 + 洞察卡视觉重做 + 数字语义（`kind`） |
 | 0.5.0 | HTML 设计系统（Token + 预设结构类）+ 事件驱动面板打开 + 面板稳定性修复 |
+| 0.6.0 | 面板多 tab + 圈选快捷键（⌘⌥S）+ 径向菜单 + 来源 turn 追溯修复 |
 
 详细变更见 [CHANGELOG.md](./CHANGELOG.md)。
 
