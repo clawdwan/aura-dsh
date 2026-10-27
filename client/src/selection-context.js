@@ -12,37 +12,38 @@
  * 提供了"当时用户在问什么、agent 调了哪些工具"。这些都是会话里已有的数据。
  */
 
-/** 从会话节点里找"包含该卡片 id 的 aura_panel 调用"，并回溯其 turn 上下文。 */
+/**
+ * 从会话节点里找"包含该卡片 id 的 aura_panel 调用"，并回溯其 turn 号。
+ * turn 取法：命中节点自身的 location.turn 优先；缺失时向前找最近的带 turn 的节点
+ * （DSH 的 ConversationLocation 形如 {turn?, step?}，部分节点可能只有 session 归属）。
+ */
 function traceSource(nodes, cardId) {
   const list = Array.isArray(nodes) ? nodes : [];
-  for (const node of list) {
+  const turnOf = (node) => {
+    const t = node?.location?.turn ?? node?.data?.turn ?? node?.data?.root?.turn;
+    return Number.isFinite(t) ? t : undefined;
+  };
+
+  let hit = -1;
+  for (let i = 0; i < list.length; i += 1) {
+    const node = list[i];
     if (!node) continue;
-    const raw = JSON.stringify(node.data ?? node);
+    let raw = '';
+    try { raw = JSON.stringify(node.data ?? node); } catch { raw = ''; }
     if (!raw.includes(cardId)) continue;
     if (node.kind !== 'tool-call' && node.kind !== 'tool-result') continue;
-
-    // turn 号：不同版本挂在 data / location / anchorSeq 上，逐一兜底
-    const turn = node.data?.turn ?? node.location?.turn ?? node.turn ?? node.anchorSeq;
     const name = node.data?.root?.name ?? node.data?.call?.name ?? node.data?.name;
     if (name && name !== 'aura_panel') continue;
-
-    // 诊断：turn 缺失时打印节点形状（帮助定位 location/anchorSeq 的实际字段）
-    if (!Number.isFinite(turn)) {
-      try {
-        console.warn('[aura-context] turn 缺失，节点字段:', {
-          kind: node.kind,
-          keys: Object.keys(node),
-          location: node.location,
-          anchorSeq: node.anchorSeq,
-          dataKeys: node.data ? Object.keys(node.data) : null,
-          rootTurn: node.data?.root?.turn,
-        });
-      } catch { /* ignore */ }
-    }
-
-    return { turn, tool: name ?? 'aura_panel' };
+    hit = i;
+    break;
   }
-  return null;
+  if (hit < 0) return null;
+
+  // 命中节点自身优先，其次向前回溯最近的 turn
+  let turn = turnOf(list[hit]);
+  for (let i = hit; turn === undefined && i >= 0; i -= 1) turn = turnOf(list[i]);
+
+  return { turn, tool: 'aura_panel' };
 }
 
 /** 从 turn 的节点里取用户消息与工具调用摘要。 */
