@@ -220,7 +220,7 @@ export default function AuraPanel(props) {
 
   // 选择器返回"最后一次 aura_panel 调用的卡片列表"；用 eq 比较避免引用抖动导致重渲染。
   const EMPTY = useMemo(() => [], []);
-  const EMPTY_DIAG = useMemo(() => ({ cards: EMPTY, nodeCount: 0, panelNodes: 0 }), [EMPTY]);
+  const EMPTY_DIAG = useMemo(() => ({ cards: EMPTY, nodeCount: 0, panelNodes: 0, replayed: 0, firstKeys: null }), [EMPTY]);
   const state = useChat
     ? useChat(
         (snapshot) => {
@@ -253,7 +253,17 @@ export default function AuraPanel(props) {
           }
           let list = [...byId.values()];
           if (list.length === 0 && Array.isArray(lastResultCards)) list = lastResultCards;
-          return { cards: list, nodeCount: nodes.length, panelNodes };
+          // 诊断：重放/兜底计数 + 第一个 aura_panel 节点的 root 字段名
+          let firstKeys = null;
+          for (const node of nodes) {
+            const name = node?.data?.root?.name ?? node?.data?.name ?? node?.data?.call?.name;
+            if (name === 'aura_panel') {
+              const holder = node?.data?.root ?? node?.data ?? {};
+              try { firstKeys = Object.keys(holder).join(','); } catch { firstKeys = 'err'; }
+              break;
+            }
+          }
+          return { cards: list, nodeCount: nodes.length, panelNodes, replayed: byId.size, firstKeys };
         },
         (a, b) =>
           a === b
@@ -273,6 +283,8 @@ export default function AuraPanel(props) {
   const diag = {
     nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
     panelNodes: Number.isFinite(safeState.panelNodes) ? safeState.panelNodes : 0,
+    replayed: Number.isFinite(safeState.replayed) ? safeState.replayed : 0,
+    firstKeys: safeState.firstKeys ?? null,
   };
   cardsRef.current = cards;
 
@@ -352,6 +364,9 @@ export default function AuraPanel(props) {
         onInquiry={handleInquiry}
         onCancel={() => setSelecting(false)}
       />
+      <div className="aura-panel-diag-line">
+        {`[diag] 节点 ${diag.nodeCount} · panel ${diag.panelNodes} · 重放 ${diag.replayed} · rootKeys ${diag.firstKeys ?? '?'}`}
+      </div>
     </div>
   );
 }

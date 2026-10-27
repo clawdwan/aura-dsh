@@ -183106,7 +183106,9 @@ function AuraPanel(props) {
 	const EMPTY_DIAG = (0, react$1.useMemo)(() => ({
 		cards: EMPTY,
 		nodeCount: 0,
-		panelNodes: 0
+		panelNodes: 0,
+		replayed: 0,
+		firstKeys: null
 	}), [EMPTY]);
 	const state = useChat ? useChat((snapshot) => {
 		let nodes = [];
@@ -183137,10 +183139,22 @@ function AuraPanel(props) {
 		} catch {}
 		let list = [...byId.values()];
 		if (list.length === 0 && Array.isArray(lastResultCards)) list = lastResultCards;
+		let firstKeys = null;
+		for (const node of nodes) if ((node?.data?.root?.name ?? node?.data?.name ?? node?.data?.call?.name) === "aura_panel") {
+			const holder = node?.data?.root ?? node?.data ?? {};
+			try {
+				firstKeys = Object.keys(holder).join(",");
+			} catch {
+				firstKeys = "err";
+			}
+			break;
+		}
 		return {
 			cards: list,
 			nodeCount: nodes.length,
-			panelNodes
+			panelNodes,
+			replayed: byId.size,
+			firstKeys
 		};
 	}, (a, b) => a === b || a.nodeCount === b.nodeCount && a.panelNodes === b.panelNodes && JSON.stringify(a.cards) === JSON.stringify(b.cards)) : EMPTY_DIAG;
 	const safeState = state && typeof state === "object" ? state : EMPTY_DIAG;
@@ -183148,7 +183162,9 @@ function AuraPanel(props) {
 	const cards = (0, react$1.useMemo)(() => allCards.filter((c) => (c?.tab ?? "main") === tabKey), [allCards, tabKey]);
 	const diag = {
 		nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
-		panelNodes: Number.isFinite(safeState.panelNodes) ? safeState.panelNodes : 0
+		panelNodes: Number.isFinite(safeState.panelNodes) ? safeState.panelNodes : 0,
+		replayed: Number.isFinite(safeState.replayed) ? safeState.replayed : 0,
+		firstKeys: safeState.firstKeys ?? null
 	};
 	cardsRef.current = cards;
 	if (cards.length === 0) {
@@ -183251,6 +183267,10 @@ function AuraPanel(props) {
 				containerRef: panelRef,
 				onInquiry: handleInquiry,
 				onCancel: () => setSelecting(false)
+			}),
+			/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+				className: "aura-panel-diag-line",
+				children: `[diag] 节点 ${diag.nodeCount} · panel ${diag.panelNodes} · 重放 ${diag.replayed} · rootKeys ${diag.firstKeys ?? "?"}`
 			})
 		]
 	});
