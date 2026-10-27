@@ -143,13 +143,14 @@ export function apply(ctx) {
         // 注意：Web 端只允许「3+ 修饰键」或「primary(⌘/Ctrl)+alt|shift」的组合——
         // 单 Alt+字母会被浏览器/输入法占用，DSH 会拒绝（Unsupported Web shortcut）。
         // 因此用 ⌘⌥S（Mac）/ Ctrl+Alt+S（Win/Linux），用 primary 自动跨平台。
+        // 只声明 macos / windows 的默认键：
+        // Web 端 isWebBindingAllowed 对 linux 走固定白名单（自定义组合一律拒绝），
+        // 声明 linux 默认会导致整个注册抛错；linux 用户可在设置里自行绑定。
         defaults: {
           'web:macos': { code: 'KeyS', modifiers: ['primary', 'alt'] },
           'desktop:macos': { code: 'KeyS', modifiers: ['primary', 'alt'] },
           'web:windows': { code: 'KeyS', modifiers: ['primary', 'alt'] },
           'desktop:windows': { code: 'KeyS', modifiers: ['primary', 'alt'] },
-          'web:linux': { code: 'KeyS', modifiers: ['primary', 'alt'] },
-          'desktop:linux': { code: 'KeyS', modifiers: ['primary', 'alt'] },
         },
         regions: ['page'],
         modals: [],

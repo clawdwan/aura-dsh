@@ -183143,14 +183143,6 @@ function apply(ctx) {
 					"desktop:windows": {
 						code: "KeyS",
 						modifiers: ["primary", "alt"]
-					},
-					"web:linux": {
-						code: "KeyS",
-						modifiers: ["primary", "alt"]
-					},
-					"desktop:linux": {
-						code: "KeyS",
-						modifiers: ["primary", "alt"]
 					}
 				},
 				regions: ["page"],
