@@ -1270,8 +1270,14 @@ svg.react-flow__connectionline {
   margin-bottom: 2px;
 }
 .aura-panel-tool {
+  /* 固定高度：避免「🔍 圈选提问」/「✕ 退出圈选」因 emoji 字形行高不同导致高度跳动 */
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
-  padding: 4px 10px;
+  line-height: 1;
+  padding: 0 10px;
   border-radius: 6px;
   cursor: pointer;
   border: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.2));
@@ -1284,7 +1290,10 @@ svg.react-flow__connectionline {
   border-color: var(--dsw-static-deepseek-500, #4176e6);
   color: var(--dsw-static-deepseek-500, #4176e6);
 }
-.aura-panel-tool-hint { font-size: 11px; opacity: 0.6; }
+.aura-panel-tool-hint {
+  line-height: 1;
+  display: inline-flex;
+  align-items: center; font-size: 11px; opacity: 0.6; }
 
 /* ---- 圈选层 ---- */
 .aura-select-layer {
@@ -182610,30 +182619,28 @@ function SelectionLayer({ active, containerRef, onInquiry, onCancel }) {
 			return;
 		}
 		const box = containerRef.current?.getBoundingClientRect();
+		const selAbs = box ? {
+			left: sel.left + box.left,
+			top: sel.top + box.top,
+			right: sel.left + box.left + sel.width,
+			bottom: sel.top + box.top + sel.height
+		} : null;
 		const found = [];
-		if (box) {
-			const selAbs = {
-				left: sel.left + box.left,
-				top: sel.top + box.top,
-				right: sel.left + box.left + sel.width,
-				bottom: sel.top + box.top + sel.height
-			};
-			containerRef.current.querySelectorAll("[data-aura-card-id]").forEach((el) => {
-				const r = el.getBoundingClientRect();
-				if (intersects(selAbs, {
-					left: r.left,
-					top: r.top,
-					right: r.right,
-					bottom: r.bottom
-				})) found.push({
-					id: el.dataset.auraCardId,
-					title: el.dataset.auraCardTitle || el.dataset.auraCardId
-				});
+		if (selAbs) containerRef.current.querySelectorAll("[data-aura-card-id]").forEach((el) => {
+			const r = el.getBoundingClientRect();
+			if (intersects(selAbs, {
+				left: r.left,
+				top: r.top,
+				right: r.right,
+				bottom: r.bottom
+			})) found.push({
+				id: el.dataset.auraCardId,
+				title: el.dataset.auraCardTitle || el.dataset.auraCardId
 			});
-		}
+		});
 		setRect(sel);
 		setHits(found);
-		setFineHits(found.length > 0 ? collectFineHits(containerRef.current, selAbs) : null);
+		setFineHits(found.length > 0 && selAbs ? collectFineHits(containerRef.current, selAbs) : null);
 		if (found.length === 0) {
 			setTimeout(() => {
 				setRect(null);

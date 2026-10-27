@@ -166,14 +166,17 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
 
     // 命中检测：面板内所有带 data-aura-card-id 的卡片
     const box = containerRef.current?.getBoundingClientRect();
-    const found = [];
-    if (box) {
-      const selAbs = {
+    // 注意：selAbs 必须在 if 块外定义——collectFineHits 也要用它
+    const selAbs = box
+      ? {
         left: sel.left + box.left,
         top: sel.top + box.top,
         right: sel.left + box.left + sel.width,
         bottom: sel.top + box.top + sel.height,
-      };
+      }
+      : null;
+    const found = [];
+    if (selAbs) {
       containerRef.current.querySelectorAll('[data-aura-card-id]').forEach((el) => {
         const r = el.getBoundingClientRect();
         if (intersects(selAbs, { left: r.left, top: r.top, right: r.right, bottom: r.bottom })) {
@@ -186,7 +189,7 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
     }
     setRect(sel);
     setHits(found);
-    setFineHits(found.length > 0 ? collectFineHits(containerRef.current, selAbs) : null);
+    setFineHits(found.length > 0 && selAbs ? collectFineHits(containerRef.current, selAbs) : null);
     if (found.length === 0) {
       // 没命中卡片 → 提示后自动退出
       setTimeout(() => { setRect(null); setHits(null); }, 1200);
