@@ -133,8 +133,11 @@ export default function AuraPanel(props) {
   React.useEffect(() => {
     const onEnter = () => {
       const el = panelRef.current;
-      // offsetParent 为 null 说明元素不可见（tab 处于后台/隐藏）
-      if (!el || el.offsetParent === null) return;
+      if (!el) return;
+      // 用布局尺寸判断可见性：offsetParent 对 position:fixed/absolute 会返回 null，
+      // 即使元素可见也会被误判（右侧栏就属于这种情况）。
+      const rect = el.getBoundingClientRect();
+      if (rect.width <= 1 || rect.height <= 1) return;
       setSelecting(true);
     };
     window.addEventListener('aura:enter-select', onEnter);

@@ -182597,7 +182597,9 @@ function AuraPanel(props) {
 	react$1.default.useEffect(() => {
 		const onEnter = () => {
 			const el = panelRef.current;
-			if (!el || el.offsetParent === null) return;
+			if (!el) return;
+			const rect = el.getBoundingClientRect();
+			if (rect.width <= 1 || rect.height <= 1) return;
 			setSelecting(true);
 		};
 		window.addEventListener("aura:enter-select", onEnter);
