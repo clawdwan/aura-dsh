@@ -70,13 +70,25 @@ export function apply(ctx) {
       />
     );
 
-    /** 幂等注册一个 tab 类型及其 body；返回其 kind */
+    // 待注册队列：ctx.slots.inject 只能在 effect 上下文里生效，
+    // 所以 ensureTab 只登记，由下面的注册循环在 effect 内真正注册。
+    const pendingTabs = new Map(); // tabKey -> title | undefined
+
+    /** 登记一个 tab（幂等）；返回其 kind */
     const ensureTab = (rawTabKey, rawTitle) => {
       const tabKey = typeof rawTabKey === 'string' && rawTabKey.trim() ? rawTabKey.trim() : 'main';
+      if (!registeredTabs.has(tabKey) && !pendingTabs.has(tabKey)) {
+        pendingTabs.set(tabKey, typeof rawTitle === 'string' && rawTitle.trim() ? rawTitle.trim() : undefined);
+      }
+      return kindOf(tabKey);
+    };
+
+    /** 在 effect 内真正注册 tab 类型与 body（幂等） */
+    const registerTab = (tabKey) => {
+      if (registeredTabs.has(tabKey)) return;
       const kind = kindOf(tabKey);
-      if (registeredTabs.has(tabKey)) return kind;
       const id = idOf(tabKey);
-      const title = typeof rawTitle === 'string' && rawTitle.trim() ? rawTitle.trim() : undefined;
+      const title = pendingTabs.get(tabKey);
       try {
         const disposeTab = ctx.sidebarRightTabs.register({
           id,
@@ -96,11 +108,23 @@ export function apply(ctx) {
       } catch (err) {
         console.error('[aura-panel] tab 注册失败:', tabKey, err?.message ?? err);
       }
-      return kind;
     };
 
-    // 默认 main tab 始终存在
+    // 默认 main tab 始终存在（登记，稍后由 effect 注册）
     ensureTab('main');
+
+    // tab 注册循环：effect 上下文内注册 pendingTabs（每 300ms 兜底 + 立即跑一次）
+    ctx.effect(() => {
+      const flush = () => {
+        for (const key of [...pendingTabs.keys()]) {
+          registerTab(key);
+          pendingTabs.delete(key);
+        }
+      };
+      flush();
+      const timer = setInterval(flush, 300);
+      return () => clearInterval(timer);
+    });
 
     // 事件驱动打开：按推送卡片的 tab 字段路由到对应 tab（没有则先注册）
     ctx.effect(() => {

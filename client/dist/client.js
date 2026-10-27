@@ -183067,13 +183067,19 @@ function apply(ctx) {
 			tabKey,
 			__auraSend: makeSend(props)
 		}, `${props?.sessionId}:${tabKey}`);
-		/** 幂等注册一个 tab 类型及其 body；返回其 kind */
+		const pendingTabs = /* @__PURE__ */ new Map();
+		/** 登记一个 tab（幂等）；返回其 kind */
 		const ensureTab = (rawTabKey, rawTitle) => {
 			const tabKey = typeof rawTabKey === "string" && rawTabKey.trim() ? rawTabKey.trim() : "main";
+			if (!registeredTabs.has(tabKey) && !pendingTabs.has(tabKey)) pendingTabs.set(tabKey, typeof rawTitle === "string" && rawTitle.trim() ? rawTitle.trim() : void 0);
+			return kindOf(tabKey);
+		};
+		/** 在 effect 内真正注册 tab 类型与 body（幂等） */
+		const registerTab = (tabKey) => {
+			if (registeredTabs.has(tabKey)) return;
 			const kind = kindOf(tabKey);
-			if (registeredTabs.has(tabKey)) return kind;
 			const id = idOf(tabKey);
-			const title = typeof rawTitle === "string" && rawTitle.trim() ? rawTitle.trim() : void 0;
+			const title = pendingTabs.get(tabKey);
 			try {
 				const disposeTab = ctx.sidebarRightTabs.register({
 					id,
@@ -183098,9 +183104,19 @@ function apply(ctx) {
 			} catch (err) {
 				console.error("[aura-panel] tab 注册失败:", tabKey, err?.message ?? err);
 			}
-			return kind;
 		};
 		ensureTab("main");
+		ctx.effect(() => {
+			const flush = () => {
+				for (const key of [...pendingTabs.keys()]) {
+					registerTab(key);
+					pendingTabs.delete(key);
+				}
+			};
+			flush();
+			const timer = setInterval(flush, 300);
+			return () => clearInterval(timer);
+		});
 		ctx.effect(() => {
 			const signal = createPanelSignal({
 				sessions: ctx.sessions,
