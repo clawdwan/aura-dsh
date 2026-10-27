@@ -182595,10 +182595,15 @@ function AuraPanel(props) {
 		return () => clearTimeout(timer);
 	}, []);
 	react$1.default.useEffect(() => {
+		console.log("[aura-panel] mounted, tabKey =", tabKey);
 		const onEnter = () => {
 			const el = panelRef.current;
-			if (!el) return;
+			if (!el) {
+				console.warn("[aura-panel] enter-select: 面板未挂载");
+				return;
+			}
 			const rect = el.getBoundingClientRect();
+			console.log("[aura-panel] enter-select 收到, 尺寸=", Math.round(rect.width), "x", Math.round(rect.height));
 			if (rect.width <= 1 || rect.height <= 1) return;
 			setSelecting(true);
 		};
@@ -183152,6 +183157,7 @@ function apply(ctx) {
 				resolve: () => ({
 					status: "handled",
 					run() {
+						console.log("[aura-shortcut] ⌘⌥S 触发 → 派发 aura:enter-select");
 						try {
 							window.dispatchEvent(new CustomEvent("aura:enter-select"));
 						} catch (err) {

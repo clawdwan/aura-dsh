@@ -158,6 +158,7 @@ export function apply(ctx) {
         resolve: () => ({
           status: 'handled',
           run() {
+            console.log('[aura-shortcut] ⌘⌥S 触发 → 派发 aura:enter-select');
             try {
               window.dispatchEvent(new CustomEvent('aura:enter-select'));
             } catch (err) {

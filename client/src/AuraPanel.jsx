@@ -129,14 +129,17 @@ export default function AuraPanel(props) {
     return () => clearTimeout(timer);
   }, []);
 
-  // 快捷键（⌥S / Alt+S）进入圈选：多 tab 同时挂载时只让可见的那个响应
+  // 快捷键（⌘⌥S / Ctrl+Alt+S）进入圈选：多 tab 同时挂载时只让可见的那个响应
   React.useEffect(() => {
+    console.log('[aura-panel] mounted, tabKey =', tabKey);
     const onEnter = () => {
       const el = panelRef.current;
-      if (!el) return;
-      // 用布局尺寸判断可见性：offsetParent 对 position:fixed/absolute 会返回 null，
-      // 即使元素可见也会被误判（右侧栏就属于这种情况）。
+      if (!el) {
+        console.warn('[aura-panel] enter-select: 面板未挂载');
+        return;
+      }
       const rect = el.getBoundingClientRect();
+      console.log('[aura-panel] enter-select 收到, 尺寸=', Math.round(rect.width), 'x', Math.round(rect.height));
       if (rect.width <= 1 || rect.height <= 1) return;
       setSelecting(true);
     };
