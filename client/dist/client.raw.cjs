@@ -182898,7 +182898,7 @@ function compactData(data, maxChars = 2400) {
 * 构建圈选提问的上下文 Markdown。
 * @param {{cards: Array, rect: object, question: string, nodes: Array, panelWidth?: number, panelHeight?: number}} p
 */
-function buildSelectionContext({ cards, rect, question, fineHits, nodes, panelWidth, panelHeight }) {
+function buildSelectionContext({ cards, rect, question, fineHits, panelCards, nodes, panelWidth, panelHeight }) {
 	const w = panelWidth || 1;
 	const h = panelHeight || 1;
 	const pct = (v, base) => `${Math.round(v / base * 100)}%`;
@@ -182910,7 +182910,7 @@ function buildSelectionContext({ cards, rect, question, fineHits, nodes, panelWi
 	const hits = Array.isArray(fineHits) ? fineHits.filter((h) => h && h.text) : [];
 	if (hits.length) {
 		lines.push("");
-		lines.push("✨ 命中内容（圈选到的具体元素）：");
+		lines.push("✨ 命中内容（用户关注的具体元素，精确锚点）：");
 		const MAX = 8;
 		for (const h of hits.slice(0, MAX)) lines.push(`- 「${h.cardTitle ?? h.cardId}」· ${h.text}`);
 		if (hits.length > MAX) lines.push(`- …另有 ${hits.length - MAX} 条`);
@@ -182923,6 +182923,16 @@ function buildSelectionContext({ cards, rect, question, fineHits, nodes, panelWi
 		lines.push("```json");
 		lines.push(compactData(c.data));
 		lines.push("```");
+	}
+	const others = Array.isArray(panelCards) ? panelCards.filter((c) => c && !cards.some((h) => h.id === c.id)) : [];
+	if (others.length) {
+		lines.push("");
+		lines.push("【面板其他卡片（相关上下文）】");
+		for (const c of others.slice(0, 6)) {
+			const summary = compactData(c.data, 220);
+			lines.push(`- 「${c.title ?? c.id}」(${c.type ?? "?"})：${summary}`);
+		}
+		if (others.length > 6) lines.push(`- …另有 ${others.length - 6} 张卡片`);
 	}
 	const traces = [];
 	for (const c of cards) {
@@ -182947,7 +182957,7 @@ function buildSelectionContext({ cards, rect, question, fineHits, nodes, panelWi
 	}
 	lines.push("");
 	lines.push("【回答要求】");
-	lines.push("- 请针对上面命中的卡片与圈选范围作答（明确引用是哪张卡/哪个区间）。");
+	lines.push("- 「命中内容」是用户关注的具体锚点；请结合【卡片数据】（完整卡片/表格）理解它在整体中的含义——该行与其他行的对比、该指标在整体中的位置、与【面板其他卡片】的关联。");
 	lines.push("- 解释性结论直接回答；若需要更新数据/图表，可调用 aura_panel 更新右侧面板。");
 	return lines.join("\n");
 }
@@ -183114,6 +183124,7 @@ function AuraPanel(props) {
 			rect,
 			question,
 			fineHits: fineHits ?? [],
+			panelCards: cardsRef.current ?? [],
 			nodes: nodesRef.current,
 			panelWidth: panelRef.current?.offsetWidth,
 			panelHeight: panelRef.current?.offsetHeight

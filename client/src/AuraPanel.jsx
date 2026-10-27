@@ -191,6 +191,7 @@ export default function AuraPanel(props) {
       rect,
       question,
       fineHits: fineHits ?? [],
+      panelCards: cardsRef.current ?? [],
       nodes: nodesRef.current,
       panelWidth: panelRef.current?.offsetWidth,
       panelHeight: panelRef.current?.offsetHeight,
