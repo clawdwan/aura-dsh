@@ -30,7 +30,7 @@ if (typeof document !== 'undefined' && !document.querySelector(`style[${AURA_CSS
 
 export const name = 'aura-client';
 
-export const inject = ['slots', 'uiConversation', 'sidebarRightTabs', 'sidebarRight', 'remote', 'remote.session', 'conversation', 'sessions'];
+export const inject = ['slots', 'uiConversation', 'sidebarRightTabs', 'sidebarRight', 'remote', 'remote.session', 'conversation', 'sessions', 'shortcuts'];
 
 export function apply(ctx) {
   ctx.slots.inject('tool.call.toolview', () =>
@@ -131,6 +131,42 @@ export function apply(ctx) {
         registeredTabs.clear();
       };
     });
+
+    // 快捷键：⌥S（Mac）/ Alt+S → 进入圈选提问
+    // 由 DSH 快捷键系统注册，用户可在「设置 → 快捷键」里改键
+    try {
+      const disposeShortcut = ctx.shortcuts.register({
+        id: 'aura-selection',
+        label: () => 'Aura 圈选提问',
+        aliases: ['aura-select', 'selection-ask'],
+        defaults: {
+          'web:mac': { code: 'KeyS', modifiers: ['alt'] },
+          'desktop:mac': { code: 'KeyS', modifiers: ['alt'] },
+          'web:win': { code: 'KeyS', modifiers: ['alt'] },
+          'desktop:win': { code: 'KeyS', modifiers: ['alt'] },
+          'web:linux': { code: 'KeyS', modifiers: ['alt'] },
+          'desktop:linux': { code: 'KeyS', modifiers: ['alt'] },
+        },
+        regions: ['page'],
+        modals: [],
+        resolve: () => ({
+          status: 'handled',
+          run() {
+            try {
+              window.dispatchEvent(new CustomEvent('aura:enter-select'));
+            } catch (err) {
+              console.error('[aura-shortcut] 派发失败:', err?.message ?? err);
+            }
+          },
+        }),
+      });
+      ctx.effect(() => () => {
+        try { disposeShortcut?.(); } catch { /* ignore */ }
+      });
+      console.log('[aura-shortcut] 已注册 ⌥S / Alt+S（可在 DSH 设置里改）');
+    } catch (err) {
+      console.error('[aura-shortcut] 注册失败:', err?.message ?? err);
+    }
   } catch (e) {
     console.error('[aura-spike] rightbar 注册失败:', e?.message ?? e);
   }

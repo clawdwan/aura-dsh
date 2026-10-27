@@ -128,6 +128,18 @@ export default function AuraPanel(props) {
     const timer = setTimeout(() => setHydrated(true), 900);
     return () => clearTimeout(timer);
   }, []);
+
+  // 快捷键（⌥S / Alt+S）进入圈选：多 tab 同时挂载时只让可见的那个响应
+  React.useEffect(() => {
+    const onEnter = () => {
+      const el = panelRef.current;
+      // offsetParent 为 null 说明元素不可见（tab 处于后台/隐藏）
+      if (!el || el.offsetParent === null) return;
+      setSelecting(true);
+    };
+    window.addEventListener('aura:enter-select', onEnter);
+    return () => window.removeEventListener('aura:enter-select', onEnter);
+  }, []);
   const panelRef = React.useRef(null);
   const cardsRef = React.useRef([]);
   const nodesRef = React.useRef([]);

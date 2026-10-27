@@ -182600,6 +182600,15 @@ function AuraPanel(props) {
 		const timer = setTimeout(() => setHydrated(true), 900);
 		return () => clearTimeout(timer);
 	}, []);
+	react$1.default.useEffect(() => {
+		const onEnter = () => {
+			const el = panelRef.current;
+			if (!el || el.offsetParent === null) return;
+			setSelecting(true);
+		};
+		window.addEventListener("aura:enter-select", onEnter);
+		return () => window.removeEventListener("aura:enter-select", onEnter);
+	}, []);
 	const panelRef = react$1.default.useRef(null);
 	const cardsRef = react$1.default.useRef([]);
 	const nodesRef = react$1.default.useRef([]);
@@ -183014,7 +183023,8 @@ const inject = [
 	"remote",
 	"remote.session",
 	"conversation",
-	"sessions"
+	"sessions",
+	"shortcuts"
 ];
 function apply(ctx) {
 	ctx.slots.inject("tool.call.toolview", () => ctx.slots.register({
@@ -183118,6 +183128,59 @@ function apply(ctx) {
 				registeredTabs.clear();
 			};
 		});
+		try {
+			const disposeShortcut = ctx.shortcuts.register({
+				id: "aura-selection",
+				label: () => "Aura 圈选提问",
+				aliases: ["aura-select", "selection-ask"],
+				defaults: {
+					"web:mac": {
+						code: "KeyS",
+						modifiers: ["alt"]
+					},
+					"desktop:mac": {
+						code: "KeyS",
+						modifiers: ["alt"]
+					},
+					"web:win": {
+						code: "KeyS",
+						modifiers: ["alt"]
+					},
+					"desktop:win": {
+						code: "KeyS",
+						modifiers: ["alt"]
+					},
+					"web:linux": {
+						code: "KeyS",
+						modifiers: ["alt"]
+					},
+					"desktop:linux": {
+						code: "KeyS",
+						modifiers: ["alt"]
+					}
+				},
+				regions: ["page"],
+				modals: [],
+				resolve: () => ({
+					status: "handled",
+					run() {
+						try {
+							window.dispatchEvent(new CustomEvent("aura:enter-select"));
+						} catch (err) {
+							console.error("[aura-shortcut] 派发失败:", err?.message ?? err);
+						}
+					}
+				})
+			});
+			ctx.effect(() => () => {
+				try {
+					disposeShortcut?.();
+				} catch {}
+			});
+			console.log("[aura-shortcut] 已注册 ⌥S / Alt+S（可在 DSH 设置里改）");
+		} catch (err) {
+			console.error("[aura-shortcut] 注册失败:", err?.message ?? err);
+		}
 	} catch (e) {
 		console.error("[aura-spike] rightbar 注册失败:", e?.message ?? e);
 	}
