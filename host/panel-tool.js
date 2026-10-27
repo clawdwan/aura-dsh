@@ -29,6 +29,8 @@ export const panelParameters = {
     description: "卡片对象（action='upsert' 时必填）：{ id, type, title?, data?, actions?, pending? }。"
       + "pending=true 或省略 data 时，面板显示骨架屏占位（适合多卡片任务：先推结构再填数据）。"
       + "type 与 data 契约同 aura_render；actions[].prompt 是点击按钮后注入会话的指令文本。"
+      + "tab 是面板内频道键（如 'market'/'research'，缺省 'main'），tabTitle 是该频道显示名；"
+      + "同一会话可在多个 tab 里分别组织内容。"
       + "action='remove' 时只需 { id }。",
   },
 };
@@ -62,9 +64,14 @@ function normalizeCard(raw) {
         prompt: typeof a.prompt === 'string' ? a.prompt : a.label,
       }))
     : undefined;
+  // 多 tab 路由：tab 是频道键（缺省 main），tabTitle 是该频道显示名
+  const tabKey = typeof raw.tab === 'string' && raw.tab.trim() ? raw.tab.trim() : 'main';
+  const tabTitle = typeof raw.tabTitle === 'string' && raw.tabTitle.trim() ? raw.tabTitle.trim() : undefined;
   return {
     id,
     type: safeType,
+    tab: tabKey,
+    ...(tabTitle ? { tabTitle } : {}),
     ...(typeof raw.title === 'string' ? { title: raw.title } : {}),
     ...(raw.data && typeof raw.data === 'object' ? { data: raw.data } : {}),
     ...(actions ? { actions } : {}),

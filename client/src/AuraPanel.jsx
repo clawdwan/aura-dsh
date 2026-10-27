@@ -118,7 +118,7 @@ function isPendingCard(card) {
 }
 
 export default function AuraPanel(props) {
-  const { useChat, __auraSend } = props;
+  const { useChat, __auraSend, tabKey = 'main' } = props;
   const [sendingId, setSendingId] = React.useState(null);
   const [lastResult, setLastResult] = React.useState(null);
   const [selecting, setSelecting] = React.useState(false);
@@ -202,7 +202,12 @@ export default function AuraPanel(props) {
     : EMPTY_DIAG;
   // 防御：useChat 在会话未就绪时可能返回 undefined，这里兜底成空状态，避免渲染崩溃
   const safeState = state && typeof state === 'object' ? state : EMPTY_DIAG;
-  const cards = Array.isArray(safeState.cards) ? safeState.cards : EMPTY;
+  const allCards = Array.isArray(safeState.cards) ? safeState.cards : EMPTY;
+  // 多 tab：本面板只展示归属当前 tabKey 的卡片（缺省 main）
+  const cards = useMemo(
+    () => allCards.filter((c) => (c?.tab ?? 'main') === tabKey),
+    [allCards, tabKey],
+  );
   const diag = {
     nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
     panelNodes: Number.isFinite(safeState.panelNodes) ? safeState.panelNodes : 0,
