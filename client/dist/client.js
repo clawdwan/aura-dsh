@@ -182824,7 +182824,8 @@ function buildSelectionContext({ cards, rect, question, nodes, panelWidth, panel
 		lines.push("【来源（自动追溯）】");
 		for (const t of traces) {
 			const where = Number.isFinite(t.turn) ? `turn #${t.turn}` : "本会话";
-			lines.push(`- 「${t.id}」：由${where}的 ${t.tool} 调用生成`);
+			const suffix = t.debug ? `（debug: ${t.debug}）` : "";
+			lines.push(`- 「${t.id}」：由${where}的 ${t.tool} 调用生成${suffix}`);
 			if (t.userMsg) lines.push(`  · 该轮用户说：「${t.userMsg}」`);
 			if (t.tools?.length) lines.push(`  · 该轮工具：${t.tools.join(", ")}`);
 		}
