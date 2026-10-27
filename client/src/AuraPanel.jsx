@@ -53,6 +53,28 @@ function extractPanelResult(node) {
   return null;
 }
 
+
+/**
+ * 从 tool/call 节点解析 aura_panel 调用参数（action + card）。
+ * 面板状态改为「重放历史调用」而不是「取最后一次结果」：
+ * host 的 panel-store 是纯内存，主实例重启后清空，最后一次结果只含新卡；
+ * 而调用参数在会话历史里是完整的（upsert/remove/clear 可直接重放）。
+ */
+function extractPanelAction(node) {
+  const name = node?.data?.root?.name ?? node?.data?.name ?? node?.data?.call?.name;
+  if (name !== 'aura_panel') return null;
+  const raw = node?.data?.root?.arguments ?? node?.data?.arguments;
+  if (typeof raw !== 'string') return null;
+  try {
+    const args = JSON.parse(raw);
+    const action = typeof args?.action === 'string' ? args.action : null;
+    if (!action) return null;
+    return { action, card: args?.card ?? null };
+  } catch {
+    return null;
+  }
+}
+
 /** 从 ContentBlock 数组里解析出 JSON 负载。 */
 function parseBlocks(blocks) {
   for (const block of blocks) {
@@ -199,17 +221,33 @@ export default function AuraPanel(props) {
         (snapshot) => {
           let nodes = [];
           try { nodes = snapshot?.nodes?.values?.() ?? []; } catch { nodes = []; }
-          let found = null;
           let panelNodes = 0;
+          const byId = new Map();
+          let lastResultCards = null;
           for (const node of nodes) {
             try {
               const name = node?.data?.root?.name ?? node?.data?.name ?? node?.data?.call?.name;
               if (name === 'aura_panel') panelNodes += 1;
+              // 优先：重放调用参数（不依赖 host 内存态，重启后也能恢复）
+              const act = extractPanelAction(node);
+              if (act) {
+                if (act.action === 'clear') {
+                  byId.clear();
+                } else if (act.action === 'remove') {
+                  const id = act.card?.id;
+                  if (id) byId.delete(id);
+                } else if (act.action === 'upsert' && act.card?.id) {
+                  byId.set(act.card.id, { ...act.card, tab: act.card.tab ?? 'main' });
+                }
+                continue;
+              }
+              // 兜底：只有 result 的历史形态，用最后一次结果的 cards
               const r = extractPanelResult(node);
-              if (r) found = r;
+              if (r) lastResultCards = r.cards;
             } catch { /* 单个节点解析失败不影响其它 */ }
           }
-          const list = Array.isArray(found?.cards) ? found.cards : EMPTY;
+          let list = [...byId.values()];
+          if (list.length === 0 && Array.isArray(lastResultCards)) list = lastResultCards;
           return { cards: list, nodeCount: nodes.length, panelNodes };
         },
         (a, b) =>
