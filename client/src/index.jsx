@@ -61,12 +61,37 @@ export function apply(ctx) {
       });
     };
 
+    /** 往前加载历史（会话窗口不足时把旧 aura_panel 调用拉进来） */
+    const loadOlderHistory = async (sessionId) => {
+      if (!sessionId) return { loaded: 0 };
+      let reference;
+      try {
+        reference = ctx.sessions?.retain?.(sessionId, { source: 'controllerOperation' });
+        const binding = reference?.binding;
+        if (!binding?.loadOlder) return { loaded: 0 };
+        let pages = 0;
+        for (let i = 0; i < 10; i += 1) {
+          const win = binding.eventSource?.getSnapshot?.();
+          if (!win?.hasMore) break;
+          await binding.loadOlder();
+          pages += 1;
+        }
+        return { loaded: pages };
+      } catch (err) {
+        console.error('[aura-panel] loadOlder 失败:', err?.message ?? err);
+        return { loaded: 0, error: String(err?.message ?? err) };
+      } finally {
+        try { reference?.release?.(); } catch { /* ignore */ }
+      }
+    };
+
     const makePanelBody = (tabKey) => (props) => (
       <AuraPanel
         key={`${props?.sessionId}:${tabKey}`}
         {...props}
         tabKey={tabKey}
         __auraSend={makeSend(props)}
+        __auraLoadOlder={loadOlderHistory}
       />
     );
 
