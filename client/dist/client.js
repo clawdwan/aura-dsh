@@ -182727,8 +182727,10 @@ function SelectionLayer({ active, containerRef, onInquiry, onCancel }) {
 function traceSource(nodes, cardId) {
 	const list = Array.isArray(nodes) ? nodes : [];
 	const turnOf = (node) => {
-		const t = node?.location?.turn ?? node?.data?.turn ?? node?.data?.root?.turn;
-		return Number.isFinite(t) ? t : void 0;
+		const loc = node?.location;
+		const raw = loc?.turn ?? loc?.step?.turn ?? node?.data?.turn ?? node?.data?.root?.turn;
+		if (Number.isFinite(raw)) return raw;
+		if (raw && typeof raw === "object" && Number.isFinite(raw.turn)) return raw.turn;
 	};
 	let hit = -1;
 	for (let i = 0; i < list.length; i += 1) {
@@ -182750,25 +182752,21 @@ function traceSource(nodes, cardId) {
 	if (hit < 0) return null;
 	let turn = turnOf(list[hit]);
 	for (let i = hit; turn === void 0 && i >= 0; i -= 1) turn = turnOf(list[i]);
-	let debug;
-	if (!Number.isFinite(turn)) {
-		const node = list[hit] ?? {};
-		try {
-			debug = `kind=${node.kind} keys=${Object.keys(node).join("|")} loc=${JSON.stringify(node.location ?? null)} seq=${node.anchorSeq ?? "?"} dataKeys=${node.data ? Object.keys(node.data).join("|") : "null"} rootTurn=${node.data?.root?.turn ?? "?"}`;
-		} catch {
-			debug = "debug-error";
-		}
-	}
 	return {
 		turn,
-		tool: "aura_panel",
-		debug
+		tool: "aura_panel"
 	};
 }
 /** 从 turn 的节点里取用户消息与工具调用摘要。 */
 function turnDigest(nodes, turn) {
 	if (turn === void 0 || turn === null) return null;
-	const list = (Array.isArray(nodes) ? nodes : []).filter((n) => (n.data?.turn ?? n.turn) === turn);
+	const nodeTurn = (n) => {
+		const loc = n?.location;
+		const raw = loc?.turn ?? loc?.step?.turn ?? n?.data?.turn;
+		if (Number.isFinite(raw)) return raw;
+		if (raw && typeof raw === "object" && Number.isFinite(raw.turn)) return raw.turn;
+	};
+	const list = (Array.isArray(nodes) ? nodes : []).filter((n) => nodeTurn(n) === turn);
 	const userMsg = list.filter((n) => n.kind === "user").map((n) => (n.data?.message?.content ?? []).filter((b) => b.type === "text").map((b) => b.text).join("")).filter(Boolean).join(" / ");
 	const tools = list.filter((n) => n.kind === "tool-call").map((n) => n.data?.root?.name ?? n.data?.call?.name ?? n.data?.name).filter((x) => x && x !== "aura_panel");
 	return {
@@ -182824,8 +182822,7 @@ function buildSelectionContext({ cards, rect, question, nodes, panelWidth, panel
 		lines.push("【来源（自动追溯）】");
 		for (const t of traces) {
 			const where = Number.isFinite(t.turn) ? `turn #${t.turn}` : "本会话";
-			const suffix = t.debug ? `（debug: ${t.debug}）` : "";
-			lines.push(`- 「${t.id}」：由${where}的 ${t.tool} 调用生成${suffix}`);
+			lines.push(`- 「${t.id}」：由${where}的 ${t.tool} 调用生成`);
 			if (t.userMsg) lines.push(`  · 该轮用户说：「${t.userMsg}」`);
 			if (t.tools?.length) lines.push(`  · 该轮工具：${t.tools.join(", ")}`);
 		}
