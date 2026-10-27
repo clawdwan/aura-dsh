@@ -235,7 +235,7 @@ export default function AuraPanel(props) {
   if (cards.length === 0) {
     if (!hydrated) {
       return (
-        <div className="aura-panel-loading-state">
+        <div className="aura-panel-loading-state" ref={panelRef}>
           <div className="aura-skeleton-line" style={{ width: '72%' }} />
           <div className="aura-skeleton-line" style={{ width: '88%' }} />
           <div className="aura-skeleton-line" style={{ width: '60%' }} />
@@ -244,7 +244,7 @@ export default function AuraPanel(props) {
       );
     }
     return (
-      <div className="aura-panel-empty-state">
+      <div className="aura-panel-empty-state" ref={panelRef}>
         面板暂无卡片。agent 调用 <code>aura_panel</code> 推送后会显示在这里。
         <div className="aura-panel-diag">
           [v0.4.0 diag] 会话节点 {diag.nodeCount} 个 · aura_panel 节点 {diag.panelNodes} 个

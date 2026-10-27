@@ -182682,6 +182682,7 @@ function AuraPanel(props) {
 	if (cards.length === 0) {
 		if (!hydrated) return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 			className: "aura-panel-loading-state",
+			ref: panelRef,
 			children: [
 				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 					className: "aura-skeleton-line",
@@ -182703,6 +182704,7 @@ function AuraPanel(props) {
 		});
 		return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 			className: "aura-panel-empty-state",
+			ref: panelRef,
 			children: [
 				"面板暂无卡片。agent 调用 ",
 				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("code", { children: "aura_panel" }),
