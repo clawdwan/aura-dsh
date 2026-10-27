@@ -1412,21 +1412,27 @@ svg.react-flow__connectionline {
   to { opacity: 1; transform: scale(1); }
 }
 .aura-radial svg { display: block; overflow: visible; }
+.aura-radial-base {
+  fill: var(--dsw-alias-bg-base, #ffffff);
+  stroke: var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.18));
+  stroke-width: 1;
+  filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.16));
+}
 .aura-radial-sector {
-  fill: var(--aura-surface, rgba(128,128,128,0.08));
-  stroke: var(--aura-border, rgba(128,128,128,0.18));
+  fill: transparent;
+  stroke: var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.16));
   stroke-width: 1;
   transition: fill 0.12s ease, stroke 0.12s ease;
   cursor: pointer;
 }
 .aura-radial-sector.is-active {
-  fill: var(--aura-accent-soft, #e4edfd);
-  stroke: var(--aura-accent, #4176e6);
+  fill: var(--dsw-static-deepseek-100, #e4edfd);
+  stroke: var(--dsw-static-deepseek-500, #4176e6);
   stroke-width: 1.5;
 }
 .aura-radial-label {
   font-size: 11.5px;
-  fill: var(--aura-text, #1f2329);
+  fill: var(--dsw-alias-label-primary, #1f2329);
   pointer-events: none;
   transition: fill 0.12s ease, font-weight 0.12s ease;
 }
@@ -1435,20 +1441,20 @@ svg.react-flow__connectionline {
   font-weight: 700;
 }
 .aura-radial-center {
-  fill: var(--aura-surface-2, rgba(128,128,128,0.12));
-  stroke: var(--aura-border, rgba(128,128,128,0.18));
+  fill: var(--dsw-alias-bg-base, #ffffff);
+  stroke: var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.18));
   stroke-width: 1;
   transition: fill 0.12s ease, stroke 0.12s ease;
   cursor: pointer;
 }
 .aura-radial-center.is-active {
-  fill: var(--aura-accent-soft, #e4edfd);
-  stroke: var(--aura-accent, #4176e6);
+  fill: var(--dsw-static-deepseek-100, #e4edfd);
+  stroke: var(--dsw-static-deepseek-500, #4176e6);
   stroke-width: 1.5;
 }
 .aura-radial-center-label {
   font-size: 10.5px;
-  fill: var(--aura-text-2, #646a73);
+  fill: var(--dsw-alias-label-secondary, #646a73);
   pointer-events: none;
   transition: fill 0.12s ease;
 }
@@ -182375,6 +182381,12 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 			height: size,
 			viewBox: `0 0 ${size} ${size}`,
 			children: [
+				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
+					cx,
+					cy,
+					r: outerRadius + 3,
+					className: "aura-radial-base"
+				}),
 				options?.map((opt, i) => {
 					const a = startBase + i * step;
 					const b = a + step;

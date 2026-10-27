@@ -147,6 +147,8 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
       aria-label="圈选提问选项"
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {/* 不透明圆形底：避免半透明色叠在卡片上发闷 */}
+        <circle cx={cx} cy={cy} r={outerRadius + 3} className="aura-radial-base" />
         {options?.map((opt, i) => {
           const a = startBase + i * step;
           const b = a + step;
