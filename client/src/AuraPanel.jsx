@@ -63,16 +63,21 @@ function extractPanelResult(node) {
 function extractPanelAction(node) {
   const name = node?.data?.root?.name ?? node?.data?.name ?? node?.data?.call?.name;
   if (name !== 'aura_panel') return null;
-  const raw = node?.data?.root?.arguments ?? node?.data?.arguments;
-  if (typeof raw !== 'string') return null;
-  try {
-    const args = JSON.parse(raw);
-    const action = typeof args?.action === 'string' ? args.action : null;
-    if (!action) return null;
-    return { action, card: args?.card ?? null };
-  } catch {
-    return null;
+  // 字段名在不同 DSH 版本/形态下可能是 arguments / input / args；值可能是 JSON 字符串或对象
+  const raw = node?.data?.root?.arguments
+    ?? node?.data?.root?.input
+    ?? node?.data?.root?.args
+    ?? node?.data?.arguments
+    ?? node?.data?.call?.arguments;
+  if (raw === undefined || raw === null) return null;
+  let args = raw;
+  if (typeof raw === 'string') {
+    try { args = JSON.parse(raw); } catch { return null; }
   }
+  if (!args || typeof args !== 'object') return null;
+  const action = typeof args?.action === 'string' ? args.action : null;
+  if (!action) return null;
+  return { action, card: args?.card ?? null };
 }
 
 /** 从 ContentBlock 数组里解析出 JSON 负载。 */

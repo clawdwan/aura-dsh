@@ -182956,19 +182956,21 @@ function extractPanelResult(node) {
 */
 function extractPanelAction(node) {
 	if ((node?.data?.root?.name ?? node?.data?.name ?? node?.data?.call?.name) !== "aura_panel") return null;
-	const raw = node?.data?.root?.arguments ?? node?.data?.arguments;
-	if (typeof raw !== "string") return null;
-	try {
-		const args = JSON.parse(raw);
-		const action = typeof args?.action === "string" ? args.action : null;
-		if (!action) return null;
-		return {
-			action,
-			card: args?.card ?? null
-		};
+	const raw = node?.data?.root?.arguments ?? node?.data?.root?.input ?? node?.data?.root?.args ?? node?.data?.arguments ?? node?.data?.call?.arguments;
+	if (raw === void 0 || raw === null) return null;
+	let args = raw;
+	if (typeof raw === "string") try {
+		args = JSON.parse(raw);
 	} catch {
 		return null;
 	}
+	if (!args || typeof args !== "object") return null;
+	const action = typeof args?.action === "string" ? args.action : null;
+	if (!action) return null;
+	return {
+		action,
+		card: args?.card ?? null
+	};
 }
 /** 从 ContentBlock 数组里解析出 JSON 负载。 */
 function parseBlocks(blocks) {
