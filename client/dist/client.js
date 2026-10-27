@@ -233,6 +233,8 @@ const auraCss = `/* ============================================================
 .aura-turn-tail .aura-fallback { margin-bottom: 2px; }
 /* ---- 侧边面板（rightbar tab） ---- */
 .aura-panel {
+  /* 圈选层（.aura-select-layer，position:absolute; inset:0）依赖此定位祖先 */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -292,11 +294,13 @@ const auraCss = `/* ============================================================
 }
 .aura-panel-empty,
 .aura-panel-empty-state {
+  position: relative;
   font-size: 12px;
   opacity: 0.55;
   padding: 4px 0;
 }
-.aura-panel-empty-state { padding: 16px 12px; line-height: 1.6; }
+.aura-panel-empty-state {
+  position: relative; padding: 16px 12px; line-height: 1.6; }
 /* ---- graph（React Flow 关系图） ---- */
 .aura-graph { margin: 0; display: flex; flex-direction: column; gap: 6px; }
 .aura-graph-title { font-size: 12px; font-weight: 600; opacity: 0.75; }
@@ -1382,6 +1386,7 @@ svg.react-flow__connectionline {
 }
 /* ---- 面板加载中（会话历史异步加载的兜底） ---- */
 .aura-panel-loading-state {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
