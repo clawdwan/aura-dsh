@@ -26,6 +26,20 @@ function traceSource(nodes, cardId) {
     const name = node.data?.root?.name ?? node.data?.call?.name ?? node.data?.name;
     if (name && name !== 'aura_panel') continue;
 
+    // 诊断：turn 缺失时打印节点形状（帮助定位 location/anchorSeq 的实际字段）
+    if (!Number.isFinite(turn)) {
+      try {
+        console.warn('[aura-context] turn 缺失，节点字段:', {
+          kind: node.kind,
+          keys: Object.keys(node),
+          location: node.location,
+          anchorSeq: node.anchorSeq,
+          dataKeys: node.data ? Object.keys(node.data) : null,
+          rootTurn: node.data?.root?.turn,
+        });
+      } catch { /* ignore */ }
+    }
+
     return { turn, tool: name ?? 'aura_panel' };
   }
   return null;

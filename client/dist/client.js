@@ -182595,11 +182595,12 @@ function SelectionLayer({ active, containerRef, onInquiry, onCancel }) {
 	}, []);
 	const submit = (0, react$1.useCallback)(async (textOverride) => {
 		if (!hits?.length || busy) return;
-		const q = String(textOverride ?? question).trim();
-		if (!q) {
+		const raw = String(textOverride ?? question).trim();
+		if (!raw) {
 			inputRef.current?.focus();
 			return;
 		}
+		const q = hits.length === 1 ? `针对「${hits[0].title ?? hits[0].id}」中圈选的这部分：${raw}` : raw;
 		setBusy(true);
 		setError(null);
 		try {
@@ -182728,6 +182729,16 @@ function traceSource(nodes, cardId) {
 		const turn = node.data?.turn ?? node.location?.turn ?? node.turn ?? node.anchorSeq;
 		const name = node.data?.root?.name ?? node.data?.call?.name ?? node.data?.name;
 		if (name && name !== "aura_panel") continue;
+		if (!Number.isFinite(turn)) try {
+			console.warn("[aura-context] turn 缺失，节点字段:", {
+				kind: node.kind,
+				keys: Object.keys(node),
+				location: node.location,
+				anchorSeq: node.anchorSeq,
+				dataKeys: node.data ? Object.keys(node.data) : null,
+				rootTurn: node.data?.root?.turn
+			});
+		} catch {}
 		return {
 			turn,
 			tool: name ?? "aura_panel"

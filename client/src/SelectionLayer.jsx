@@ -149,8 +149,12 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
 
   const submit = useCallback(async (textOverride) => {
     if (!hits?.length || busy) return;
-    const q = String(textOverride ?? question).trim();
-    if (!q) { inputRef.current?.focus(); return; }
+    const raw = String(textOverride ?? question).trim();
+    if (!raw) { inputRef.current?.focus(); return; }
+    // 径向菜单/自定义输入的问题带上命中卡片名，避免「为什么会这样」这类过泛问法
+    const q = hits.length === 1
+      ? `针对「${hits[0].title ?? hits[0].id}」中圈选的这部分：${raw}`
+      : raw;
     setBusy(true);
     setError(null);
     try {
