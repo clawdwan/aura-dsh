@@ -139,14 +139,17 @@ export function apply(ctx) {
         id: 'aura-selection',
         label: () => 'Aura 圈选提问',
         aliases: ['aura-select', 'selection-ask'],
-        // ShortcutProfile = `${runtime}:${platform}`，platform 取 macos|windows|linux
+        // ShortcutProfile = `${runtime}:${platform}`，platform 取 macos|windows|linux。
+        // 注意：Web 端只允许「3+ 修饰键」或「primary(⌘/Ctrl)+alt|shift」的组合——
+        // 单 Alt+字母会被浏览器/输入法占用，DSH 会拒绝（Unsupported Web shortcut）。
+        // 因此用 ⌘⌥S（Mac）/ Ctrl+Alt+S（Win/Linux），用 primary 自动跨平台。
         defaults: {
-          'web:macos': { code: 'KeyS', modifiers: ['alt'] },
-          'desktop:macos': { code: 'KeyS', modifiers: ['alt'] },
-          'web:windows': { code: 'KeyS', modifiers: ['alt'] },
-          'desktop:windows': { code: 'KeyS', modifiers: ['alt'] },
-          'web:linux': { code: 'KeyS', modifiers: ['alt'] },
-          'desktop:linux': { code: 'KeyS', modifiers: ['alt'] },
+          'web:macos': { code: 'KeyS', modifiers: ['primary', 'alt'] },
+          'desktop:macos': { code: 'KeyS', modifiers: ['primary', 'alt'] },
+          'web:windows': { code: 'KeyS', modifiers: ['primary', 'alt'] },
+          'desktop:windows': { code: 'KeyS', modifiers: ['primary', 'alt'] },
+          'web:linux': { code: 'KeyS', modifiers: ['primary', 'alt'] },
+          'desktop:linux': { code: 'KeyS', modifiers: ['primary', 'alt'] },
         },
         regions: ['page'],
         modals: [],

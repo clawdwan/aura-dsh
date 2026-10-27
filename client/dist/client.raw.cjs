@@ -183130,27 +183130,27 @@ function apply(ctx) {
 				defaults: {
 					"web:macos": {
 						code: "KeyS",
-						modifiers: ["alt"]
+						modifiers: ["primary", "alt"]
 					},
 					"desktop:macos": {
 						code: "KeyS",
-						modifiers: ["alt"]
+						modifiers: ["primary", "alt"]
 					},
 					"web:windows": {
 						code: "KeyS",
-						modifiers: ["alt"]
+						modifiers: ["primary", "alt"]
 					},
 					"desktop:windows": {
 						code: "KeyS",
-						modifiers: ["alt"]
+						modifiers: ["primary", "alt"]
 					},
 					"web:linux": {
 						code: "KeyS",
-						modifiers: ["alt"]
+						modifiers: ["primary", "alt"]
 					},
 					"desktop:linux": {
 						code: "KeyS",
-						modifiers: ["alt"]
+						modifiers: ["primary", "alt"]
 					}
 				},
 				regions: ["page"],
