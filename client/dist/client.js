@@ -182750,9 +182750,19 @@ function traceSource(nodes, cardId) {
 	if (hit < 0) return null;
 	let turn = turnOf(list[hit]);
 	for (let i = hit; turn === void 0 && i >= 0; i -= 1) turn = turnOf(list[i]);
+	let debug;
+	if (!Number.isFinite(turn)) {
+		const node = list[hit] ?? {};
+		try {
+			debug = `kind=${node.kind} keys=${Object.keys(node).join("|")} loc=${JSON.stringify(node.location ?? null)} seq=${node.anchorSeq ?? "?"} dataKeys=${node.data ? Object.keys(node.data).join("|") : "null"} rootTurn=${node.data?.root?.turn ?? "?"}`;
+		} catch {
+			debug = "debug-error";
+		}
+	}
 	return {
 		turn,
-		tool: "aura_panel"
+		tool: "aura_panel",
+		debug
 	};
 }
 /** 从 turn 的节点里取用户消息与工具调用摘要。 */
