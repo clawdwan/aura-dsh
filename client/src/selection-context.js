@@ -93,7 +93,7 @@ function compactData(data, maxChars = 2400) {
  * 构建圈选提问的上下文 Markdown。
  * @param {{cards: Array, rect: object, question: string, nodes: Array, panelWidth?: number, panelHeight?: number}} p
  */
-export function buildSelectionContext({ cards, rect, question, nodes, panelWidth, panelHeight }) {
+export function buildSelectionContext({ cards, rect, question, fineHits, nodes, panelWidth, panelHeight }) {
   const w = panelWidth || 1;
   const h = panelHeight || 1;
   const pct = (v, base) => `${Math.round((v / base) * 100)}%`;
@@ -108,6 +108,18 @@ export function buildSelectionContext({ cards, rect, question, nodes, panelWidth
       `y ${pct(rect.top, h)}~${pct(rect.top + rect.height, h)}`,
     );
   }
+  // 精确命中（圈选到的卡片内具体元素）
+  const hits = Array.isArray(fineHits) ? fineHits.filter((h) => h && h.text) : [];
+  if (hits.length) {
+    lines.push('');
+    lines.push('✨ 命中内容（圈选到的具体元素）：');
+    const MAX = 8;
+    for (const h of hits.slice(0, MAX)) {
+      lines.push(`- 「${h.cardTitle ?? h.cardId}」· ${h.text}`);
+    }
+    if (hits.length > MAX) lines.push(`- …另有 ${hits.length - MAX} 条`);
+  }
+
   lines.push(`❓ 问题：${question}`);
   lines.push('');
   lines.push('【卡片数据】');

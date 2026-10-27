@@ -14,6 +14,63 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import RadialMenu from './RadialMenu';
 
 /** 径向菜单的通用四问（缺省选项） */
+/**
+ * 圈选精确命中：卡片内"有语义"的子元素选择器。
+ * 覆盖自定义组件（aura-*）与 antd 组件（ant-*）的项级元素。
+ */
+const FINE_SELECTORS = [
+  '.aura-metric-item',
+  '.aura-insight-item',
+  '.aura-article-item',
+  '.aura-step-item',
+  '.aura-timeline-event',
+  '.ant-list-item',
+  '.ant-steps-item',
+  '.ant-timeline-item',
+  'tr', 'td', 'th',
+  'li', 'blockquote',
+];
+
+/** rect 包含判断 */
+function rectContains(outer, inner) {
+  return outer.left <= inner.left + 1 && outer.top <= inner.top + 1
+    && outer.right >= inner.right - 1 && outer.bottom >= inner.bottom - 1;
+}
+
+/** 收集圈选矩形命中的卡片内子元素（取最深层、互不包含） */
+function collectFineHits(containerEl, selAbs) {
+  const hits = [];
+  if (!containerEl) return hits;
+  for (const card of containerEl.querySelectorAll('[data-aura-card-id]')) {
+    const cr = card.getBoundingClientRect();
+    if (![
+      { left: cr.left, top: cr.top, right: cr.right, bottom: cr.bottom },
+    ].some((r) => selAbs.left < r.right && selAbs.right > r.left && selAbs.top < r.bottom && selAbs.bottom > r.top)) continue;
+    for (const el of card.querySelectorAll(FINE_SELECTORS.join(','))) {
+      const r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4) continue;
+      if (!(selAbs.left < r.right && selAbs.right > r.left && selAbs.top < r.bottom && selAbs.bottom > r.top)) continue;
+      const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!text) continue;
+      hits.push({
+        cardId: card.dataset.auraCardId,
+        cardTitle: card.dataset.auraCardTitle || card.dataset.auraCardId,
+        text: text.slice(0, 120),
+        rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom },
+        area: r.width * r.height,
+      });
+    }
+  }
+  // 去重：面积小的优先；与已保留元素互相包含的跳过（保留更深层）
+  hits.sort((a, b) => a.area - b.area);
+  const kept = [];
+  for (const h of hits) {
+    const overlapped = kept.some((k) => rectContains(k.rect, h.rect) || rectContains(h.rect, k.rect));
+    if (!overlapped) kept.push(h);
+  }
+  return kept.map(({ cardId, cardTitle, text }) => ({ cardId, cardTitle, text }));
+}
+
 const RADIAL_OPTIONS = [
   { label: '解释这段', prompt: '请解释圈选的这部分内容。' },
   { label: '为什么这样', prompt: '为什么会出现这样的情况？' },
@@ -35,6 +92,7 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
   // 径向菜单：位置（相对面板中心点）与「自定义」输入模式
   const [menuPos, setMenuPos] = useState(null);
   const [customMode, setCustomMode] = useState(false);
+  const [fineHits, setFineHits] = useState(null);
   const startRef = useRef(null);                 // 起点（相对容器）
   const inputRef = useRef(null);
 
@@ -128,6 +186,7 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
     }
     setRect(sel);
     setHits(found);
+    setFineHits(found.length > 0 ? collectFineHits(containerRef.current, selAbs) : null);
     if (found.length === 0) {
       // 没命中卡片 → 提示后自动退出
       setTimeout(() => { setRect(null); setHits(null); }, 1200);
@@ -158,7 +217,7 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
     setBusy(true);
     setError(null);
     try {
-      await onInquiry?.({ cards: hits, rect, question: q });
+      await onInquiry?.({ cards: hits, rect, question: q, fineHits: fineHits ?? [] });
       setRect(null);
       setHits(null);
       setQuestion('');

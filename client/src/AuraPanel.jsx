@@ -155,7 +155,7 @@ export default function AuraPanel(props) {
   nodesRef.current = liveNodes;
 
   /** 圈选提问：拼上下文 → 发到当前会话（消息在对话流可见） */
-  const handleInquiry = React.useCallback(async ({ cards: hitCards, rect, question }) => {
+  const handleInquiry = React.useCallback(async ({ cards: hitCards, rect, question, fineHits }) => {
     if (typeof __auraSend !== 'function') throw new Error('未注入发送函数');
     // SelectionLayer 只拿得到 DOM 上的 id/title，这里用 id 从完整卡片列表补全 type/data
     const full = hitCards.map((h) => cardsRef.current.find((c) => c.id === h.id) ?? h);
@@ -163,6 +163,7 @@ export default function AuraPanel(props) {
       cards: full,
       rect,
       question,
+      fineHits: fineHits ?? [],
       nodes: nodesRef.current,
       panelWidth: panelRef.current?.offsetWidth,
       panelHeight: panelRef.current?.offsetHeight,

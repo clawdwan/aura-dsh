@@ -182439,6 +182439,70 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 *  - 浮层输入框就地弹出（不跳对话区），提交后由父组件拼上下文发到会话
 */
 /** 径向菜单的通用四问（缺省选项） */
+/**
+* 圈选精确命中：卡片内"有语义"的子元素选择器。
+* 覆盖自定义组件（aura-*）与 antd 组件（ant-*）的项级元素。
+*/
+const FINE_SELECTORS = [
+	".aura-metric-item",
+	".aura-insight-item",
+	".aura-article-item",
+	".aura-step-item",
+	".aura-timeline-event",
+	".ant-list-item",
+	".ant-steps-item",
+	".ant-timeline-item",
+	"tr",
+	"td",
+	"th",
+	"li",
+	"blockquote"
+];
+/** rect 包含判断 */
+function rectContains(outer, inner) {
+	return outer.left <= inner.left + 1 && outer.top <= inner.top + 1 && outer.right >= inner.right - 1 && outer.bottom >= inner.bottom - 1;
+}
+/** 收集圈选矩形命中的卡片内子元素（取最深层、互不包含） */
+function collectFineHits(containerEl, selAbs) {
+	const hits = [];
+	if (!containerEl) return hits;
+	for (const card of containerEl.querySelectorAll("[data-aura-card-id]")) {
+		const cr = card.getBoundingClientRect();
+		if (![{
+			left: cr.left,
+			top: cr.top,
+			right: cr.right,
+			bottom: cr.bottom
+		}].some((r) => selAbs.left < r.right && selAbs.right > r.left && selAbs.top < r.bottom && selAbs.bottom > r.top)) continue;
+		for (const el of card.querySelectorAll(FINE_SELECTORS.join(","))) {
+			const r = el.getBoundingClientRect();
+			if (r.width < 4 || r.height < 4) continue;
+			if (!(selAbs.left < r.right && selAbs.right > r.left && selAbs.top < r.bottom && selAbs.bottom > r.top)) continue;
+			const text = (el.textContent || "").replace(/\s+/g, " ").trim();
+			if (!text) continue;
+			hits.push({
+				cardId: card.dataset.auraCardId,
+				cardTitle: card.dataset.auraCardTitle || card.dataset.auraCardId,
+				text: text.slice(0, 120),
+				rect: {
+					left: r.left,
+					top: r.top,
+					right: r.right,
+					bottom: r.bottom
+				},
+				area: r.width * r.height
+			});
+		}
+	}
+	hits.sort((a, b) => a.area - b.area);
+	const kept = [];
+	for (const h of hits) if (!kept.some((k) => rectContains(k.rect, h.rect) || rectContains(h.rect, k.rect))) kept.push(h);
+	return kept.map(({ cardId, cardTitle, text }) => ({
+		cardId,
+		cardTitle,
+		text
+	}));
+}
 const RADIAL_OPTIONS = [
 	{
 		label: "解释这段",
@@ -182469,6 +182533,7 @@ function SelectionLayer({ active, containerRef, onInquiry, onCancel }) {
 	const [error, setError] = (0, react$1.useState)(null);
 	const [menuPos, setMenuPos] = (0, react$1.useState)(null);
 	const [customMode, setCustomMode] = (0, react$1.useState)(false);
+	const [fineHits, setFineHits] = (0, react$1.useState)(null);
 	const startRef = (0, react$1.useRef)(null);
 	const inputRef = (0, react$1.useRef)(null);
 	(0, react$1.useEffect)(() => {
@@ -182568,6 +182633,7 @@ function SelectionLayer({ active, containerRef, onInquiry, onCancel }) {
 		}
 		setRect(sel);
 		setHits(found);
+		setFineHits(found.length > 0 ? collectFineHits(containerRef.current, selAbs) : null);
 		if (found.length === 0) {
 			setTimeout(() => {
 				setRect(null);
@@ -182607,7 +182673,8 @@ function SelectionLayer({ active, containerRef, onInquiry, onCancel }) {
 			await onInquiry?.({
 				cards: hits,
 				rect,
-				question: q
+				question: q,
+				fineHits: fineHits ?? []
 			});
 			setRect(null);
 			setHits(null);
@@ -182788,7 +182855,7 @@ function compactData(data, maxChars = 2400) {
 * 构建圈选提问的上下文 Markdown。
 * @param {{cards: Array, rect: object, question: string, nodes: Array, panelWidth?: number, panelHeight?: number}} p
 */
-function buildSelectionContext({ cards, rect, question, nodes, panelWidth, panelHeight }) {
+function buildSelectionContext({ cards, rect, question, fineHits, nodes, panelWidth, panelHeight }) {
 	const w = panelWidth || 1;
 	const h = panelHeight || 1;
 	const pct = (v, base) => `${Math.round(v / base * 100)}%`;
@@ -182797,6 +182864,14 @@ function buildSelectionContext({ cards, rect, question, nodes, panelWidth, panel
 	lines.push("");
 	lines.push(`📊 命中卡片（${cards.length} 张）：${cards.map((c) => `「${c.title ?? c.id}」(${c.type ?? "?"}, id:${c.id})`).join("、")}`);
 	if (rect) lines.push(`✂️ 圈选范围：面板内 x ${pct(rect.left, w)}~${pct(rect.left + rect.width, w)}，y ${pct(rect.top, h)}~${pct(rect.top + rect.height, h)}`);
+	const hits = Array.isArray(fineHits) ? fineHits.filter((h) => h && h.text) : [];
+	if (hits.length) {
+		lines.push("");
+		lines.push("✨ 命中内容（圈选到的具体元素）：");
+		const MAX = 8;
+		for (const h of hits.slice(0, MAX)) lines.push(`- 「${h.cardTitle ?? h.cardId}」· ${h.text}`);
+		if (hits.length > MAX) lines.push(`- …另有 ${hits.length - MAX} 条`);
+	}
 	lines.push(`❓ 问题：${question}`);
 	lines.push("");
 	lines.push("【卡片数据】");
@@ -182965,12 +183040,13 @@ function AuraPanel(props) {
 	const nodesRef = react$1.default.useRef([]);
 	nodesRef.current = useChat ? useChat((snapshot) => snapshot?.nodes?.values?.() ?? []) : [];
 	/** 圈选提问：拼上下文 → 发到当前会话（消息在对话流可见） */
-	const handleInquiry = react$1.default.useCallback(async ({ cards: hitCards, rect, question }) => {
+	const handleInquiry = react$1.default.useCallback(async ({ cards: hitCards, rect, question, fineHits }) => {
 		if (typeof __auraSend !== "function") throw new Error("未注入发送函数");
 		const ctx = buildSelectionContext({
 			cards: hitCards.map((h) => cardsRef.current.find((c) => c.id === h.id) ?? h),
 			rect,
 			question,
+			fineHits: fineHits ?? [],
 			nodes: nodesRef.current,
 			panelWidth: panelRef.current?.offsetWidth,
 			panelHeight: panelRef.current?.offsetHeight
