@@ -183151,7 +183151,7 @@ function apply(ctx) {
 						modifiers: ["primary", "alt"]
 					}
 				},
-				regions: ["page"],
+				regions: ["page", "editable"],
 				modals: [],
 				resolve: () => ({
 					status: "handled",

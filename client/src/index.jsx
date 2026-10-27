@@ -152,7 +152,8 @@ export function apply(ctx) {
           'web:windows': { code: 'KeyS', modifiers: ['primary', 'alt'] },
           'desktop:windows': { code: 'KeyS', modifiers: ['primary', 'alt'] },
         },
-        regions: ['page'],
+        // 与 DSH 内置命令一致：page + editable（焦点在输入框里也能触发）
+        regions: ['page', 'editable'],
         modals: [],
         resolve: () => ({
           status: 'handled',
