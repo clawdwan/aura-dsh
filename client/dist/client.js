@@ -183134,19 +183134,19 @@ function apply(ctx) {
 				label: () => "Aura 圈选提问",
 				aliases: ["aura-select", "selection-ask"],
 				defaults: {
-					"web:mac": {
+					"web:macos": {
 						code: "KeyS",
 						modifiers: ["alt"]
 					},
-					"desktop:mac": {
+					"desktop:macos": {
 						code: "KeyS",
 						modifiers: ["alt"]
 					},
-					"web:win": {
+					"web:windows": {
 						code: "KeyS",
 						modifiers: ["alt"]
 					},
-					"desktop:win": {
+					"desktop:windows": {
 						code: "KeyS",
 						modifiers: ["alt"]
 					},

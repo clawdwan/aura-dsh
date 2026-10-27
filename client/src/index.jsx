@@ -139,11 +139,12 @@ export function apply(ctx) {
         id: 'aura-selection',
         label: () => 'Aura 圈选提问',
         aliases: ['aura-select', 'selection-ask'],
+        // ShortcutProfile = `${runtime}:${platform}`，platform 取 macos|windows|linux
         defaults: {
-          'web:mac': { code: 'KeyS', modifiers: ['alt'] },
-          'desktop:mac': { code: 'KeyS', modifiers: ['alt'] },
-          'web:win': { code: 'KeyS', modifiers: ['alt'] },
-          'desktop:win': { code: 'KeyS', modifiers: ['alt'] },
+          'web:macos': { code: 'KeyS', modifiers: ['alt'] },
+          'desktop:macos': { code: 'KeyS', modifiers: ['alt'] },
+          'web:windows': { code: 'KeyS', modifiers: ['alt'] },
+          'desktop:windows': { code: 'KeyS', modifiers: ['alt'] },
           'web:linux': { code: 'KeyS', modifiers: ['alt'] },
           'desktop:linux': { code: 'KeyS', modifiers: ['alt'] },
         },
