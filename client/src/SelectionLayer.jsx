@@ -11,6 +11,15 @@
  *  - 浮层输入框就地弹出（不跳对话区），提交后由父组件拼上下文发到会话
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import RadialMenu from './RadialMenu';
+
+/** 径向菜单的通用四问（缺省选项） */
+const RADIAL_OPTIONS = [
+  { label: '解释这段', prompt: '请解释圈选的这部分内容。' },
+  { label: '为什么这样', prompt: '为什么会出现这样的情况？' },
+  { label: '有什么问题', prompt: '这里有什么潜在问题或风险？' },
+  { label: '怎么改进', prompt: '可以怎么改进？' },
+];
 
 /** 两矩形是否相交 */
 function intersects(a, b) {
@@ -23,6 +32,9 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  // 径向菜单：位置（相对面板中心点）与「自定义」输入模式
+  const [menuPos, setMenuPos] = useState(null);
+  const [customMode, setCustomMode] = useState(false);
   const startRef = useRef(null);                 // 起点（相对容器）
   const inputRef = useRef(null);
 
@@ -119,12 +131,25 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
     if (found.length === 0) {
       // 没命中卡片 → 提示后自动退出
       setTimeout(() => { setRect(null); setHits(null); }, 1200);
+      return;
     }
+    // 命中卡片 → 在鼠标松开处弹出径向菜单（只看方向，不看半径）
+    setMenuPos({ x: p.x, y: p.y });
+    setCustomMode(false);
   }, [hits, toLocal, containerRef]);
 
-  const submit = useCallback(async () => {
+  const resetSelection = useCallback(() => {
+    setRect(null);
+    setHits(null);
+    setQuestion('');
+    setError(null);
+    setMenuPos(null);
+    setCustomMode(false);
+  }, []);
+
+  const submit = useCallback(async (textOverride) => {
     if (!hits?.length || busy) return;
-    const q = question.trim();
+    const q = String(textOverride ?? question).trim();
     if (!q) { inputRef.current?.focus(); return; }
     setBusy(true);
     setError(null);
@@ -163,7 +188,18 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
         <div className="aura-select-hint">拖拽圈选要提问的区域（Esc 退出）</div>
       )}
 
-      {hits ? (
+      {/* 命中卡片 → 径向菜单（鼠标松开处）；「自定义」→ 下面的输入浮层 */}
+      {hits && hits.length > 0 && menuPos && !customMode ? (
+        <RadialMenu
+          position={menuPos}
+          options={RADIAL_OPTIONS}
+          onSelect={(opt) => submit(opt.prompt)}
+          onCustom={() => setCustomMode(true)}
+          onCancel={resetSelection}
+        />
+      ) : null}
+
+      {hits && (hits.length === 0 || customMode) ? (
         <div
           className="aura-select-popover"
           style={{ left: Math.min(rect.left, 240), top: Math.min(rect.top + rect.height + 10, 320) }}

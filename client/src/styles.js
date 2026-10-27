@@ -1361,5 +1361,61 @@ svg.react-flow__connectionline {
   opacity: 0.75;
   line-height: 1.6;
 }
+/* ---- 径向菜单（圈选后的饼状提问） ---- */
+.aura-radial {
+  position: absolute;
+  z-index: 45;
+  animation: aura-radial-in 0.15s ease-out both;
+  touch-action: none;
+}
+@keyframes aura-radial-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+.aura-radial svg { display: block; overflow: visible; }
+.aura-radial-sector {
+  fill: var(--aura-surface, rgba(128,128,128,0.08));
+  stroke: var(--aura-border, rgba(128,128,128,0.18));
+  stroke-width: 1;
+  transition: fill 0.12s ease, stroke 0.12s ease;
+  cursor: pointer;
+}
+.aura-radial-sector.is-active {
+  fill: var(--aura-accent-soft, #e4edfd);
+  stroke: var(--aura-accent, #4176e6);
+  stroke-width: 1.5;
+}
+.aura-radial-label {
+  font-size: 11.5px;
+  fill: var(--aura-text, #1f2329);
+  pointer-events: none;
+  transition: fill 0.12s ease, font-weight 0.12s ease;
+}
+.aura-radial-label.is-active {
+  fill: var(--aura-accent-strong, #4868b2);
+  font-weight: 700;
+}
+.aura-radial-center {
+  fill: var(--aura-surface-2, rgba(128,128,128,0.12));
+  stroke: var(--aura-border, rgba(128,128,128,0.18));
+  stroke-width: 1;
+  transition: fill 0.12s ease, stroke 0.12s ease;
+  cursor: pointer;
+}
+.aura-radial-center.is-active {
+  fill: var(--aura-accent-soft, #e4edfd);
+  stroke: var(--aura-accent, #4176e6);
+  stroke-width: 1.5;
+}
+.aura-radial-center-label {
+  font-size: 10.5px;
+  fill: var(--aura-text-2, #646a73);
+  pointer-events: none;
+  transition: fill 0.12s ease;
+}
+.aura-radial-center-label.is-active {
+  fill: var(--aura-accent-strong, #4868b2);
+  font-weight: 700;
+}
 `;
 export default auraCss;
