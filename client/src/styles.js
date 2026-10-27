@@ -1372,7 +1372,8 @@ svg.react-flow__connectionline {
 }
 /* ---- 径向菜单（圈选后的饼状提问） ---- */
 .aura-radial {
-  position: absolute;
+  /* fixed：相对视口定位，面板滚动时菜单不跟着偏移；坐标由组件 clamp 到视口内 */
+  position: fixed;
   z-index: 45;
   animation: aura-radial-in 0.15s ease-out both;
   touch-action: none;

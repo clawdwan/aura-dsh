@@ -1411,7 +1411,8 @@ svg.react-flow__connectionline {
 }
 /* ---- 径向菜单（圈选后的饼状提问） ---- */
 .aura-radial {
-  position: absolute;
+  /* fixed：相对视口定位，面板滚动时菜单不跟着偏移；坐标由组件 clamp 到视口内 */
+  position: fixed;
   z-index: 45;
   animation: aura-radial-in 0.15s ease-out both;
   touch-action: none;
@@ -182370,12 +182371,17 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 	return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 		ref: rootRef,
 		className: "aura-radial",
-		style: {
-			left: position.x - size / 2,
-			top: position.y - size / 2,
-			width: size,
-			height: size
-		},
+		style: (() => {
+			const margin = 8;
+			const vw = typeof window !== "undefined" ? window.innerWidth : size + 16;
+			const vh = typeof window !== "undefined" ? window.innerHeight : size + 16;
+			return {
+				left: Math.min(Math.max(position.x - size / 2, margin), Math.max(margin, vw - size - margin)),
+				top: Math.min(Math.max(position.y - size / 2, margin), Math.max(margin, vh - size - margin)),
+				width: size,
+				height: size
+			};
+		})(),
 		onPointerMove: handleMove,
 		onPointerDown: (e) => e.stopPropagation(),
 		onClick: handleClick,
@@ -182685,8 +182691,8 @@ function SelectionLayer({ active, containerRef, onInquiry, onCancel }) {
 			return;
 		}
 		setMenuPos({
-			x: p.x,
-			y: p.y
+			x: e.clientX,
+			y: e.clientY
 		});
 		setCustomMode(false);
 	}, [

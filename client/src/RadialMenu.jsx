@@ -134,12 +134,15 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
     <div
       ref={rootRef}
       className="aura-radial"
-      style={{
-        left: position.x - size / 2,
-        top: position.y - size / 2,
-        width: size,
-        height: size,
-      }}
+      style={(() => {
+        // 视口坐标 + 边界收敛：靠近屏幕/面板边缘时自动内移，避免菜单被裁掉
+        const margin = 8;
+        const vw = typeof window !== 'undefined' ? window.innerWidth : size + margin * 2;
+        const vh = typeof window !== 'undefined' ? window.innerHeight : size + margin * 2;
+        const left = Math.min(Math.max(position.x - size / 2, margin), Math.max(margin, vw - size - margin));
+        const top = Math.min(Math.max(position.y - size / 2, margin), Math.max(margin, vh - size - margin));
+        return { left, top, width: size, height: size };
+      })()}
       onPointerMove={handleMove}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={handleClick}

@@ -228,7 +228,8 @@ export default function SelectionLayer({ active, containerRef, onInquiry, onCanc
       return;
     }
     // 命中卡片 → 在鼠标松开处弹出径向菜单（只看方向，不看半径）
-    setMenuPos({ x: p.x, y: p.y });
+    // 用视口坐标（e.clientX/clientY）：菜单是 position:fixed，避免面板滚动导致偏移
+    setMenuPos({ x: e.clientX, y: e.clientY });
     setCustomMode(false);
   }, [hits, toLocal, containerRef]);
 
