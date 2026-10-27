@@ -27,7 +27,6 @@ const FINE_SELECTORS = [
   '.ant-list-item',
   '.ant-steps-item',
   '.ant-timeline-item',
-  'tr', 'td', 'th',
   'li', 'blockquote',
 ];
 
@@ -40,17 +39,23 @@ function rectContains(outer, inner) {
 /**
  * 收集圈选矩形命中的卡片内子元素。
  * 策略：
- *   1. 表格行 <tr> 若被完整框住 → 用「整行」一条（单元格文本以 " / " 连接）
- *   2. 其余项级元素（aura-* / ant-* / li 等）按 DOM 顺序收集
- *   3. 结果按 DOM 顺序排列（不是面积），去重互不包含
+ *   1. 表格行 <tr>：水平覆盖率 ≥ 60%（或完整框住）即视为"整行"，
+ *      单元格文本以 " / " 连接成一条
+ *   2. 未被整行覆盖的行，其 <td>/<th> 若完整框住 → 单独一条（单元格级）
+ *   3. 其余项级元素（aura-* / ant-* / li 等），按 DOM 顺序
  */
 function collectFineHits(containerEl, selAbs) {
   const hits = [];
   if (!containerEl || !selAbs) return hits;
 
   const inSel = (r) => selAbs.left < r.right && selAbs.right > r.left && selAbs.top < r.bottom && selAbs.bottom > r.top;
-  const fullyIn = (r) => selAbs.left <= r.left + 1 && selAbs.top <= r.top + 1
-    && selAbs.right >= r.right - 1 && selAbs.bottom >= r.bottom - 1;
+  const fullyIn = (r) => selAbs.left <= r.left + 2 && selAbs.top <= r.top + 2
+    && selAbs.right >= r.right - 2 && selAbs.bottom >= r.bottom - 2;
+  /** 水平覆盖率（圈选与元素宽度的重叠比例） */
+  const widthRatio = (r) => {
+    const overlap = Math.min(selAbs.right, r.right) - Math.max(selAbs.left, r.left);
+    return r.width > 0 ? Math.max(0, overlap) / r.width : 0;
+  };
 
   for (const card of containerEl.querySelectorAll('[data-aura-card-id]')) {
     const cr = card.getBoundingClientRect();
@@ -58,35 +63,42 @@ function collectFineHits(containerEl, selAbs) {
     const cardId = card.dataset.auraCardId;
     const cardTitle = card.dataset.auraCardTitle || cardId;
 
-    // 1) 表格行：完整框住的整行（表头行以 th 开头的也保留，便于模型理解）
-    const rowEls = [];
+    // 1) 表格行（覆盖大部分宽度即整行）
+    const coveredRows = new Set();
     for (const tr of card.querySelectorAll('tr')) {
       const r = tr.getBoundingClientRect();
-      if (r.width < 4 || r.height < 4 || !fullyIn(r)) continue;
+      if (r.width < 4 || r.height < 4 || !inSel({ left: r.left, top: r.top, right: r.right, bottom: r.bottom })) continue;
+      if (!fullyIn(r) && widthRatio(r) < 0.6) continue;
       const cells = [...tr.querySelectorAll('td,th')]
         .map((td) => (td.textContent || '').replace(/\s+/g, ' ').trim())
         .filter(Boolean);
       if (!cells.length) continue;
-      rowEls.push({ tr, r, text: cells.join(' / ') });
+      coveredRows.add(tr);
+      hits.push({ cardId, cardTitle, text: cells.join(' / '), order: r.top, domIndex: hits.length });
     }
-    for (const row of rowEls) {
-      hits.push({ cardId, cardTitle, text: row.text, rect: row.r, domIndex: hits.length, order: row.r.top });
-    }
-    // 已被整行覆盖的 tr 集合（避免再收集其中的 td）
-    const coveredRows = new Set(rowEls.map((x) => x.tr));
 
-    // 2) 其他项级元素
+    // 2) 未被整行覆盖的单元格（完整框住才算）
+    for (const cell of card.querySelectorAll('td,th')) {
+      const tr = cell.closest('tr');
+      if (tr && coveredRows.has(tr)) continue;
+      const r = cell.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4 || !fullyIn(r)) continue;
+      const text = (cell.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!text) continue;
+      hits.push({ cardId, cardTitle, text: text.slice(0, 120), order: r.top, domIndex: hits.length });
+    }
+
+    // 3) 其他项级元素
     for (const el of card.querySelectorAll(FINE_SELECTORS.join(','))) {
-      if (el.closest('tr') && coveredRows.has(el.closest('tr'))) continue; // 已在整行里
       const r = el.getBoundingClientRect();
       if (r.width < 4 || r.height < 4 || !inSel({ left: r.left, top: r.top, right: r.right, bottom: r.bottom })) continue;
       const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
       if (!text) continue;
-      hits.push({ cardId, cardTitle, text: text.slice(0, 120), rect: r, domIndex: hits.length, order: r.top });
+      hits.push({ cardId, cardTitle, text: text.slice(0, 120), order: r.top, domIndex: hits.length });
     }
   }
 
-  // 按 DOM 顺序（自上而下、自左而右）排序
+  // 按阅读顺序（自上而下、自左而右）
   hits.sort((a, b) => (a.order - b.order) || (a.domIndex - b.domIndex));
   return hits.map(({ cardId, cardTitle, text }) => ({ cardId, cardTitle, text }));
 }
