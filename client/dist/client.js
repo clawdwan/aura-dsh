@@ -1418,23 +1418,21 @@ svg.react-flow__connectionline {
   to { opacity: 1; transform: scale(1); }
 }
 .aura-radial svg { display: block; overflow: visible; }
+/* 极简：无任何描边，只有阴影托起；hover 才填色 */
 .aura-radial-base {
   fill: var(--dsw-alias-bg-base, #ffffff);
-  stroke: var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.18));
-  stroke-width: 1;
-  filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.16));
+  stroke: none;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.14));
 }
 .aura-radial-sector {
   fill: transparent;
-  stroke: var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.16));
-  stroke-width: 1;
-  transition: fill 0.12s ease, stroke 0.12s ease;
+  stroke: none;
+  transition: fill 0.12s ease;
   cursor: pointer;
 }
 .aura-radial-sector.is-active {
   fill: var(--dsw-static-deepseek-100, #e4edfd);
-  stroke: var(--dsw-static-deepseek-500, #4176e6);
-  stroke-width: 1.5;
+  stroke: none;
 }
 .aura-radial-label {
   font-size: 11.5px;
@@ -1447,16 +1445,14 @@ svg.react-flow__connectionline {
   font-weight: 700;
 }
 .aura-radial-center {
-  fill: var(--dsw-alias-bg-base, #ffffff);
-  stroke: var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.18));
-  stroke-width: 1;
-  transition: fill 0.12s ease, stroke 0.12s ease;
+  fill: var(--dsw-alias-bg-l2, rgba(128, 128, 128, 0.1));
+  stroke: none;
+  transition: fill 0.12s ease;
   cursor: pointer;
 }
 .aura-radial-center.is-active {
   fill: var(--dsw-static-deepseek-100, #e4edfd);
-  stroke: var(--dsw-static-deepseek-500, #4176e6);
-  stroke-width: 1.5;
+  stroke: none;
 }
 .aura-radial-center-label {
   font-size: 10.5px;
