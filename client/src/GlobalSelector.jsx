@@ -60,22 +60,56 @@ function needsVisualCapture(rect) {
 
 /** 截取圈选区域（浏览器 API；iframe 内容截不到，会成为空白） */
 async function captureSelection(rect) {
-  const canvas = await domToCanvas(document.body, { scale: 1 });
+  // 圈选层覆盖全屏，elementFromPoint 会命中它自身 → 用 elementsFromPoint 跳过
+  const cx = (rect.left + rect.right) / 2;
+  const cy = (rect.top + rect.bottom) / 2;
+  const stack = typeof document.elementsFromPoint === 'function'
+    ? document.elementsFromPoint(cx, cy)
+    : [document.elementFromPoint(cx, cy)];
+  const hitEl = stack.find((el) => el && !el.closest?.('.aura-global-select')) ?? null;
+
+  // 优先：圈选区域内若有 <canvas>（趋势图等），直接 toDataURL —— 瞬间完成
+  const canvasInRect = (() => {
+    if (!hitEl) return null;
+    const scope = hitEl.closest?.('[data-aura-card-id], .aura-panel, section, article') ?? hitEl;
+    for (const c of scope.querySelectorAll?.('canvas') ?? []) {
+      const r = c.getBoundingClientRect();
+      if (rect.left < r.right && rect.right > r.left && rect.top < r.bottom && rect.bottom > r.top) return c;
+    }
+    return null;
+  })();
+  if (canvasInRect) {
+    try {
+      const url = canvasInRect.toDataURL('image/png');
+      if (url.startsWith('data:image')) {
+        return { base64: url.split(',')[1] ?? null, debug: `canvas 直出 ${canvasInRect.width}x${canvasInRect.height}` };
+      }
+    } catch { /* 污染的画布退回 DOM 截图 */ }
+  }
+
+  // 兜底：截取圈选中心所在容器（比 body 小、更快）
+  const container = hitEl?.closest?.('[data-aura-card-id], .aura-panel, section, article')
+    ?? document.body;
+  const box = container.getBoundingClientRect();
+  const canvas = await domToCanvas(container, { scale: 1 });
+  const sx = Math.max(0, Math.round(rect.left - box.left));
+  const sy = Math.max(0, Math.round(rect.top - box.top));
+  // 注意：rect 是 {left,top,right,bottom}，没有 width/height 字段
+  const w = Math.max(1, Math.min(Math.round(rect.right - rect.left), canvas.width - sx));
+  const h = Math.max(1, Math.min(Math.round(rect.bottom - rect.top), canvas.height - sy));
+
   const out = document.createElement('canvas');
-  const w = Math.max(1, Math.round(rect.left + rect.width > 0 ? rect.width : 1));
-  const h = Math.max(1, Math.round(rect.height));
   out.width = w;
   out.height = h;
   const ctx = out.getContext('2d');
-  // body 的 canvas 是内容坐标：加上滚动偏移
-  ctx.drawImage(
-    canvas,
-    Math.round(rect.left + window.scrollX), Math.round(rect.top + window.scrollY),
-    w, h,
-    0, 0, w, h,
-  );
+  ctx.drawImage(canvas, sx, sy, w, h, 0, 0, w, h);
   const url = out.toDataURL('image/png');
-  return url.split(',')[1] ?? null;
+  const base64 = url.startsWith('data:image') ? url.split(',')[1] : null;
+  return {
+    base64,
+    debug: `容器=${container.tagName.toLowerCase()}${container.dataset?.auraCardId ? '#' + container.dataset.auraCardId : ''}`
+      + ` canvas=${canvas.width}x${canvas.height} crop=(${sx},${sy},${w},${h})`,
+  };
 }
 
 /**
@@ -238,12 +272,12 @@ export default function GlobalSelector({ send, getSessionId }) {
       let shotDebug = visualCheck.visual ? '' : '未检测到视觉元素';
       if (visualCheck.visual) {
         try {
-          const base64 = await captureSelection(sel);
-          if (base64) {
-            image = { mediaType: 'image/png', data: base64, name: 'selection.png' };
-            shotDebug = `截图成功 ${Math.round(base64.length / 1024)}KB`;
+          const shot = await captureSelection(sel);
+          if (shot?.base64) {
+            image = { mediaType: 'image/png', data: shot.base64, name: 'selection.png' };
+            shotDebug = `截图成功 ${Math.round(shot.base64.length / 1024)}KB ${shot.debug}`;
           } else {
-            shotDebug = '截图返回空';
+            shotDebug = `截图返回空 ${shot?.debug ?? ''}`;
           }
         } catch (err) {
           shotDebug = `截图失败：${String(err?.message ?? err).slice(0, 160)}`;

@@ -307,8 +307,11 @@ export function collectHits(adapters, sel) {
     }
   }
 
-  // 过滤空命中：只有 turn/id 没有文本的条目会污染上下文
+  // 过滤空命中：有文本、有卡片 id、或有 turn 的才算有效命中
+  // （圈选 canvas/图表时没有文本，但卡片 id 依然有效 → 不能过滤掉）
   return hits.filter((h) => (Array.isArray(h.lines) && h.lines.length > 0)
-    || (typeof h.text === 'string' && h.text.trim().length > 0));
+    || (typeof h.text === 'string' && h.text.trim().length > 0)
+    || Boolean(h.cardId)
+    || Boolean(h.turn));
 }
 

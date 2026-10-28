@@ -185253,7 +185253,7 @@ function collectHits(adapters, sel) {
 			}
 		}
 	}
-	return hits.filter((h) => Array.isArray(h.lines) && h.lines.length > 0 || typeof h.text === "string" && h.text.trim().length > 0);
+	return hits.filter((h) => Array.isArray(h.lines) && h.lines.length > 0 || typeof h.text === "string" && h.text.trim().length > 0 || Boolean(h.cardId) || Boolean(h.turn));
 }
 //#endregion
 //#region client/src/GlobalSelector.jsx
@@ -185389,14 +185389,41 @@ function needsVisualCapture(rect) {
 }
 /** 截取圈选区域（浏览器 API；iframe 内容截不到，会成为空白） */
 async function captureSelection(rect) {
-	const canvas = await domToCanvas(document.body, { scale: 1 });
+	const cx = (rect.left + rect.right) / 2;
+	const cy = (rect.top + rect.bottom) / 2;
+	const hitEl = (typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(cx, cy) : [document.elementFromPoint(cx, cy)]).find((el) => el && !el.closest?.(".aura-global-select")) ?? null;
+	const canvasInRect = (() => {
+		if (!hitEl) return null;
+		const scope = hitEl.closest?.("[data-aura-card-id], .aura-panel, section, article") ?? hitEl;
+		for (const c of scope.querySelectorAll?.("canvas") ?? []) {
+			const r = c.getBoundingClientRect();
+			if (rect.left < r.right && rect.right > r.left && rect.top < r.bottom && rect.bottom > r.top) return c;
+		}
+		return null;
+	})();
+	if (canvasInRect) try {
+		const url = canvasInRect.toDataURL("image/png");
+		if (url.startsWith("data:image")) return {
+			base64: url.split(",")[1] ?? null,
+			debug: `canvas 直出 ${canvasInRect.width}x${canvasInRect.height}`
+		};
+	} catch {}
+	const container = hitEl?.closest?.("[data-aura-card-id], .aura-panel, section, article") ?? document.body;
+	const box = container.getBoundingClientRect();
+	const canvas = await domToCanvas(container, { scale: 1 });
+	const sx = Math.max(0, Math.round(rect.left - box.left));
+	const sy = Math.max(0, Math.round(rect.top - box.top));
+	const w = Math.max(1, Math.min(Math.round(rect.right - rect.left), canvas.width - sx));
+	const h = Math.max(1, Math.min(Math.round(rect.bottom - rect.top), canvas.height - sy));
 	const out = document.createElement("canvas");
-	const w = Math.max(1, Math.round(rect.left + rect.width > 0 ? rect.width : 1));
-	const h = Math.max(1, Math.round(rect.height));
 	out.width = w;
 	out.height = h;
-	out.getContext("2d").drawImage(canvas, Math.round(rect.left + window.scrollX), Math.round(rect.top + window.scrollY), w, h, 0, 0, w, h);
-	return out.toDataURL("image/png").split(",")[1] ?? null;
+	out.getContext("2d").drawImage(canvas, sx, sy, w, h, 0, 0, w, h);
+	const url = out.toDataURL("image/png");
+	return {
+		base64: url.startsWith("data:image") ? url.split(",")[1] : null,
+		debug: `容器=${container.tagName.toLowerCase()}${container.dataset?.auraCardId ? "#" + container.dataset.auraCardId : ""} canvas=${canvas.width}x${canvas.height} crop=(${sx},${sy},${w},${h})`
+	};
 }
 /**
 * 把命中结果拼成提问上下文。
@@ -185565,15 +185592,15 @@ function GlobalSelector({ send, getSessionId }) {
 			const visualCheck = needsVisualCapture(sel);
 			let shotDebug = visualCheck.visual ? "" : "未检测到视觉元素";
 			if (visualCheck.visual) try {
-				const base64 = await captureSelection(sel);
-				if (base64) {
+				const shot = await captureSelection(sel);
+				if (shot?.base64) {
 					image = {
 						mediaType: "image/png",
-						data: base64,
+						data: shot.base64,
 						name: "selection.png"
 					};
-					shotDebug = `截图成功 ${Math.round(base64.length / 1024)}KB`;
-				} else shotDebug = "截图返回空";
+					shotDebug = `截图成功 ${Math.round(shot.base64.length / 1024)}KB ${shot.debug}`;
+				} else shotDebug = `截图返回空 ${shot?.debug ?? ""}`;
 			} catch (err) {
 				shotDebug = `截图失败：${String(err?.message ?? err).slice(0, 160)}`;
 			}
