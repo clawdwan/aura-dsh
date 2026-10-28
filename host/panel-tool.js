@@ -108,7 +108,7 @@ export function createPanelExecute(store) {
     if (action === 'remove') {
       const cardId = typeof args?.card?.id === 'string' ? args.card.id : null;
       if (!cardId) {
-        return { text: `${note}（remove 需要 card.id，未执行）`, sessionId, action, cards: store.list(sessionId) };
+        return { text: `${note}（remove 需要 card.id，未执行）`, sessionId, action, cards: store.visible ? store.visible(sessionId) : store.list(sessionId) };
       }
       const cards = store.remove(sessionId, cardId);
       return { text: note || `已移除卡片 ${cardId}`, sessionId, action, cards };
@@ -117,9 +117,10 @@ export function createPanelExecute(store) {
     // action === 'upsert'
     const card = normalizeCard(args?.card);
     if (!card) {
-      return { text: `${note}（card.id 缺失，未执行）`, sessionId, action, cards: store.list(sessionId) };
+      return { text: `${note}（card.id 缺失，未执行）`, sessionId, action, cards: store.visible ? store.visible(sessionId) : store.list(sessionId) };
     }
-    const cards = store.upsert(sessionId, card);
+    store.upsert(sessionId, card);
+    const cards = store.visible ? store.visible(sessionId) : store.list(sessionId);
     return {
       text: note || `已更新面板卡片「${card.title ?? card.id}」`,
       sessionId,
