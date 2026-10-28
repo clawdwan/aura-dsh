@@ -49,6 +49,55 @@ export function createAuraCardAdapter() {
  * 通用 DOM 适配器：任何可见元素都可圈（兜底）。
  * 命中优先级低——只有在没有其它适配器命中时才用。
  */
+/**
+ * 侧边栏文件项（官方文件浏览器）：提取文件路径。
+ * 官方 DOM：data-files-entry / data-files-row 上带 data-files-path。
+ * 圈选后上下文给路径 → agent 可用 read 读内容。
+ */
+export function createFileAdapter() {
+  return {
+    id: 'file',
+    selector: '[data-files-entry], [data-files-row]',
+    describe(el) {
+      if (!el) return null;
+      const path = el.getAttribute?.('data-files-path')
+        ?? el.querySelector?.('[data-files-path]')?.getAttribute('data-files-path')
+        ?? el.closest?.('[data-files-path]')?.getAttribute('data-files-path')
+        ?? null;
+      const name = path ? path.split('/').pop() : (el.textContent ?? '').trim().slice(0, 60);
+      if (!path && !name) return null;
+      return {
+        label: name || path,
+        data: { kind: 'file', path: path || null, name: name || null },
+      };
+    },
+  };
+}
+
+/**
+ * 文档/代码预览（官方 sidebar-documentpreview）：提取文档或代码块内容。
+ * 官方 DOM：data-document-markdown（渲染后的 markdown）、data-code-block-content（代码块）。
+ */
+export function createDocAdapter() {
+  return {
+    id: 'doc',
+    selector: '[data-document-markdown], [data-code-block-content]',
+    describe(el, sel) {
+      if (!el) return null;
+      const heading = el.querySelector?.('h1, h2, h3')
+        ?? el.closest?.('[data-document-markdown]')?.querySelector('h1');
+      const label = heading?.textContent?.trim().slice(0, 40)
+        || (el.hasAttribute?.('data-code-block-content') ? '代码预览' : '文档预览');
+      const lines = extractLines(sel, el);
+      return {
+        label,
+        data: { kind: 'doc' },
+        lines,
+      };
+    },
+  };
+}
+
 export function createGenericDomAdapter() {
   return {
     id: 'generic-dom',
@@ -89,7 +138,13 @@ export function createConversationAdapter() {
 
 /** 默认适配器集合（aura 优先，对话流次之，通用兜底） */
 export function createDefaultAdapters() {
-  return [createAuraCardAdapter(), createConversationAdapter(), createGenericDomAdapter()];
+  return [
+    createAuraCardAdapter(),
+    createConversationAdapter(),
+    createFileAdapter(),
+    createDocAdapter(),
+    createGenericDomAdapter(),
+  ];
 }
 
 /**
@@ -312,6 +367,8 @@ export function collectHits(adapters, sel) {
   return hits.filter((h) => (Array.isArray(h.lines) && h.lines.length > 0)
     || (typeof h.text === 'string' && h.text.trim().length > 0)
     || Boolean(h.cardId)
-    || Boolean(h.turn));
+    || Boolean(h.turn)
+    // 侧边栏文件项：有路径也算有效（内容由 agent 用 read 读）
+    || Boolean(h.data?.path));
 }
 

@@ -185222,6 +185222,49 @@ function createAuraCardAdapter() {
 * 通用 DOM 适配器：任何可见元素都可圈（兜底）。
 * 命中优先级低——只有在没有其它适配器命中时才用。
 */
+/**
+* 侧边栏文件项（官方文件浏览器）：提取文件路径。
+* 官方 DOM：data-files-entry / data-files-row 上带 data-files-path。
+* 圈选后上下文给路径 → agent 可用 read 读内容。
+*/
+function createFileAdapter() {
+	return {
+		id: "file",
+		selector: "[data-files-entry], [data-files-row]",
+		describe(el) {
+			if (!el) return null;
+			const path = el.getAttribute?.("data-files-path") ?? el.querySelector?.("[data-files-path]")?.getAttribute("data-files-path") ?? el.closest?.("[data-files-path]")?.getAttribute("data-files-path") ?? null;
+			const name = path ? path.split("/").pop() : (el.textContent ?? "").trim().slice(0, 60);
+			if (!path && !name) return null;
+			return {
+				label: name || path,
+				data: {
+					kind: "file",
+					path: path || null,
+					name: name || null
+				}
+			};
+		}
+	};
+}
+/**
+* 文档/代码预览（官方 sidebar-documentpreview）：提取文档或代码块内容。
+* 官方 DOM：data-document-markdown（渲染后的 markdown）、data-code-block-content（代码块）。
+*/
+function createDocAdapter() {
+	return {
+		id: "doc",
+		selector: "[data-document-markdown], [data-code-block-content]",
+		describe(el, sel) {
+			if (!el) return null;
+			return {
+				label: (el.querySelector?.("h1, h2, h3") ?? el.closest?.("[data-document-markdown]")?.querySelector("h1"))?.textContent?.trim().slice(0, 40) || (el.hasAttribute?.("data-code-block-content") ? "代码预览" : "文档预览"),
+				data: { kind: "doc" },
+				lines: extractLines(sel, el)
+			};
+		}
+	};
+}
 function createGenericDomAdapter() {
 	return {
 		id: "generic-dom",
@@ -185262,6 +185305,8 @@ function createDefaultAdapters() {
 	return [
 		createAuraCardAdapter(),
 		createConversationAdapter(),
+		createFileAdapter(),
+		createDocAdapter(),
 		createGenericDomAdapter()
 	];
 }
@@ -185501,7 +185546,7 @@ function collectHits(adapters, sel) {
 			}
 		}
 	}
-	return hits.filter((h) => Array.isArray(h.lines) && h.lines.length > 0 || typeof h.text === "string" && h.text.trim().length > 0 || Boolean(h.cardId) || Boolean(h.turn));
+	return hits.filter((h) => Array.isArray(h.lines) && h.lines.length > 0 || typeof h.text === "string" && h.text.trim().length > 0 || Boolean(h.cardId) || Boolean(h.turn) || Boolean(h.data?.path));
 }
 //#endregion
 //#region client/src/GlobalSelector.jsx
@@ -185718,6 +185763,10 @@ function buildContext({ hits, rect, question, hasImage, shotDebug }) {
 	else {
 		for (const hit of hits.slice(0, 6)) {
 			const where = hit.turn ? `turn ${hit.turn}` : hit.cardId ? `卡片 ${hit.cardId}` : hit.label;
+			if (hit.data?.path) {
+				lines.push(`- 文件：${hit.data.path}（可用 read 工具读取内容）`);
+				continue;
+			}
 			const body = Array.isArray(hit.lines) && hit.lines.length ? hit.lines.map((l) => `「${l}」`).join(" ") : hit.text ? `「${hit.text}」` : "";
 			lines.push(`- ${where}${body ? `：${body}` : ""}`);
 		}
