@@ -206,6 +206,22 @@ export default function AuraPanel(props) {
     if (!res?.ok) throw new Error(res?.error?.message ?? '发送失败');
   }, [__auraSend]);
 
+  /** 隐藏卡片：先本地隐藏（立即生效），再通知 agent 标记 dismissed（持久化） */
+  const [hiddenIds, setHiddenIds] = React.useState(() => new Set());
+  const handleDismissCard = React.useCallback((cardId) => {
+    if (!cardId) return;
+    setHiddenIds((prev) => {
+      const next = new Set(prev);
+      next.add(cardId);
+      return next;
+    });
+    // 让 agent 把 dismissed 写进面板状态（刷新/重启后不再出现）
+    if (typeof __auraSend === 'function') {
+      __auraSend(`[面板操作] 把卡片「${cardId}」设为 dismissed=true（隐藏，数据保留），不要回复解释，直接调用 aura_panel 完成。`)
+        .catch((err) => console.warn('[aura-panel] 隐藏持久化失败:', err?.message ?? err));
+    }
+  }, [__auraSend]);
+
   const handleAction = React.useCallback(async (action) => {
     if (typeof __auraSend !== 'function') {
       setLastResult('❌ 未注入发送函数');
@@ -320,8 +336,8 @@ export default function AuraPanel(props) {
   }, [eventCards, allCards]);
   // 多 tab：本面板只展示归属当前 tabKey 的卡片（缺省 main）；dismissed 卡不渲染
   const cards = useMemo(
-    () => sourceCards.filter((c) => !c?.dismissed && (c?.tab ?? 'main') === tabKey),
-    [sourceCards, tabKey],
+    () => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id) && (c?.tab ?? 'main') === tabKey),
+    [sourceCards, tabKey, hiddenIds],
   );
   cardsRef.current = cards;
 
@@ -354,16 +370,11 @@ export default function AuraPanel(props) {
 
   return (
     <div className="aura-panel" ref={panelRef}>
-      <div className="aura-panel-toolbar">
-        <button
-          type="button"
-          className={`aura-panel-tool${selecting ? ' aura-panel-tool--active' : ''}`}
-          onClick={() => setSelecting((v) => !v)}
-        >
-          {selecting ? '✕ 退出圈选' : '🔍 圈选提问'}
-        </button>
-        {selecting ? <span className="aura-panel-tool-hint">在面板上拖拽圈选要提问的区域</span> : null}
-      </div>
+      {selecting ? (
+        <div className="aura-panel-toolbar">
+          <span className="aura-panel-tool-hint">在面板上拖拽圈选要提问的区域（Esc 退出）</span>
+        </div>
+      ) : null}
       {cards.map((card) => {
         const actions = Array.isArray(card.actions) ? card.actions : [];
         return (
@@ -374,6 +385,14 @@ export default function AuraPanel(props) {
             data-aura-card-title={card.title ?? card.id}
           >
             {card.title ? <h4 className="aura-panel-card-title">{card.title}</h4> : null}
+            <button
+              type="button"
+              className="aura-panel-card-close"
+              title="隐藏这张卡片"
+              onClick={() => handleDismissCard(card.id)}
+            >
+              ×
+            </button>
             <div className="aura-panel-card-body">
               <CardBoundary>
                 {isPendingCard(card)

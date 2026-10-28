@@ -199,6 +199,7 @@ const auraCss = `/* ============================================================
   box-sizing: border-box;
 }
 .aura-panel-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1399,8 +1400,17 @@ svg.react-flow__connectionline {
   fill: var(--dsw-static-deepseek-100, #e4edfd);
   stroke: none;
 }
+.aura-radial-icon {
+  color: var(--dsw-alias-label-secondary, #646a73);
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  transition: color 0.12s ease;
+}
+.aura-radial-icon svg { width: 16px; height: 16px; display: block; }
+.aura-radial-icon.is-active { color: var(--dsw-static-deepseek-600, #2b5bd7); }
 .aura-radial-label {
-  font-size: 11.5px;
+  font-size: 13px;
   fill: var(--dsw-alias-label-primary, #1f2329);
   pointer-events: none;
   transition: fill 0.12s ease, font-weight 0.12s ease;
@@ -1473,6 +1483,32 @@ svg.react-flow__connectionline {
   font-size: 12px;
   color: var(--dsw-alias-label-secondary, #666);
   margin-bottom: 8px;
+}
+
+/* 卡片右上角关闭（悬浮显示） */
+.aura-panel-card-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, #999);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.aura-panel-card:hover .aura-panel-card-close { opacity: 1; }
+.aura-panel-card-close:hover {
+  background: var(--dsw-alias-interactive-bg-hover-solid, rgba(128,128,128,0.14));
+  color: var(--dsw-alias-label-primary, #1f2329);
 }
 
 `;
