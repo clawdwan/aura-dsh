@@ -183655,12 +183655,14 @@ function createAuraCardAdapter() {
 	return {
 		id: "aura-card",
 		selector: "[data-aura-card-id]",
-		describe(el) {
+		describe(el, sel) {
 			const cardId = el?.dataset?.auraCardId;
 			if (!cardId) return null;
+			const lines = extractLines(sel, el);
 			return {
 				label: el.dataset.auraCardTitle || cardId,
-				cardId
+				cardId,
+				lines
 			};
 		}
 	};
@@ -183692,14 +183694,14 @@ function createConversationAdapter() {
 	return {
 		id: "conversation",
 		selector: "[data-chat-node-key]",
-		describe(el) {
+		describe(el, sel) {
 			if (!el?.dataset?.chatNodeKey) return null;
 			const turn = el.dataset.chatTurn;
-			const text = (el.textContent || "").replace(/\s+/g, " ").trim();
-			if (!text) return null;
+			const lines = extractLines(sel, el);
 			return {
 				label: turn ? `对话节点（turn ${turn}）` : "对话节点",
-				text: text.length > 200 ? `${text.slice(0, 200)}…` : text
+				turn,
+				lines
 			};
 		}
 	};
@@ -183711,6 +183713,74 @@ function createDefaultAdapters() {
 		createConversationAdapter(),
 		createGenericDomAdapter()
 	];
+}
+/**
+* 提取圈选矩形内的「行级文本」。
+* 原理：遍历 root 下的文本节点 → 用 Range.getClientRects() 得到每行矩形 →
+* 与圈选矩形相交的行，用 caretRangeFromPoint 取该行的起止字符 → 拼成行文本。
+*
+* @param {{left:number,top:number,right:number,bottom:number}} sel
+* @param {Element} [root] - 限定范围（缺省整页）
+* @param {number} [maxLines=6]
+* @returns {string[]}
+*/
+function extractLines(sel, root, maxLines = 6) {
+	const lines = [];
+	if (!sel) return lines;
+	const scope = root ?? document.body;
+	if (!scope) return lines;
+	const caretAt = (x, y) => {
+		if (typeof document.caretRangeFromPoint === "function") return document.caretRangeFromPoint(x, y);
+		if (typeof document.caretPositionFromPoint === "function") {
+			const pos = document.caretPositionFromPoint(x, y);
+			if (!pos) return null;
+			const range = document.createRange();
+			range.setStart(pos.offsetNode, pos.offset);
+			range.collapse(true);
+			return range;
+		}
+		return null;
+	};
+	const seen = /* @__PURE__ */ new Set();
+	const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+	let node = walker.nextNode();
+	while (node && lines.length < maxLines) {
+		const raw = node.textContent;
+		if (raw && raw.trim()) {
+			const parent = node.parentElement;
+			if (parent && !parent.closest(".aura-global-select")) {
+				const range = document.createRange();
+				range.selectNodeContents(node);
+				let rects = [];
+				try {
+					rects = [...range.getClientRects()];
+				} catch {
+					rects = [];
+				}
+				for (const rect of rects) {
+					if (rect.width < 2 || rect.height < 2) continue;
+					if (!(sel.left < rect.right && sel.right > rect.left && sel.top < rect.bottom && sel.bottom > rect.top)) continue;
+					const y = rect.top + rect.height / 2;
+					const startR = caretAt(rect.left + 2, y);
+					const endR = caretAt(rect.right - 2, y);
+					if (!startR || !endR) continue;
+					try {
+						const r = document.createRange();
+						r.setStart(startR.startContainer, startR.startOffset);
+						r.setEnd(endR.endContainer, endR.endOffset ?? endR.startOffset);
+						const text = r.toString().replace(/\s+/g, " ").trim();
+						if (text.length >= 2 && !seen.has(text)) {
+							seen.add(text);
+							lines.push(text);
+							if (lines.length >= maxLines) break;
+						}
+					} catch {}
+				}
+			}
+		}
+		node = walker.nextNode();
+	}
+	return lines;
 }
 /**
 * 收集圈选矩形内的命中（视口坐标）。
@@ -183750,7 +183820,7 @@ function collectHits(adapters, sel) {
 		for (const el of els) {
 			const rect = rectOf(el);
 			if (rect.area < 16 || !inSel(rect)) continue;
-			const described = adapter.describe(el);
+			const described = adapter.describe(el, sel);
 			if (!described) continue;
 			candidates.push({
 				el,
@@ -183766,6 +183836,8 @@ function collectHits(adapters, sel) {
 				adapterId: adapter.id,
 				label: c.described.label,
 				text: c.described.text,
+				lines: c.described.lines,
+				turn: c.described.turn,
 				data: c.described.data,
 				cardId: c.described.cardId,
 				rect: {
@@ -183854,30 +183926,36 @@ const RADIAL_OPTIONS = [
 		prompt: "可以怎么改进？"
 	}
 ];
-/** 把命中结果拼成提问上下文 */
+/**
+* 把命中结果拼成提问上下文。
+* 原则（P1.5）：
+*   - 只给「精确锚点」：行级文本 + 卡片 id / turn 号
+*   - 不重复完整消息内容（agent 在当前会话里有上下文记忆）
+*   - 无 id 的内容退回行级文本 + 语义容器
+*/
 function buildContext({ hits, rect, question }) {
 	const lines = [];
-	lines.push("【圈选提问】");
-	lines.push("");
 	const vw = window.innerWidth || 1;
 	const vh = window.innerHeight || 1;
-	const range = `截图坐标 x ${Math.round(rect.left / vw * 100)}%~${Math.round(rect.right / vw * 100)}%，y ${Math.round(rect.top / vh * 100)}%~${Math.round(rect.bottom / vh * 100)}%`;
-	lines.push(`✂️ 圈选范围：视口内 ${range}`);
+	lines.push("【圈选提问】");
 	lines.push("");
-	lines.push("✨ 命中内容（用户关注的具体元素）：");
+	lines.push(`✂️ 圈选范围：视口内 x ${Math.round(rect.left / vw * 100)}%~${Math.round(rect.right / vw * 100)}%，y ${Math.round(rect.top / vh * 100)}%~${Math.round(rect.bottom / vh * 100)}%`);
+	lines.push("");
+	lines.push("✨ 命中内容（用户关注的具体元素，精确锚点）：");
 	if (hits.length === 0) lines.push("- （未识别到可读内容，请结合问题与圈选位置作答）");
 	else {
-		for (const hit of hits.slice(0, 10)) {
-			const kindNote = hit.adapterId === "aura-card" ? "（aura 卡片）" : "";
-			lines.push(`- ${hit.label}${kindNote}${hit.text ? `：${hit.text}` : ""}`);
+		for (const hit of hits.slice(0, 6)) {
+			const where = hit.turn ? `turn ${hit.turn}` : hit.cardId ? `卡片 ${hit.cardId}` : hit.label;
+			const body = Array.isArray(hit.lines) && hit.lines.length ? hit.lines.map((l) => `「${l}」`).join(" ") : hit.text ? `「${hit.text}」` : "";
+			lines.push(`- ${where}${body ? `：${body}` : ""}`);
 		}
-		if (hits.length > 10) lines.push(`- …另有 ${hits.length - 10} 条`);
+		if (hits.length > 6) lines.push(`- …另有 ${hits.length - 6} 处`);
 	}
 	lines.push("");
 	lines.push(`❓ 问题：${question}`);
 	lines.push("");
-	lines.push("【回答要求】");
-	lines.push("- 命中内容是用户关注的具体锚点；若上下文不足以判断，请说明缺什么信息。");
+	lines.push("【说明】");
+	lines.push("- 「命中内容」引用的文字来自当前会话/页面，可直接结合上下文理解，无需重复贴出全文。");
 	lines.push("- 需要更新数据/图表时，可调用 aura_panel 更新右侧面板。");
 	return lines.join("\n");
 }

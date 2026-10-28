@@ -18,32 +18,40 @@ const RADIAL_OPTIONS = [
   { label: '怎么改进', prompt: '可以怎么改进？' },
 ];
 
-/** 把命中结果拼成提问上下文 */
+/**
+ * 把命中结果拼成提问上下文。
+ * 原则（P1.5）：
+ *   - 只给「精确锚点」：行级文本 + 卡片 id / turn 号
+ *   - 不重复完整消息内容（agent 在当前会话里有上下文记忆）
+ *   - 无 id 的内容退回行级文本 + 语义容器
+ */
 function buildContext({ hits, rect, question }) {
   const lines = [];
-  lines.push('【圈选提问】');
-  lines.push('');
   const vw = window.innerWidth || 1;
   const vh = window.innerHeight || 1;
-  const range = `截图坐标 x ${Math.round((rect.left / vw) * 100)}%~${Math.round((rect.right / vw) * 100)}%，`
-    + `y ${Math.round((rect.top / vh) * 100)}%~${Math.round((rect.bottom / vh) * 100)}%`;
-  lines.push(`✂️ 圈选范围：视口内 ${range}`);
+  lines.push('【圈选提问】');
   lines.push('');
-  lines.push('✨ 命中内容（用户关注的具体元素）：');
+  lines.push(`✂️ 圈选范围：视口内 x ${Math.round((rect.left / vw) * 100)}%~${Math.round((rect.right / vw) * 100)}%，`
+    + `y ${Math.round((rect.top / vh) * 100)}%~${Math.round((rect.bottom / vh) * 100)}%`);
+  lines.push('');
+  lines.push('✨ 命中内容（用户关注的具体元素，精确锚点）：');
   if (hits.length === 0) {
     lines.push('- （未识别到可读内容，请结合问题与圈选位置作答）');
   } else {
-    for (const hit of hits.slice(0, 10)) {
-      const kindNote = hit.adapterId === 'aura-card' ? '（aura 卡片）' : '';
-      lines.push(`- ${hit.label}${kindNote}${hit.text ? `：${hit.text}` : ''}`);
+    for (const hit of hits.slice(0, 6)) {
+      const where = hit.turn ? `turn ${hit.turn}` : (hit.cardId ? `卡片 ${hit.cardId}` : hit.label);
+      const body = Array.isArray(hit.lines) && hit.lines.length
+        ? hit.lines.map((l) => `「${l}」`).join(' ')
+        : (hit.text ? `「${hit.text}」` : '');
+      lines.push(`- ${where}${body ? `：${body}` : ''}`);
     }
-    if (hits.length > 10) lines.push(`- …另有 ${hits.length - 10} 条`);
+    if (hits.length > 6) lines.push(`- …另有 ${hits.length - 6} 处`);
   }
   lines.push('');
   lines.push(`❓ 问题：${question}`);
   lines.push('');
-  lines.push('【回答要求】');
-  lines.push('- 命中内容是用户关注的具体锚点；若上下文不足以判断，请说明缺什么信息。');
+  lines.push('【说明】');
+  lines.push('- 「命中内容」引用的文字来自当前会话/页面，可直接结合上下文理解，无需重复贴出全文。');
   lines.push('- 需要更新数据/图表时，可调用 aura_panel 更新右侧面板。');
   return lines.join('\n');
 }

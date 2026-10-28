@@ -32,12 +32,14 @@ export function createAuraCardAdapter() {
   return {
     id: 'aura-card',
     selector: '[data-aura-card-id]',
-    describe(el) {
+    describe(el, sel) {
       const cardId = el?.dataset?.auraCardId;
       if (!cardId) return null;
+      const lines = extractLines(sel, el);
       return {
         label: el.dataset.auraCardTitle || cardId,
         cardId,
+        lines,
       };
     },
   };
@@ -71,15 +73,15 @@ export function createConversationAdapter() {
   return {
     id: 'conversation',
     selector: '[data-chat-node-key]',
-    describe(el) {
+    describe(el, sel) {
       const nodeKey = el?.dataset?.chatNodeKey;
       if (!nodeKey) return null;
       const turn = el.dataset.chatTurn;
-      const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
-      if (!text) return null;
+      const lines = extractLines(sel, el);
       return {
         label: turn ? `对话节点（turn ${turn}）` : '对话节点',
-        text: text.length > 200 ? `${text.slice(0, 200)}…` : text,
+        turn,
+        lines,
       };
     },
   };
@@ -88,6 +90,73 @@ export function createConversationAdapter() {
 /** 默认适配器集合（aura 优先，对话流次之，通用兜底） */
 export function createDefaultAdapters() {
   return [createAuraCardAdapter(), createConversationAdapter(), createGenericDomAdapter()];
+}
+
+/**
+ * 提取圈选矩形内的「行级文本」。
+ * 原理：遍历 root 下的文本节点 → 用 Range.getClientRects() 得到每行矩形 →
+ * 与圈选矩形相交的行，用 caretRangeFromPoint 取该行的起止字符 → 拼成行文本。
+ *
+ * @param {{left:number,top:number,right:number,bottom:number}} sel
+ * @param {Element} [root] - 限定范围（缺省整页）
+ * @param {number} [maxLines=6]
+ * @returns {string[]}
+ */
+export function extractLines(sel, root, maxLines = 6) {
+  const lines = [];
+  if (!sel) return lines;
+  const scope = root ?? document.body;
+  if (!scope) return lines;
+  const caretAt = (x, y) => {
+    if (typeof document.caretRangeFromPoint === 'function') {
+      return document.caretRangeFromPoint(x, y);
+    }
+    if (typeof document.caretPositionFromPoint === 'function') {
+      const pos = document.caretPositionFromPoint(x, y);
+      if (!pos) return null;
+      const range = document.createRange();
+      range.setStart(pos.offsetNode, pos.offset);
+      range.collapse(true);
+      return range;
+    }
+    return null;
+  };
+  const seen = new Set();
+  const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
+  while (node && lines.length < maxLines) {
+    const raw = node.textContent;
+    if (raw && raw.trim()) {
+      const parent = node.parentElement;
+      if (parent && !parent.closest('.aura-global-select')) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        let rects = [];
+        try { rects = [...range.getClientRects()]; } catch { rects = []; }
+        for (const rect of rects) {
+          if (rect.width < 2 || rect.height < 2) continue;
+          if (!(sel.left < rect.right && sel.right > rect.left && sel.top < rect.bottom && sel.bottom > rect.top)) continue;
+          const y = rect.top + rect.height / 2;
+          const startR = caretAt(rect.left + 2, y);
+          const endR = caretAt(rect.right - 2, y);
+          if (!startR || !endR) continue;
+          try {
+            const r = document.createRange();
+            r.setStart(startR.startContainer, startR.startOffset);
+            r.setEnd(endR.endContainer, endR.endOffset ?? endR.startOffset);
+            const text = r.toString().replace(/\s+/g, ' ').trim();
+            if (text.length >= 2 && !seen.has(text)) {
+              seen.add(text);
+              lines.push(text);
+              if (lines.length >= maxLines) break;
+            }
+          } catch { /* 跨节点 Range 失败则跳过 */ }
+        }
+      }
+    }
+    node = walker.nextNode();
+  }
+  return lines;
 }
 
 /**
@@ -121,7 +190,7 @@ export function collectHits(adapters, sel) {
     for (const el of els) {
       const rect = rectOf(el);
       if (rect.area < 16 || !inSel(rect)) continue;
-      const described = adapter.describe(el);
+      const described = adapter.describe(el, sel);
       if (!described) continue;
       candidates.push({ el, rect, described });
     }
@@ -137,6 +206,8 @@ export function collectHits(adapters, sel) {
         adapterId: adapter.id,
         label: c.described.label,
         text: c.described.text,
+        lines: c.described.lines,
+        turn: c.described.turn,
         data: c.described.data,
         cardId: c.described.cardId,
         rect: { left: c.rect.left, top: c.rect.top, right: c.rect.right, bottom: c.rect.bottom },
