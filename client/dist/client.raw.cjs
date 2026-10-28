@@ -168076,15 +168076,22 @@ function buildOption$1(data) {
 		grid: {
 			left: 44,
 			right: 16,
-			top: 24,
+			top: series.length > 1 ? 40 : 24,
 			bottom: 28
 		},
 		tooltip: { trigger: "axis" },
 		legend: series.length > 1 ? {
-			bottom: 0,
+			top: 0,
+			left: "center",
 			icon: "roundRect",
 			itemWidth: 12,
-			itemHeight: 8
+			itemHeight: 8,
+			itemGap: 16,
+			tooltip: { show: true },
+			textStyle: {
+				width: 120,
+				overflow: "truncate"
+			}
 		} : void 0,
 		xAxis: {
 			type: "category",
