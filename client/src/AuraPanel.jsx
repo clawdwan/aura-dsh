@@ -230,13 +230,14 @@ export default function AuraPanel(props) {
     if (!ok) console.warn('[aura-panel] 单卡导出失败');
   }, []);
 
-  /** 导出面板全部卡片为 .md */
+  /** 导出面板全部卡片为 .md（用 cardsRef 避免 TDZ：cards 定义在后面） */
   const handleExportAll = React.useCallback(() => {
-    if (!cards.length) return;
-    const md = cardsToMd(cards, { sessionId: props?.sessionId });
+    const list = cardsRef.current ?? [];
+    if (!list.length) return;
+    const md = cardsToMd(list, { sessionId: props?.sessionId });
     const ok = downloadMd(`aura-panel-${Date.now()}`, md);
     if (!ok) console.warn('[aura-panel] 全部导出失败');
-  }, [cards, props?.sessionId]);
+  }, [props?.sessionId]);
 
   /** 折叠状态（本地，不持久） */
   const [collapsedIds, setCollapsedIds] = React.useState(() => new Set());

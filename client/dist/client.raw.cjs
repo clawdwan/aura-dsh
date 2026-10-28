@@ -183556,12 +183556,13 @@ function AuraPanel(props) {
 		const md = cardToMd(card);
 		if (!downloadMd(String(card.title ?? card.id ?? "card").replace(/[\\/:*?"<>|]/g, "_"), `## ${card.title ?? card.id}\n\n${md}`)) console.warn("[aura-panel] 单卡导出失败");
 	}, []);
-	/** 导出面板全部卡片为 .md */
+	/** 导出面板全部卡片为 .md（用 cardsRef 避免 TDZ：cards 定义在后面） */
 	const handleExportAll = react$1.default.useCallback(() => {
-		if (!cards.length) return;
-		const md = cardsToMd(cards, { sessionId: props?.sessionId });
+		const list = cardsRef.current ?? [];
+		if (!list.length) return;
+		const md = cardsToMd(list, { sessionId: props?.sessionId });
 		if (!downloadMd(`aura-panel-${Date.now()}`, md)) console.warn("[aura-panel] 全部导出失败");
-	}, [cards, props?.sessionId]);
+	}, [props?.sessionId]);
 	/** 折叠状态（本地，不持久） */
 	const [collapsedIds, setCollapsedIds] = react$1.default.useState(() => /* @__PURE__ */ new Set());
 	const handleToggleCollapse = react$1.default.useCallback((cardId) => {
