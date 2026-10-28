@@ -102,7 +102,7 @@ export function createDefaultAdapters() {
  * @param {number} [maxLines=6]
  * @returns {string[]}
  */
-export function extractLines(sel, root, maxLines = 6) {
+export function extractLines(sel, root, maxLines = 10) {
   const lines = [];
   if (!sel) return lines;
   const scope = root ?? document.body;
@@ -122,12 +122,27 @@ export function extractLines(sel, root, maxLines = 6) {
     return null;
   };
   const seen = new Set();
+  const seenCode = new Set();
   const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
   let node = walker.nextNode();
   while (node && lines.length < maxLines) {
     const raw = node.textContent;
     if (raw && raw.trim()) {
       const parent = node.parentElement;
+      // 代码块：语法高亮会把代码拆成大量 token 文本节点 —— 整体提取一次，跳过碎片
+      const codeBlock = parent?.closest('pre, code');
+      if (codeBlock && !seenCode.has(codeBlock)) {
+        seenCode.add(codeBlock);
+        const cr = codeBlock.getBoundingClientRect();
+        if (sel.left < cr.right && sel.right > cr.left && sel.top < cr.bottom && sel.bottom > cr.top) {
+          const codeText = (codeBlock.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+          if (codeText) lines.push(`代码块：${codeText}`);
+          if (lines.length >= maxLines) break;
+        }
+        node = walker.nextNode();
+        continue;
+      }
+      if (codeBlock) { node = walker.nextNode(); continue; }
       if (parent && !parent.closest('.aura-global-select')) {
         const range = document.createRange();
         range.selectNodeContents(node);
@@ -152,7 +167,7 @@ export function extractLines(sel, root, maxLines = 6) {
           if (!text) {
             text = raw.replace(/\s+/g, ' ').trim().slice(0, 200);
           }
-          if (text.length >= 2 && !seen.has(text)) {
+          if (text.length >= 4 && !seen.has(text)) {
             seen.add(text);
             lines.push(text);
             if (lines.length >= maxLines) break;
