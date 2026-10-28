@@ -1401,13 +1401,11 @@ svg.react-flow__connectionline {
   stroke: none;
 }
 .aura-radial-icon {
+  /* 注意：icon 是根 SVG 内的 <g>（16 单位 = 16px），不能设 width/height */
   color: var(--dsw-alias-label-secondary, #646a73);
-  width: 16px;
-  height: 16px;
   pointer-events: none;
   transition: color 0.12s ease;
 }
-.aura-radial-icon svg { width: 16px; height: 16px; display: block; }
 .aura-radial-icon.is-active { color: var(--dsw-static-deepseek-600, #2b5bd7); }
 .aura-radial-label {
   font-size: 13px;

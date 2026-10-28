@@ -107,11 +107,11 @@ const RADIAL_OPTIONS = [
   // 扇区按「使用频率 + 语义分组」排布：
   //   上=给出操作（执行）· 右上=整理并推送（产出）· 右下=解释这段（基础）
   //   左下=质疑（验证）· 左上=查来源（验证）
-  { label: '给出操作', prompt: '基于圈选内容，给出可直接执行的操作（命令/步骤/代码），并说明预期结果。', icon: <svg viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 2 4 9h3l-.5 5L12 7H9z"/></g></svg> },
-  { label: '整理并推送', prompt: '请提炼圈选内容的要点，并**结合最近几轮对话的上下文**，整理成合适的卡片推送到右侧面板（按内容选择便签/指标/表格/洞察/HTML 报告等形态）。', icon: <svg viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M8 12V3M5 6l3-3 3 3M3 14h10"/></g></svg> },
-  { label: '解释这段', prompt: '请解释圈选的这部分内容（它是什么、含义、作用）。', icon: <svg viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H7l-3 2v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></g></svg> },
-  { label: '质疑', prompt: '请对圈选的这部分内容提出质疑：有哪些问题、反例或不确定之处？', icon: <svg viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v4.5"/><circle cx="8" cy="11.5" r=".6" fill="currentColor" stroke="none"/></g></svg> },
-  { label: '查来源', prompt: '请核查圈选内容的来源与依据：出自哪里、是否准确、有无可验证的出处。', icon: <svg viewBox="0 0 16 16" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="4"/><path d="M10.5 10.5 14 14"/></g></svg> },
+  { label: '给出操作', prompt: '基于圈选内容，给出可直接执行的操作（命令/步骤/代码），并说明预期结果。', color: 'var(--dsw-static-deepseek-500, #4176e6)', icon: <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 2 4 9h3l-.5 5L12 7H9z"/></g> },
+  { label: '整理并推送', prompt: '请提炼圈选内容的要点，并**结合最近几轮对话的上下文**，整理成合适的卡片推送到右侧面板（按内容选择便签/指标/表格/洞察/HTML 报告等形态）。', color: 'var(--dsw-alias-state-success-primary, #1f9d55)', icon: <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M8 12V3M5 6l3-3 3 3M3 14h10"/></g> },
+  { label: '解释这段', prompt: '请解释圈选的这部分内容（它是什么、含义、作用）。', color: 'var(--dsw-alias-label-secondary, #646a73)', icon: <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H7l-3 2v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></g> },
+  { label: '质疑', prompt: '请对圈选的这部分内容提出质疑：有哪些问题、反例或不确定之处？', color: 'var(--dsw-alias-state-warning-primary, #d7771c)', icon: <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v4.5"/><circle cx="8" cy="11.5" r=".6" fill="currentColor" stroke="none"/></g> },
+  { label: '查来源', prompt: '请核查圈选内容的来源与依据：出自哪里、是否准确、有无可验证的出处。', color: 'var(--dsw-alias-state-info-primary, #6b4fd8)', icon: <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="4"/><path d="M10.5 10.5 14 14"/></g> },
 ];
 
 /** 两矩形是否相交 */

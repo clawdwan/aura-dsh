@@ -166,14 +166,15 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
               {opt.icon ? (
                 <g
                   className={`aura-radial-icon${active(i) ? ' is-active' : ''}`}
-                  transform={`translate(${labelPos.x - 9}, ${labelPos.y - 20}) scale(1.125)`}
+                  style={opt.color ? { color: opt.color } : undefined}
+                  transform={`translate(${labelPos.x - 9}, ${labelPos.y - 22}) scale(1.125)`}
                 >
                   {opt.icon}
                 </g>
               ) : null}
               <text
                 x={labelPos.x}
-                y={labelPos.y + (opt.icon ? 8 : 0)}
+                y={labelPos.y + (opt.icon ? 12 : 0)}
                 className={`aura-radial-label${active(i) ? ' is-active' : ''}`}
                 textAnchor="middle"
                 dominantBaseline="middle"
