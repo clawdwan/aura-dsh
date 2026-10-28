@@ -9,6 +9,9 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import RadialMenu from './RadialMenu';
+// 注意：DSH 的 client 插件用自定义 __ModuleLoader__，不支持动态 import()，
+// 必须静态 import（打包进 bundle）。
+import { domToCanvas } from 'modern-screenshot';
 import { collectHits, createDefaultAdapters } from './selection/adapters';
 
 const RADIAL_OPTIONS = [
@@ -51,8 +54,7 @@ function needsVisualCapture(rect) {
 
 /** 截取圈选区域（浏览器 API；iframe 内容截不到，会成为空白） */
 async function captureSelection(rect) {
-  const mod = await import('modern-screenshot');
-  const canvas = await mod.domToCanvas(document.body, { scale: 1 });
+  const canvas = await domToCanvas(document.body, { scale: 1 });
   const out = document.createElement('canvas');
   const w = Math.max(1, Math.round(rect.left + rect.width > 0 ? rect.width : 1));
   const h = Math.max(1, Math.round(rect.height));
@@ -222,12 +224,16 @@ export default function GlobalSelector({ send, getSessionId }) {
       };
       // 视觉类内容（图表/图形/iframe）额外截一张图，作为视觉补充
       let image = null;
-      if (needsVisualCapture(sel)) {
+      const visual = needsVisualCapture(sel);
+      console.log('[aura-global-select] 视觉检测:', visual ? '需要截图' : '纯文本（不截图）', sel);
+      if (visual) {
         try {
+          console.log('[aura-global-select] 开始截图…');
           const base64 = await captureSelection(sel);
+          console.log('[aura-global-select] 截图完成:', base64 ? `${base64.length} chars` : 'null');
           if (base64) image = { mediaType: 'image/png', data: base64, name: 'selection.png' };
         } catch (err) {
-          console.warn('[aura-global-select] 截图失败（降级为纯文本）:', err?.message ?? err);
+          console.error('[aura-global-select] 截图失败（降级为纯文本）:', err);
         }
       }
       const ctx = buildContext({ hits, rect: sel, question: q, hasImage: Boolean(image) });
