@@ -183763,18 +183763,21 @@ function extractLines(sel, root, maxLines = 6) {
 					const y = rect.top + rect.height / 2;
 					const startR = caretAt(rect.left + 2, y);
 					const endR = caretAt(rect.right - 2, y);
-					if (!startR || !endR) continue;
-					try {
+					let text = "";
+					if (startR && endR) try {
 						const r = document.createRange();
 						r.setStart(startR.startContainer, startR.startOffset);
 						r.setEnd(endR.endContainer, endR.endOffset ?? endR.startOffset);
-						const text = r.toString().replace(/\s+/g, " ").trim();
-						if (text.length >= 2 && !seen.has(text)) {
-							seen.add(text);
-							lines.push(text);
-							if (lines.length >= maxLines) break;
-						}
-					} catch {}
+						text = r.toString().replace(/\s+/g, " ").trim();
+					} catch {
+						text = "";
+					}
+					if (!text) text = raw.replace(/\s+/g, " ").trim().slice(0, 200);
+					if (text.length >= 2 && !seen.has(text)) {
+						seen.add(text);
+						lines.push(text);
+						if (lines.length >= maxLines) break;
+					}
 				}
 			}
 		}
