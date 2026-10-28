@@ -27,6 +27,9 @@ export const panelParameters = {
     type: 'object',
     additionalProperties: true,
     description: "卡片对象（action='upsert' 时必填）：{ id, type, title?, data?, actions?, pending? }。"
+      + "⚠️ tool 参数必须是合法 JSON：字符串内部不得出现未转义的双引号；"
+      + "HTML 内容一律用单引号属性（class='a-h1'）；单卡内容过长时拆成多张卡分别 upsert；"
+      + "内容能用结构化组件表达时优先用 comparison_table/insight_cards/metric_card，html 仅用于长文档/富排版。"
       + "pending=true 或省略 data 时，面板显示骨架屏占位（适合多卡片任务：先推结构再填数据）。"
       + "type 与 data 契约同 aura_render；actions[].prompt 是点击按钮后注入会话的指令文本。"
       + "persist=true 表示常驻卡片（不参与 20 张上限淘汰、跨刷新/重启保留）；dismissed=true 表示隐藏（不渲染、数据保留）；"
