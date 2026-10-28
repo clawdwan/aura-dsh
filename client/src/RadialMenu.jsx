@@ -15,7 +15,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 export const RADIAL_DEFAULTS = {
   /** 外环半径（px） */
-  outerRadius: 110,
+  outerRadius: 120,
   /** 中心圆半径（px） */
   centerRadius: 40,
   /** 判定为"有效方向"的最小半径（px），小于它视为在中心附近 */
@@ -62,7 +62,7 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
   const cx = size / 2;
   const cy = size / 2;
 
-  const [hover, setHover] = useState(null); // 扇区索引 | 'center' | null
+  const [hover, setHover] = useState(0); // 默认高亮第一个扇区（避免“唤起后无反馈”）
   const hoverSince = useRef(0);
   const rootRef = useRef(null);
 

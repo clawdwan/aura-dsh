@@ -1432,14 +1432,13 @@ svg.react-flow__connectionline {
   stroke: none;
 }
 .aura-radial-center-label {
-  font-size: 11.5px;
+  font-size: 13px;
   fill: var(--dsw-static-deepseek-600, #2b5bd7);
   pointer-events: none;
   transition: fill 0.12s ease;
 }
 .aura-radial-center-label.is-active {
   fill: #ffffff;
-  font-weight: 700;
 }
 /* ---- 全局圈选层（快捷键 ⌘⌥S / 任意区域） ---- */
 .aura-global-select {

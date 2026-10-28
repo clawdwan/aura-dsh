@@ -1472,14 +1472,13 @@ svg.react-flow__connectionline {
   stroke: none;
 }
 .aura-radial-center-label {
-  font-size: 11.5px;
+  font-size: 13px;
   fill: var(--dsw-static-deepseek-600, #2b5bd7);
   pointer-events: none;
   transition: fill 0.12s ease;
 }
 .aura-radial-center-label.is-active {
   fill: #ffffff;
-  font-weight: 700;
 }
 /* ---- 全局圈选层（快捷键 ⌘⌥S / 任意区域） ---- */
 .aura-global-select {
@@ -182336,7 +182335,7 @@ const auraDefinition = {
 */
 const RADIAL_DEFAULTS = {
 	/** 外环半径（px） */
-	outerRadius: 110,
+	outerRadius: 120,
 	/** 中心圆半径（px） */
 	centerRadius: 40,
 	/** 判定为"有效方向"的最小半径（px），小于它视为在中心附近 */
@@ -182384,7 +182383,7 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 	const size = outerRadius * 2 + 24;
 	const cx = size / 2;
 	const cy = size / 2;
-	const [hover, setHover] = (0, react$1.useState)(null);
+	const [hover, setHover] = (0, react$1.useState)(0);
 	const hoverSince = (0, react$1.useRef)(0);
 	const rootRef = (0, react$1.useRef)(null);
 	const count = Math.max(options?.length ?? 0, 1);
