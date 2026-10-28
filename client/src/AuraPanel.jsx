@@ -55,6 +55,28 @@ function extractPanelResult(node) {
 
 
 /**
+ * 从事件流窗口提取面板卡片：取**最后一条** aura_panel 的 tool/result 里的 cards。
+ * 事件流（eventSource.entries）含被折叠的 tool/call 与 tool/result，
+ * 而 useChat 的渲染节点不含，因此面板状态以事件流为准。
+ */
+function extractCardsFromEvents(win) {
+  const entries = Array.isArray(win?.entries) ? win.entries : [];
+  let lastCards = null;
+  for (const entry of entries) {
+    const ev = entry?.event;
+    if (!ev || ev.type !== 'tool/result') continue;
+    const blocks = Array.isArray(ev.data?.message?.content) ? ev.data.message.content : [];
+    const text = blocks.filter((b) => b?.type === 'text').map((b) => b.text).join('');
+    if (!text || !text.includes('cards')) continue;
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed?.cards)) lastCards = parsed.cards;
+    } catch { /* 非 JSON 结果忽略 */ }
+  }
+  return lastCards;
+}
+
+/**
  * 从 tool/call 节点解析 aura_panel 调用参数（action + card）。
  * 面板状态改为「重放历史调用」而不是「取最后一次结果」：
  * host 的 panel-store 是纯内存，主实例重启后清空，最后一次结果只含新卡；
@@ -145,7 +167,7 @@ function isPendingCard(card) {
 }
 
 export default function AuraPanel(props) {
-  const { useChat, __auraSend, tabKey = 'main' } = props;
+  const { useChat, __auraSend, __auraSubscribeEvents, tabKey = 'main' } = props;
   const [sendingId, setSendingId] = React.useState(null);
   const [lastResult, setLastResult] = React.useState(null);
   const [selecting, setSelecting] = React.useState(false);
@@ -276,10 +298,15 @@ export default function AuraPanel(props) {
   // 防御：useChat 在会话未就绪时可能返回 undefined，这里兜底成空状态，避免渲染崩溃
   const safeState = state && typeof state === 'object' ? state : EMPTY_DIAG;
   const allCards = Array.isArray(safeState.cards) ? safeState.cards : EMPTY;
+  // 数据源优先级：事件流（含折叠的 tool/result）> useChat 渲染节点
+  const sourceCards = useMemo(() => {
+    if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
+    return allCards;
+  }, [eventCards, allCards]);
   // 多 tab：本面板只展示归属当前 tabKey 的卡片（缺省 main）
   const cards = useMemo(
-    () => allCards.filter((c) => (c?.tab ?? 'main') === tabKey),
-    [allCards, tabKey],
+    () => sourceCards.filter((c) => (c?.tab ?? 'main') === tabKey),
+    [sourceCards, tabKey],
   );
   const diag = {
     nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
@@ -288,6 +315,37 @@ export default function AuraPanel(props) {
     firstKeys: safeState.firstKeys ?? null,
   };
   cardsRef.current = cards;
+
+  // 事件流兜底：useChat 的 nodes 不含折叠的 tool 节点时，改用 eventSource 的最新 tool/result
+  const [eventCards, setEventCards] = React.useState(null);
+  const [eventInfo, setEventInfo] = React.useState(null);
+  React.useEffect(() => {
+    if (typeof __auraSubscribeEvents !== 'function') return undefined;
+    const sid = props?.sessionId;
+    if (!sid) return undefined;
+    let sub = null;
+    let alive = true;
+    const refresh = () => {
+      if (!alive) return;
+      try {
+        const win = sub?.get?.() ?? null;
+        const found = extractCardsFromEvents(win);
+        setEventInfo({
+          entries: Array.isArray(win?.entries) ? win.entries.length : 0,
+          cards: Array.isArray(found) ? found.length : 0,
+        });
+        if (Array.isArray(found) && found.length > 0) setEventCards(found);
+      } catch { /* ignore */ }
+    };
+    try {
+      sub = __auraSubscribeEvents(sid, refresh);
+      refresh();
+    } catch { /* ignore */ }
+    return () => {
+      alive = false;
+      try { sub?.dispose?.(); } catch { /* ignore */ }
+    };
+  }, [__auraSubscribeEvents, props?.sessionId]);
 
   if (cards.length === 0) {
     if (!hydrated) {
@@ -366,7 +424,7 @@ export default function AuraPanel(props) {
         onCancel={() => setSelecting(false)}
       />
       <div className="aura-panel-diag-line">
-        {`[diag] 节点 ${diag.nodeCount} · panel ${diag.panelNodes} · 重放 ${diag.replayed} · rootKeys ${diag.firstKeys ?? '?'}`}
+        {`[diag] 节点 ${diag.nodeCount} · panel ${diag.panelNodes} · 事件 ${eventInfo?.entries ?? '-'} · 事件卡 ${eventInfo?.cards ?? '-'}`}
       </div>
     </div>
   );

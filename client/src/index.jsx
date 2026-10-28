@@ -61,12 +61,43 @@ export function apply(ctx) {
       });
     };
 
+    /**
+     * 订阅会话事件流（eventSource），供 AuraPanel 从 tool/result 读面板状态。
+     * useChat 的 nodes 不含被折叠的 tool/call 节点，读不到卡片；
+     * eventSource.entries 是完整事件流（含 tool/call 与 tool/result）。
+     */
+    const subscribeEvents = (sessionId, onChange) => {
+      const noop = { get: () => null, dispose: () => {} };
+      if (!sessionId) return noop;
+      let reference;
+      try {
+        reference = ctx.sessions?.retain?.(sessionId, { source: 'controllerOperation' });
+        const source = reference?.binding?.eventSource;
+        if (!source?.subscribe) { reference?.release?.(); return noop; }
+        const unsub = source.subscribe(() => {
+          try { onChange?.(); } catch { /* ignore */ }
+        });
+        return {
+          get: () => source.getSnapshot?.() ?? null,
+          dispose: () => {
+            try { unsub?.(); } catch { /* ignore */ }
+            try { reference?.release?.(); } catch { /* ignore */ }
+          },
+        };
+      } catch (err) {
+        console.error('[aura-panel] subscribeEvents 失败:', err?.message ?? err);
+        try { reference?.release?.(); } catch { /* ignore */ }
+        return noop;
+      }
+    };
+
     const makePanelBody = (tabKey) => (props) => (
       <AuraPanel
         key={`${props?.sessionId}:${tabKey}`}
         {...props}
         tabKey={tabKey}
         __auraSend={makeSend(props)}
+        __auraSubscribeEvents={subscribeEvents}
       />
     );
 
