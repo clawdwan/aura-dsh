@@ -12,29 +12,57 @@
  * 提供了"当时用户在问什么、agent 调了哪些工具"。这些都是会话里已有的数据。
  */
 
-/** 从会话节点里找"包含该卡片 id 的 aura_panel 调用"，并回溯其 turn 上下文。 */
+/**
+ * 从会话节点里找"包含该卡片 id 的 aura_panel 调用"，并回溯其 turn 号。
+ * turn 取法：命中节点自身的 location.turn 优先；缺失时向前找最近的带 turn 的节点
+ * （DSH 的 ConversationLocation 形如 {turn?, step?}，部分节点可能只有 session 归属）。
+ */
 function traceSource(nodes, cardId) {
   const list = Array.isArray(nodes) ? nodes : [];
-  for (const node of list) {
+  const turnOf = (node) => {
+    // DSH 的 ConversationLocation 形如：
+    //   { kind:'step'|'turn'|'session', turn: {turn:N,...} | undefined, step: {turn:N,step:N,...} | undefined }
+    // 注意 location.turn 是 **Turn 对象**而不是数字，需要取 .turn。
+    const loc = node?.location;
+    const raw = loc?.turn ?? loc?.step?.turn ?? node?.data?.turn ?? node?.data?.root?.turn;
+    if (Number.isFinite(raw)) return raw;                 // 已经是数字
+    if (raw && typeof raw === 'object' && Number.isFinite(raw.turn)) return raw.turn; // Turn 对象
+    return undefined;
+  };
+
+  let hit = -1;
+  for (let i = 0; i < list.length; i += 1) {
+    const node = list[i];
     if (!node) continue;
-    const raw = JSON.stringify(node.data ?? node);
+    let raw = '';
+    try { raw = JSON.stringify(node.data ?? node); } catch { raw = ''; }
     if (!raw.includes(cardId)) continue;
     if (node.kind !== 'tool-call' && node.kind !== 'tool-result') continue;
-
-    // turn 号：不同版本挂在 data / location / anchorSeq 上，逐一兜底
-    const turn = node.data?.turn ?? node.location?.turn ?? node.turn ?? node.anchorSeq;
     const name = node.data?.root?.name ?? node.data?.call?.name ?? node.data?.name;
     if (name && name !== 'aura_panel') continue;
-
-    return { turn, tool: name ?? 'aura_panel' };
+    hit = i;
+    break;
   }
-  return null;
+  if (hit < 0) return null;
+
+  // 命中节点自身优先，其次向前回溯最近的 turn
+  let turn = turnOf(list[hit]);
+  for (let i = hit; turn === undefined && i >= 0; i -= 1) turn = turnOf(list[i]);
+
+  return { turn, tool: 'aura_panel' };
 }
 
 /** 从 turn 的节点里取用户消息与工具调用摘要。 */
 function turnDigest(nodes, turn) {
   if (turn === undefined || turn === null) return null;
-  const list = (Array.isArray(nodes) ? nodes : []).filter((n) => (n.data?.turn ?? n.turn) === turn);
+  const nodeTurn = (n) => {
+    const loc = n?.location;
+    const raw = loc?.turn ?? loc?.step?.turn ?? n?.data?.turn;
+    if (Number.isFinite(raw)) return raw;
+    if (raw && typeof raw === 'object' && Number.isFinite(raw.turn)) return raw.turn;
+    return undefined;
+  };
+  const list = (Array.isArray(nodes) ? nodes : []).filter((n) => nodeTurn(n) === turn);
   const userMsg = list
     .filter((n) => n.kind === 'user')
     .map((n) => (n.data?.message?.content ?? []).filter((b) => b.type === 'text').map((b) => b.text).join(''))
@@ -65,7 +93,7 @@ function compactData(data, maxChars = 2400) {
  * 构建圈选提问的上下文 Markdown。
  * @param {{cards: Array, rect: object, question: string, nodes: Array, panelWidth?: number, panelHeight?: number}} p
  */
-export function buildSelectionContext({ cards, rect, question, nodes, panelWidth, panelHeight }) {
+export function buildSelectionContext({ cards, rect, question, fineHits, panelCards, nodes, panelWidth, panelHeight }) {
   const w = panelWidth || 1;
   const h = panelHeight || 1;
   const pct = (v, base) => `${Math.round((v / base) * 100)}%`;
@@ -80,6 +108,18 @@ export function buildSelectionContext({ cards, rect, question, nodes, panelWidth
       `y ${pct(rect.top, h)}~${pct(rect.top + rect.height, h)}`,
     );
   }
+  // 精确命中（圈选到的卡片内具体元素）
+  const hits = Array.isArray(fineHits) ? fineHits.filter((h) => h && h.text) : [];
+  if (hits.length) {
+    lines.push('');
+    lines.push('✨ 命中内容（用户关注的具体元素，精确锚点）：');
+    const MAX = 8;
+    for (const h of hits.slice(0, MAX)) {
+      lines.push(`- 「${h.cardTitle ?? h.cardId}」· ${h.text}`);
+    }
+    if (hits.length > MAX) lines.push(`- …另有 ${hits.length - MAX} 条`);
+  }
+
   lines.push(`❓ 问题：${question}`);
   lines.push('');
   lines.push('【卡片数据】');
@@ -88,6 +128,20 @@ export function buildSelectionContext({ cards, rect, question, nodes, panelWidth
     lines.push('```json');
     lines.push(compactData(c.data));
     lines.push('```');
+  }
+
+  // 面板其他卡片（跨卡片相关上下文）
+  const others = Array.isArray(panelCards)
+    ? panelCards.filter((c) => c && !cards.some((h) => h.id === c.id))
+    : [];
+  if (others.length) {
+    lines.push('');
+    lines.push('【面板其他卡片（相关上下文）】');
+    for (const c of others.slice(0, 6)) {
+      const summary = compactData(c.data, 220);
+      lines.push(`- 「${c.title ?? c.id}」(${c.type ?? '?'})：${summary}`);
+    }
+    if (others.length > 6) lines.push(`- …另有 ${others.length - 6} 张卡片`);
   }
 
   // 来源追溯（尽力而为）
@@ -103,7 +157,7 @@ export function buildSelectionContext({ cards, rect, question, nodes, panelWidth
     lines.push('【来源（自动追溯）】');
     for (const t of traces) {
       const where = Number.isFinite(t.turn) ? `turn #${t.turn}` : '本会话';
-      lines.push(`- 「${t.id}」：由${where}的 ${t.tool} 调用生成`);
+      lines.push(`- 「${t.id}」：由 ${where} 的 ${t.tool} 调用生成`);
       if (t.userMsg) lines.push(`  · 该轮用户说：「${t.userMsg}」`);
       if (t.tools?.length) lines.push(`  · 该轮工具：${t.tools.join(', ')}`);
     }
@@ -111,7 +165,7 @@ export function buildSelectionContext({ cards, rect, question, nodes, panelWidth
 
   lines.push('');
   lines.push('【回答要求】');
-  lines.push('- 请针对上面命中的卡片与圈选范围作答（明确引用是哪张卡/哪个区间）。');
+  lines.push('- 「命中内容」是用户关注的具体锚点；请结合【卡片数据】（完整卡片/表格）理解它在整体中的含义——该行与其他行的对比、该指标在整体中的位置、与【面板其他卡片】的关联。');
   lines.push('- 解释性结论直接回答；若需要更新数据/图表，可调用 aura_panel 更新右侧面板。');
   return lines.join('\n');
 }

@@ -30,7 +30,7 @@ if (typeof document !== 'undefined' && !document.querySelector(`style[${AURA_CSS
 
 export const name = 'aura-client';
 
-export const inject = ['slots', 'uiConversation', 'sidebarRightTabs', 'sidebarRight', 'remote', 'remote.session', 'conversation', 'sessions'];
+export const inject = ['slots', 'uiConversation', 'sidebarRightTabs', 'sidebarRight', 'remote', 'remote.session', 'conversation', 'sessions', 'shortcuts'];
 
 export function apply(ctx) {
   ctx.slots.inject('tool.call.toolview', () =>
@@ -43,47 +43,135 @@ export function apply(ctx) {
     ctx.slots.register({ name: 'conversation.chat.turnTail', id: 'dsh-aura' }, AuraTurnTail)
   );
 
-  // ==== SPIKE V1：右侧栏 tab ====
+  // ==== 右侧栏面板：多 tab（按卡片 tab 字段动态注册） ====
   try {
-    ctx.sidebarRightTabs.register({
-      id: 'dsh-aura-panel',
-      kind: 'aura-panel',
-      priority: 'extension',
-      multiple: false,
-      keepMounted: true,
-      title: () => 'Aura 面板',
+    // tabKey -> 注册清理函数；main 复用既有 kind 'aura-panel' 以兼容已保存布局
+    const registeredTabs = new Map();
+    const kindOf = (tabKey) => (tabKey === 'main' ? 'aura-panel' : `aura-panel:${tabKey}`);
+    const idOf = (tabKey) => (tabKey === 'main' ? 'dsh-aura-panel' : `dsh-aura-panel:${tabKey}`);
+
+    const makeSend = (props) => (t) => {
+      const sid = props?.sessionId;
+      if (!sid) return Promise.reject(new Error('aura: 面板缺少 sessionId'));
+      return ctx.remote.session.prompt({
+        requestId: `aura-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        sessionId: sid,
+        mode: 'queue',
+        content: [{ type: 'text', text: t }],
+      });
+    };
+
+    /**
+     * 订阅会话事件流（eventSource），供 AuraPanel 从 tool/result 读面板状态。
+     * useChat 的 nodes 不含被折叠的 tool/call 节点，读不到卡片；
+     * eventSource.entries 是完整事件流（含 tool/call 与 tool/result）。
+     */
+    const subscribeEvents = (sessionId, onChange) => {
+      const noop = { get: () => null, dispose: () => {} };
+      if (!sessionId) return noop;
+      let reference;
+      try {
+        reference = ctx.sessions?.retain?.(sessionId, { source: 'controllerOperation' });
+        const source = reference?.binding?.eventSource;
+        if (!source?.subscribe) { reference?.release?.(); return noop; }
+        const unsub = source.subscribe(() => {
+          try { onChange?.(); } catch { /* ignore */ }
+        });
+        return {
+          get: () => source.getSnapshot?.() ?? null,
+          dispose: () => {
+            try { unsub?.(); } catch { /* ignore */ }
+            try { reference?.release?.(); } catch { /* ignore */ }
+          },
+        };
+      } catch (err) {
+        console.error('[aura-panel] subscribeEvents 失败:', err?.message ?? err);
+        try { reference?.release?.(); } catch { /* ignore */ }
+        return noop;
+      }
+    };
+
+    const makePanelBody = (tabKey) => (props) => (
+      <AuraPanel
+        key={`${props?.sessionId}:${tabKey}`}
+        {...props}
+        tabKey={tabKey}
+        __auraSend={makeSend(props)}
+        __auraSubscribeEvents={subscribeEvents}
+      />
+    );
+
+    // 待注册队列：ctx.slots.inject 只能在 effect 上下文里生效，
+    // 所以 ensureTab 只登记，由下面的注册循环在 effect 内真正注册。
+    const pendingTabs = new Map(); // tabKey -> title | undefined
+
+    /** 登记一个 tab（幂等）；返回其 kind */
+    const ensureTab = (rawTabKey, rawTitle) => {
+      const tabKey = typeof rawTabKey === 'string' && rawTabKey.trim() ? rawTabKey.trim() : 'main';
+      if (!registeredTabs.has(tabKey) && !pendingTabs.has(tabKey)) {
+        pendingTabs.set(tabKey, typeof rawTitle === 'string' && rawTitle.trim() ? rawTitle.trim() : undefined);
+      }
+      return kindOf(tabKey);
+    };
+
+    /** 在 effect 内真正注册 tab 类型与 body（幂等） */
+    const registerTab = (tabKey) => {
+      if (registeredTabs.has(tabKey)) return;
+      const kind = kindOf(tabKey);
+      const id = idOf(tabKey);
+      const title = pendingTabs.get(tabKey);
+      try {
+        const disposeTab = ctx.sidebarRightTabs.register({
+          id,
+          kind,
+          priority: 'extension',
+          multiple: false,
+          keepMounted: true,
+          title: () => title ?? (tabKey === 'main' ? 'Aura 面板' : tabKey),
+        });
+        const disposeInject = ctx.slots.inject('sidebar.right.pane.tab', () =>
+          ctx.slots.register({ name: 'sidebar.right.pane.tab', key: id }, makePanelBody(tabKey))
+        );
+        registeredTabs.set(tabKey, () => {
+          try { disposeInject?.(); } catch { /* ignore */ }
+          try { disposeTab?.(); } catch { /* ignore */ }
+        });
+      } catch (err) {
+        console.error('[aura-panel] tab 注册失败:', tabKey, err?.message ?? err);
+      }
+    };
+
+    // 默认 main tab 始终存在（登记，稍后由 effect 注册）
+    ensureTab('main');
+
+    // tab 注册循环：effect 上下文内注册 pendingTabs（每 300ms 兜底 + 立即跑一次）
+    ctx.effect(() => {
+      const flush = () => {
+        for (const key of [...pendingTabs.keys()]) {
+          registerTab(key);
+          pendingTabs.delete(key);
+        }
+      };
+      flush();
+      const timer = setInterval(flush, 300);
+      return () => clearInterval(timer);
     });
-    ctx.slots.inject('sidebar.right.pane.tab', () => {
-      const AuraPanelBody = (props) => (
-        <AuraPanel
-          key={props?.sessionId}
-          {...props}
-          __auraSend={(t) => {
-            const sid = props?.sessionId;
-            if (!sid) return Promise.reject(new Error('aura: 面板缺少 sessionId'));
-            // 用全局 RPC（不依赖 session scope）：session/prompt
-            // 直接传 SessionPromptRequest 字段（client 侧 remote 由框架包信封；
-            // 外壳 {request:{...}} 会被判 gateway/input-invalid）
-            return ctx.remote.session.prompt({
-              requestId: `aura-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-              sessionId: sid,
-              mode: 'queue',
-              content: [{ type: 'text', text: t }],
-            });
-          }}
-        />
-      );
-      return ctx.slots.register({ name: 'sidebar.right.pane.tab', key: 'dsh-aura-panel' }, AuraPanelBody);
-    });
-    // 面板打开：事件驱动（panelSignal）。
-    //   append  → 实时推送（tool/call + aura_panel）→ 打开目标 tab（用户关掉后，下一条新推送仍会打开）
-    //   replace → 进入会话首帧（历史）→ 历史里有推送才恢复一次，不会因回放反复弹
-    // 目标 tab 由 resolveTargets 决定（默认 ['aura-panel']），未来多 tab 只需换路由函数。
+
+    // 事件驱动打开：按推送卡片的 tab 字段路由到对应 tab（没有则先注册）
     ctx.effect(() => {
       const signal = createPanelSignal({
         sessions: ctx.sessions,
         sidebarRight: ctx.sidebarRight,
-        config: { tabKind: 'aura-panel', restoreOnHistory: true },
+        config: { tabKind: kindOf('main'), restoreOnHistory: true },
+        resolveTargets: (event) => {
+          let card = null;
+          try {
+            card = JSON.parse(event?.data?.arguments ?? '{}')?.card ?? null;
+          } catch { card = null; }
+          const tabKey = card?.tab ?? 'main';
+          const kind = ensureTab(tabKey, card?.tabTitle);
+          return [kind];
+        },
       });
       const stop = signal.start();
       try {
@@ -92,8 +180,55 @@ export function apply(ctx) {
       return () => {
         try { stop?.(); } catch { /* ignore */ }
         try { delete window.__auraProbe; } catch { /* ignore */ }
+        for (const dispose of registeredTabs.values()) {
+          try { dispose?.(); } catch { /* ignore */ }
+        }
+        registeredTabs.clear();
       };
     });
+
+    // 快捷键：⌥S（Mac）/ Alt+S → 进入圈选提问
+    // 由 DSH 快捷键系统注册，用户可在「设置 → 快捷键」里改键
+    try {
+      const disposeShortcut = ctx.shortcuts.register({
+        id: 'aura-selection',
+        label: () => 'Aura 圈选提问',
+        aliases: ['aura-select', 'selection-ask'],
+        // ShortcutProfile = `${runtime}:${platform}`，platform 取 macos|windows|linux。
+        // 注意：Web 端只允许「3+ 修饰键」或「primary(⌘/Ctrl)+alt|shift」的组合——
+        // 单 Alt+字母会被浏览器/输入法占用，DSH 会拒绝（Unsupported Web shortcut）。
+        // 因此用 ⌘⌥S（Mac）/ Ctrl+Alt+S（Win/Linux），用 primary 自动跨平台。
+        // 只声明 macos / windows 的默认键：
+        // Web 端 isWebBindingAllowed 对 linux 走固定白名单（自定义组合一律拒绝），
+        // 声明 linux 默认会导致整个注册抛错；linux 用户可在设置里自行绑定。
+        defaults: {
+          'web:macos': { code: 'KeyS', modifiers: ['primary', 'alt'] },
+          'desktop:macos': { code: 'KeyS', modifiers: ['primary', 'alt'] },
+          'web:windows': { code: 'KeyS', modifiers: ['primary', 'alt'] },
+          'desktop:windows': { code: 'KeyS', modifiers: ['primary', 'alt'] },
+        },
+        // 与 DSH 内置命令一致：page + editable（焦点在输入框里也能触发）
+        regions: ['page', 'editable'],
+        modals: [],
+        resolve: () => ({
+          status: 'handled',
+          run() {
+            console.log('[aura-shortcut] ⌘⌥S 触发 → 派发 aura:enter-select');
+            try {
+              window.dispatchEvent(new CustomEvent('aura:enter-select'));
+            } catch (err) {
+              console.error('[aura-shortcut] 派发失败:', err?.message ?? err);
+            }
+          },
+        }),
+      });
+      ctx.effect(() => () => {
+        try { disposeShortcut?.(); } catch { /* ignore */ }
+      });
+      console.log('[aura-shortcut] 已注册 ⌥S / Alt+S（可在 DSH 设置里改）');
+    } catch (err) {
+      console.error('[aura-shortcut] 注册失败:', err?.message ?? err);
+    }
   } catch (e) {
     console.error('[aura-spike] rightbar 注册失败:', e?.message ?? e);
   }

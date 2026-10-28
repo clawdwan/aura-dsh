@@ -188,6 +188,8 @@ const auraCss = `/* ============================================================
 .aura-turn-tail .aura-fallback { margin-bottom: 2px; }
 /* ---- 侧边面板（rightbar tab） ---- */
 .aura-panel {
+  /* 圈选层（.aura-select-layer，position:absolute; inset:0）依赖此定位祖先 */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -247,11 +249,13 @@ const auraCss = `/* ============================================================
 }
 .aura-panel-empty,
 .aura-panel-empty-state {
+  position: relative;
   font-size: 12px;
   opacity: 0.55;
   padding: 4px 0;
 }
-.aura-panel-empty-state { padding: 16px 12px; line-height: 1.6; }
+.aura-panel-empty-state {
+  position: relative; padding: 16px 12px; line-height: 1.6; }
 /* ---- graph（React Flow 关系图） ---- */
 .aura-graph { margin: 0; display: flex; flex-direction: column; gap: 6px; }
 .aura-graph-title { font-size: 12px; font-weight: 600; opacity: 0.75; }
@@ -1221,8 +1225,14 @@ svg.react-flow__connectionline {
   margin-bottom: 2px;
 }
 .aura-panel-tool {
+  /* 固定高度：避免「🔍 圈选提问」/「✕ 退出圈选」因 emoji 字形行高不同导致高度跳动 */
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
-  padding: 4px 10px;
+  line-height: 1;
+  padding: 0 10px;
   border-radius: 6px;
   cursor: pointer;
   border: 1px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.2));
@@ -1235,7 +1245,10 @@ svg.react-flow__connectionline {
   border-color: var(--dsw-static-deepseek-500, #4176e6);
   color: var(--dsw-static-deepseek-500, #4176e6);
 }
-.aura-panel-tool-hint { font-size: 11px; opacity: 0.6; }
+.aura-panel-tool-hint {
+  line-height: 1;
+  display: inline-flex;
+  align-items: center; font-size: 11px; opacity: 0.6; }
 
 /* ---- 圈选层 ---- */
 .aura-select-layer {
@@ -1337,6 +1350,7 @@ svg.react-flow__connectionline {
 }
 /* ---- 面板加载中（会话历史异步加载的兜底） ---- */
 .aura-panel-loading-state {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1355,6 +1369,65 @@ svg.react-flow__connectionline {
   font-size: 11px;
   opacity: 0.75;
   line-height: 1.6;
+}
+/* ---- 径向菜单（圈选后的饼状提问） ---- */
+.aura-radial {
+  /* fixed：相对视口定位，面板滚动时菜单不跟着偏移；坐标由组件 clamp 到视口内 */
+  position: fixed;
+  z-index: 45;
+  animation: aura-radial-in 0.15s ease-out both;
+  touch-action: none;
+}
+@keyframes aura-radial-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+.aura-radial svg { display: block; overflow: visible; }
+/* 极简：无任何描边，只有阴影托起；hover 才填色 */
+.aura-radial-base {
+  fill: var(--dsw-alias-bg-base, #ffffff);
+  stroke: none;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.14));
+}
+.aura-radial-sector {
+  fill: transparent;
+  stroke: none;
+  transition: fill 0.12s ease;
+  cursor: pointer;
+}
+.aura-radial-sector.is-active {
+  fill: var(--dsw-static-deepseek-100, #e4edfd);
+  stroke: none;
+}
+.aura-radial-label {
+  font-size: 11.5px;
+  fill: var(--dsw-alias-label-primary, #1f2329);
+  pointer-events: none;
+  transition: fill 0.12s ease, font-weight 0.12s ease;
+}
+.aura-radial-label.is-active {
+  fill: var(--aura-accent-strong, #4868b2);
+  font-weight: 700;
+}
+.aura-radial-center {
+  fill: var(--dsw-alias-bg-l2, rgba(128, 128, 128, 0.1));
+  stroke: none;
+  transition: fill 0.12s ease;
+  cursor: pointer;
+}
+.aura-radial-center.is-active {
+  fill: var(--dsw-static-deepseek-100, #e4edfd);
+  stroke: none;
+}
+.aura-radial-center-label {
+  font-size: 10.5px;
+  fill: var(--dsw-alias-label-secondary, #646a73);
+  pointer-events: none;
+  transition: fill 0.12s ease;
+}
+.aura-radial-center-label.is-active {
+  fill: var(--aura-accent-strong, #4868b2);
+  font-weight: 700;
 }
 `;
 export default auraCss;

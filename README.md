@@ -61,7 +61,7 @@
 dsh plugin --profile web add /path/to/aura-dsh
 
 # 从 GitHub（钉版本更稳）
-dsh plugin --profile web add github:clawdwan/aura-dsh#v0.5.0
+dsh plugin --profile web add github:clawdwan/aura-dsh#v0.7.0
 ```
 
 重启 dsh web 后生效。安装前可运行自检确认与宿主兼容：
@@ -115,8 +115,16 @@ node check-tool.mjs   # dsh-tools 解析源/版本 + schema 编译 + execute 冒
 - **自动打开**：事件驱动——agent 推送卡片时自动打开面板；历史回放不会反复弹
 - **出场动画**（尊重系统「减少动态效果」）：流程图节点逐个落下 + 连线生长、折线笔刷画出、
   列表/表格子项错峰；数字滚动仅用于金额类（`kind: "amount"`），年份/计数/比率/指数保持静止
-- **圈选提问**：面板顶部「🔍 圈选提问」→ 拖拽圈选卡片 → 就地输入问题；插件自动拼接上下文
-  （命中卡片、圈选范围、完整卡片数据、来源追溯）发到会话，回答进入对话流。`Esc` / 「取消」退出
+- **多 tab**：卡片可带 `tab`（频道键，缺省 `main`）与 `tabTitle`；同一会话可把
+  行情/调研/任务分到不同 tab，各自独立展示与过滤
+- **持久化**：面板状态落盘 `~/.dsh/aura-panels/<sessionId>.json`，刷新/重启后卡片仍在
+- **生命周期标记**：`persist: true` 常驻（跨刷新/重启保留）、`dismissed: true` 隐藏；
+  普通卡最多 20 张，超出淘汰最早的（常驻卡不占名额）
+- **圈选提问**：面板顶部「🔍 圈选提问」，或直接按 **`⌘⌥S`**（macOS）/ `Ctrl+Alt+S`
+  （Windows，可在 DSH「设置 → 快捷键」自定义）进入圈选 → 拖拽圈选 → 松开弹出
+  **径向菜单**（解释这段 / 为什么这样 / 有什么问题 / 怎么改进，鼠标方向选中，中心圆自定义）；
+  插件自动拼接上下文（命中卡片、圈选范围、**精确命中内容**、完整卡片数据、
+  **面板其他卡片**、`turn` 来源追溯）发到会话。`Esc` 退出
 
 ### HTML 卡（`type: "html"`）
 
@@ -182,6 +190,8 @@ npm run watch        # 开发热重建
 | 0.3.0 | `graph` 组件 + Play 风视觉 + 骨架屏 + 出场动画（移除 mermaid，体积 16.2MB→1.4MB） |
 | 0.4.0 | `html` 卡片 + 圈选提问 + 洞察卡视觉重做 + 数字语义（`kind`） |
 | 0.5.0 | HTML 设计系统（Token + 预设结构类）+ 事件驱动面板打开 + 面板稳定性修复 |
+| 0.6.0 | 面板多 tab + 圈选快捷键（⌘⌥S）+ 径向菜单 + 来源 turn 追溯修复 |
+| 0.7.0 | 圈选精确命中 + 上下文精确与完整 + 面板持久化 + persist/dismissed 标记 |
 
 详细变更见 [CHANGELOG.md](./CHANGELOG.md)。
 

@@ -53,6 +53,55 @@ function extractPanelResult(node) {
   return null;
 }
 
+
+/**
+ * 从事件流窗口提取面板卡片：取**最后一条** aura_panel 的 tool/result 里的 cards。
+ * 事件流（eventSource.entries）含被折叠的 tool/call 与 tool/result，
+ * 而 useChat 的渲染节点不含，因此面板状态以事件流为准。
+ */
+function extractCardsFromEvents(win) {
+  const entries = Array.isArray(win?.entries) ? win.entries : [];
+  let lastCards = null;
+  for (const entry of entries) {
+    const ev = entry?.event;
+    if (!ev || ev.type !== 'tool/result') continue;
+    const blocks = Array.isArray(ev.data?.message?.content) ? ev.data.message.content : [];
+    const text = blocks.filter((b) => b?.type === 'text').map((b) => b.text).join('');
+    if (!text || !text.includes('cards')) continue;
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed?.cards)) lastCards = parsed.cards;
+    } catch { /* 非 JSON 结果忽略 */ }
+  }
+  return lastCards;
+}
+
+/**
+ * 从 tool/call 节点解析 aura_panel 调用参数（action + card）。
+ * 面板状态改为「重放历史调用」而不是「取最后一次结果」：
+ * host 的 panel-store 是纯内存，主实例重启后清空，最后一次结果只含新卡；
+ * 而调用参数在会话历史里是完整的（upsert/remove/clear 可直接重放）。
+ */
+function extractPanelAction(node) {
+  const name = node?.data?.root?.name ?? node?.data?.name ?? node?.data?.call?.name;
+  if (name !== 'aura_panel') return null;
+  // 字段名在不同 DSH 版本/形态下可能是 arguments / input / args；值可能是 JSON 字符串或对象
+  const raw = node?.data?.root?.arguments
+    ?? node?.data?.root?.input
+    ?? node?.data?.root?.args
+    ?? node?.data?.arguments
+    ?? node?.data?.call?.arguments;
+  if (raw === undefined || raw === null) return null;
+  let args = raw;
+  if (typeof raw === 'string') {
+    try { args = JSON.parse(raw); } catch { return null; }
+  }
+  if (!args || typeof args !== 'object') return null;
+  const action = typeof args?.action === 'string' ? args.action : null;
+  if (!action) return null;
+  return { action, card: args?.card ?? null };
+}
+
 /** 从 ContentBlock 数组里解析出 JSON 负载。 */
 function parseBlocks(blocks) {
   for (const block of blocks) {
@@ -118,7 +167,7 @@ function isPendingCard(card) {
 }
 
 export default function AuraPanel(props) {
-  const { useChat, __auraSend } = props;
+  const { useChat, __auraSend, __auraSubscribeEvents, tabKey = 'main' } = props;
   const [sendingId, setSendingId] = React.useState(null);
   const [lastResult, setLastResult] = React.useState(null);
   const [selecting, setSelecting] = React.useState(false);
@@ -127,6 +176,24 @@ export default function AuraPanel(props) {
     // 会话历史是异步加载的：短暂窗口内没卡片先显示"加载中"，避免误报"暂无卡片"
     const timer = setTimeout(() => setHydrated(true), 900);
     return () => clearTimeout(timer);
+  }, []);
+
+  // 快捷键（⌘⌥S / Ctrl+Alt+S）进入圈选：多 tab 同时挂载时只让可见的那个响应
+  React.useEffect(() => {
+    console.log('[aura-panel] mounted, tabKey =', tabKey);
+    const onEnter = () => {
+      const el = panelRef.current;
+      if (!el) {
+        console.warn('[aura-panel] enter-select: 面板未挂载');
+        return;
+      }
+      const rect = el.getBoundingClientRect();
+      console.log('[aura-panel] enter-select 收到, 尺寸=', Math.round(rect.width), 'x', Math.round(rect.height));
+      if (rect.width <= 1 || rect.height <= 1) return;
+      setSelecting(true);
+    };
+    window.addEventListener('aura:enter-select', onEnter);
+    return () => window.removeEventListener('aura:enter-select', onEnter);
   }, []);
   const panelRef = React.useRef(null);
   const cardsRef = React.useRef([]);
@@ -137,7 +204,7 @@ export default function AuraPanel(props) {
   nodesRef.current = liveNodes;
 
   /** 圈选提问：拼上下文 → 发到当前会话（消息在对话流可见） */
-  const handleInquiry = React.useCallback(async ({ cards: hitCards, rect, question }) => {
+  const handleInquiry = React.useCallback(async ({ cards: hitCards, rect, question, fineHits }) => {
     if (typeof __auraSend !== 'function') throw new Error('未注入发送函数');
     // SelectionLayer 只拿得到 DOM 上的 id/title，这里用 id 从完整卡片列表补全 type/data
     const full = hitCards.map((h) => cardsRef.current.find((c) => c.id === h.id) ?? h);
@@ -145,6 +212,8 @@ export default function AuraPanel(props) {
       cards: full,
       rect,
       question,
+      fineHits: fineHits ?? [],
+      panelCards: cardsRef.current ?? [],
       nodes: nodesRef.current,
       panelWidth: panelRef.current?.offsetWidth,
       panelHeight: panelRef.current?.offsetHeight,
@@ -174,24 +243,50 @@ export default function AuraPanel(props) {
 
   // 选择器返回"最后一次 aura_panel 调用的卡片列表"；用 eq 比较避免引用抖动导致重渲染。
   const EMPTY = useMemo(() => [], []);
-  const EMPTY_DIAG = useMemo(() => ({ cards: EMPTY, nodeCount: 0, panelNodes: 0 }), [EMPTY]);
+  const EMPTY_DIAG = useMemo(() => ({ cards: EMPTY, nodeCount: 0, panelNodes: 0, replayed: 0, firstKeys: null }), [EMPTY]);
   const state = useChat
     ? useChat(
         (snapshot) => {
           let nodes = [];
           try { nodes = snapshot?.nodes?.values?.() ?? []; } catch { nodes = []; }
-          let found = null;
           let panelNodes = 0;
+          const byId = new Map();
+          let lastResultCards = null;
           for (const node of nodes) {
             try {
               const name = node?.data?.root?.name ?? node?.data?.name ?? node?.data?.call?.name;
               if (name === 'aura_panel') panelNodes += 1;
+              // 优先：重放调用参数（不依赖 host 内存态，重启后也能恢复）
+              const act = extractPanelAction(node);
+              if (act) {
+                if (act.action === 'clear') {
+                  byId.clear();
+                } else if (act.action === 'remove') {
+                  const id = act.card?.id;
+                  if (id) byId.delete(id);
+                } else if (act.action === 'upsert' && act.card?.id) {
+                  byId.set(act.card.id, { ...act.card, tab: act.card.tab ?? 'main' });
+                }
+                continue;
+              }
+              // 兜底：只有 result 的历史形态，用最后一次结果的 cards
               const r = extractPanelResult(node);
-              if (r) found = r;
+              if (r) lastResultCards = r.cards;
             } catch { /* 单个节点解析失败不影响其它 */ }
           }
-          const list = Array.isArray(found?.cards) ? found.cards : EMPTY;
-          return { cards: list, nodeCount: nodes.length, panelNodes };
+          let list = [...byId.values()];
+          if (list.length === 0 && Array.isArray(lastResultCards)) list = lastResultCards;
+          // 诊断：重放/兜底计数 + 第一个 aura_panel 节点的 root 字段名
+          let firstKeys = null;
+          for (const node of nodes) {
+            const name = node?.data?.root?.name ?? node?.data?.name ?? node?.data?.call?.name;
+            if (name === 'aura_panel') {
+              const holder = node?.data?.root ?? node?.data ?? {};
+              try { firstKeys = Object.keys(holder).join(','); } catch { firstKeys = 'err'; }
+              break;
+            }
+          }
+          return { cards: list, nodeCount: nodes.length, panelNodes, replayed: byId.size, firstKeys };
         },
         (a, b) =>
           a === b
@@ -202,17 +297,60 @@ export default function AuraPanel(props) {
     : EMPTY_DIAG;
   // 防御：useChat 在会话未就绪时可能返回 undefined，这里兜底成空状态，避免渲染崩溃
   const safeState = state && typeof state === 'object' ? state : EMPTY_DIAG;
-  const cards = Array.isArray(safeState.cards) ? safeState.cards : EMPTY;
+  const allCards = Array.isArray(safeState.cards) ? safeState.cards : EMPTY;
+  // 事件流兜底：useChat 的 nodes 不含折叠的 tool 节点时，改用 eventSource 的最新 tool/result
+  const [eventCards, setEventCards] = React.useState(null);
+  const [eventInfo, setEventInfo] = React.useState(null);
+  React.useEffect(() => {
+    if (typeof __auraSubscribeEvents !== 'function') return undefined;
+    const sid = props?.sessionId;
+    if (!sid) return undefined;
+    let sub = null;
+    let alive = true;
+    const refresh = () => {
+      if (!alive) return;
+      try {
+        const win = sub?.get?.() ?? null;
+        const found = extractCardsFromEvents(win);
+        setEventInfo({
+          entries: Array.isArray(win?.entries) ? win.entries.length : 0,
+          cards: Array.isArray(found) ? found.length : 0,
+        });
+        if (Array.isArray(found) && found.length > 0) setEventCards(found);
+      } catch { /* ignore */ }
+    };
+    try {
+      sub = __auraSubscribeEvents(sid, refresh);
+      refresh();
+    } catch { /* ignore */ }
+    return () => {
+      alive = false;
+      try { sub?.dispose?.(); } catch { /* ignore */ }
+    };
+  }, [__auraSubscribeEvents, props?.sessionId]);
+
+  // 数据源优先级：事件流（含折叠的 tool/result）> useChat 渲染节点
+  const sourceCards = useMemo(() => {
+    if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
+    return allCards;
+  }, [eventCards, allCards]);
+  // 多 tab：本面板只展示归属当前 tabKey 的卡片（缺省 main）；dismissed 卡不渲染
+  const cards = useMemo(
+    () => sourceCards.filter((c) => !c?.dismissed && (c?.tab ?? 'main') === tabKey),
+    [sourceCards, tabKey],
+  );
+  cardsRef.current = cards;
+
   const diag = {
     nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
     panelNodes: Number.isFinite(safeState.panelNodes) ? safeState.panelNodes : 0,
+    replayed: Number.isFinite(safeState.replayed) ? safeState.replayed : 0,
+    firstKeys: safeState.firstKeys ?? null,
   };
-  cardsRef.current = cards;
-
   if (cards.length === 0) {
     if (!hydrated) {
       return (
-        <div className="aura-panel-loading-state">
+        <div className="aura-panel-loading-state" ref={panelRef}>
           <div className="aura-skeleton-line" style={{ width: '72%' }} />
           <div className="aura-skeleton-line" style={{ width: '88%' }} />
           <div className="aura-skeleton-line" style={{ width: '60%' }} />
@@ -221,11 +359,10 @@ export default function AuraPanel(props) {
       );
     }
     return (
-      <div className="aura-panel-empty-state">
+      <div className="aura-panel-empty-state" ref={panelRef}>
         面板暂无卡片。agent 调用 <code>aura_panel</code> 推送后会显示在这里。
         <div className="aura-panel-diag">
-          [v0.4.0 diag] 会话节点 {diag.nodeCount} 个 · aura_panel 节点 {diag.panelNodes} 个
-          {diag.panelNodes > 0 ? '（有节点但没解析出卡片）' : '（未收到 aura_panel 事件）'}
+          会话节点 {diag.nodeCount} 个 · aura_panel 节点 {diag.panelNodes} 个
         </div>
       </div>
     );
