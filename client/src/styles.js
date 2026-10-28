@@ -1425,8 +1425,16 @@ svg.react-flow__connectionline {
   cursor: pointer;
 }
 .aura-radial-center.is-active {
-  fill: var(--dsw-static-deepseek-500, #4176e6);
+  fill: var(--dsw-static-deepseek-100, #e4edfd);
   stroke: none;
+}
+.aura-radial-center-icon {
+  color: var(--aura-accent-strong, #4868b2);
+  pointer-events: none;
+  transition: color 0.08s ease;
+}
+.aura-radial-center-icon.is-active {
+  color: var(--aura-accent-strong, #4868b2);
 }
 .aura-radial-center-label {
   font-size: 13px;
@@ -1435,7 +1443,7 @@ svg.react-flow__connectionline {
   transition: fill 0.12s ease;
 }
 .aura-radial-center-label.is-active {
-  fill: #ffffff;
+  fill: var(--aura-accent-strong, #4868b2);
 }
 /* ---- 全局圈选层（快捷键 ⌘⌥S / 任意区域） ---- */
 .aura-global-select {

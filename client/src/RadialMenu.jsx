@@ -17,7 +17,7 @@ export const RADIAL_DEFAULTS = {
   /** 外环半径（px） */
   outerRadius: 120,
   /** 中心圆半径（px） */
-  centerRadius: 40,
+  centerRadius: 34,
   /** 判定为"有效方向"的最小半径（px），小于它视为在中心附近 */
   minRadius: 28,
   /** 高亮停留多久后才允许选中（ms） */
@@ -163,7 +163,7 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
           return (
             <g key={opt.label}>
               <path
-                d={sectorPath(cx, cy, centerRadius + 4, outerRadius, a + 1, b - 1)}
+                d={sectorPath(cx, cy, centerRadius + 4, outerRadius, a, b)}
                 className={`aura-radial-sector${active(i) ? ' is-active' : ''}`}
               />
               {opt.icon ? (
@@ -193,9 +193,17 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
           r={centerRadius}
           className={`aura-radial-center${hover === 'center' ? ' is-active' : ''}`}
         />
+        <g
+          className={`aura-radial-center-icon${hover === 'center' ? ' is-active' : ''}`}
+          transform={`translate(${cx}, ${cy - 10})`}
+        >
+          <g transform="translate(-6, -6)" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <path d="M2 2l8 8M10 2l-8 8" />
+          </g>
+        </g>
         <text
           x={cx}
-          y={cy}
+          y={cy + 10}
           className={`aura-radial-center-label${hover === 'center' ? ' is-active' : ''}`}
           textAnchor="middle"
           dominantBaseline="middle"

@@ -1471,8 +1471,16 @@ svg.react-flow__connectionline {
   cursor: pointer;
 }
 .aura-radial-center.is-active {
-  fill: var(--dsw-static-deepseek-500, #4176e6);
+  fill: var(--dsw-static-deepseek-100, #e4edfd);
   stroke: none;
+}
+.aura-radial-center-icon {
+  color: var(--aura-accent-strong, #4868b2);
+  pointer-events: none;
+  transition: color 0.08s ease;
+}
+.aura-radial-center-icon.is-active {
+  color: var(--aura-accent-strong, #4868b2);
 }
 .aura-radial-center-label {
   font-size: 13px;
@@ -1481,7 +1489,7 @@ svg.react-flow__connectionline {
   transition: fill 0.12s ease;
 }
 .aura-radial-center-label.is-active {
-  fill: #ffffff;
+  fill: var(--aura-accent-strong, #4868b2);
 }
 /* ---- 全局圈选层（快捷键 ⌘⌥S / 任意区域） ---- */
 .aura-global-select {
@@ -182340,7 +182348,7 @@ const RADIAL_DEFAULTS = {
 	/** 外环半径（px） */
 	outerRadius: 120,
 	/** 中心圆半径（px） */
-	centerRadius: 40,
+	centerRadius: 34,
 	/** 判定为"有效方向"的最小半径（px），小于它视为在中心附近 */
 	minRadius: 28,
 	/** 高亮停留多久后才允许选中（ms） */
@@ -182501,7 +182509,7 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 					const labelPos = polar(cx, cy, (outerRadius + centerRadius) / 2 + 6, mid);
 					return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", { children: [
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
-							d: sectorPath(cx, cy, centerRadius + 4, outerRadius, a + 1, b - 1),
+							d: sectorPath(cx, cy, centerRadius + 4, outerRadius, a, b),
 							className: `aura-radial-sector${active(i) ? " is-active" : ""}`
 						}),
 						opt.icon ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
@@ -182526,9 +182534,21 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 					r: centerRadius,
 					className: `aura-radial-center${hover === "center" ? " is-active" : ""}`
 				}),
+				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
+					className: `aura-radial-center-icon${hover === "center" ? " is-active" : ""}`,
+					transform: `translate(${cx}, ${cy - 10})`,
+					children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
+						transform: "translate(-6, -6)",
+						fill: "none",
+						stroke: "currentColor",
+						strokeWidth: "1.6",
+						strokeLinecap: "round",
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M2 2l8 8M10 2l-8 8" })
+					})
+				}),
 				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("text", {
 					x: cx,
-					y: cy,
+					y: cy + 10,
 					className: `aura-radial-center-label${hover === "center" ? " is-active" : ""}`,
 					textAnchor: "middle",
 					dominantBaseline: "middle",
