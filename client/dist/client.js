@@ -241,6 +241,8 @@ const auraCss = `/* ============================================================
   gap: 14px;
   padding: 14px 12px 18px;
   overflow-y: auto;
+  /* 始终为滚动条预留空间：折叠/展开卡片时内容宽度不跳变 */
+  scrollbar-gutter: stable;
   height: 100%;
   box-sizing: border-box;
 }
@@ -1547,8 +1549,8 @@ svg.react-flow__connectionline {
 }
 .aura-panel-card:hover .aura-panel-card-actions { opacity: 1; }
 .aura-panel-card-action {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1556,7 +1558,7 @@ svg.react-flow__connectionline {
   border-radius: 999px;
   background: transparent;
   color: var(--dsw-alias-label-tertiary, #999);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1;
   cursor: pointer;
   padding: 0;
