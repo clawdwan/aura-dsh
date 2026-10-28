@@ -61,7 +61,7 @@
 dsh plugin --profile web add /path/to/aura-dsh
 
 # 从 GitHub（钉版本更稳）
-dsh plugin --profile web add github:clawdwan/aura-dsh#v0.7.0
+dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.0
 ```
 
 重启 dsh web 后生效。安装前可运行自检确认与宿主兼容：
@@ -120,11 +120,13 @@ node check-tool.mjs   # dsh-tools 解析源/版本 + schema 编译 + execute 冒
 - **持久化**：面板状态落盘 `~/.dsh/aura-panels/<sessionId>.json`，刷新/重启后卡片仍在
 - **生命周期标记**：`persist: true` 常驻（跨刷新/重启保留）、`dismissed: true` 隐藏；
   普通卡最多 20 张，超出淘汰最早的（常驻卡不占名额）
-- **圈选提问**：面板顶部「🔍 圈选提问」，或直接按 **`⌘⌥S`**（macOS）/ `Ctrl+Alt+S`
-  （Windows，可在 DSH「设置 → 快捷键」自定义）进入圈选 → 拖拽圈选 → 松开弹出
-  **径向菜单**（解释这段 / 为什么这样 / 有什么问题 / 怎么改进，鼠标方向选中，中心圆自定义）；
-  插件自动拼接上下文（命中卡片、圈选范围、**精确命中内容**、完整卡片数据、
-  **面板其他卡片**、`turn` 来源追溯）发到会话。`Esc` 退出
+- **圈选提问**：
+  · **面板内**：顶部「🔍 圈选提问」→ 圈选面板卡片（精确到行/单元格，含卡片数据）
+  · **全局**：按 **`⌘⌥S`**（macOS）/ `Ctrl+Alt+S`（Windows，可在 DSH「设置 → 快捷键」自定义）
+    → 覆盖全屏的圈选层，**可圈选页面任意区域**（对话流 / 面板 / 其他侧边栏插件）
+  松开后弹出**径向菜单**（解释这段 / 为什么这样 / 有什么问题 / 怎么改进，鼠标方向选中，
+  中心圆自定义）；上下文只给「精确锚点」（行级文本 + turn 号 / 卡片 id），不重复完整消息。
+  `Esc` 退出
 
 ### HTML 卡（`type: "html"`）
 
@@ -192,6 +194,7 @@ npm run watch        # 开发热重建
 | 0.5.0 | HTML 设计系统（Token + 预设结构类）+ 事件驱动面板打开 + 面板稳定性修复 |
 | 0.6.0 | 面板多 tab + 圈选快捷键（⌘⌥S）+ 径向菜单 + 来源 turn 追溯修复 |
 | 0.7.0 | 圈选精确命中 + 上下文精确与完整 + 面板持久化 + persist/dismissed 标记 |
+| 0.8.0 | 全局圈选（⌘⌥S 任意区域）+ 适配器协议 + 行级精确（表格行/代码块/段落）+ 简洁上下文 |
 
 详细变更见 [CHANGELOG.md](./CHANGELOG.md)。
 

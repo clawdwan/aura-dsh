@@ -17,6 +17,8 @@ import AuraTurnTail from './AuraTurnTail';
 import { auraDefinition } from './auraDefinition';
 import AuraPanel from './AuraPanel';
 import { createPanelSignal } from './panelSignal';
+import GlobalSelector from './GlobalSelector';
+import { createRoot } from 'react-dom/client';
 
 // 运行时注入 <style>（幂等：已注入则跳过；页面刷新后 bundle 重载会重新注入）
 const AURA_CSS_TAG = 'data-plugin-css="dsh-aura"';
@@ -225,7 +227,34 @@ export function apply(ctx) {
       ctx.effect(() => () => {
         try { disposeShortcut?.(); } catch { /* ignore */ }
       });
-      console.log('[aura-shortcut] 已注册 ⌥S / Alt+S（可在 DSH 设置里改）');
+      console.log('[aura-shortcut] 已注册 ⌘⌥S（可在 DSH 设置里改）');
+
+      // 全局圈选层：挂到 body，快捷键触发（可圈选对话流/面板/其他插件区域）
+      ctx.effect(() => {
+        const host = document.createElement('div');
+        host.setAttribute('data-aura-global-select', '');
+        document.body.appendChild(host);
+        const root = createRoot(host);
+        root.render(
+          <GlobalSelector
+            send={(text) => {
+              const sid = ctx.sidebarRight?.mounted?.getSnapshot?.();
+              if (!sid) return Promise.reject(new Error('当前没有会话'));
+              return ctx.remote.session.prompt({
+                requestId: `aura-global-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                sessionId: sid,
+                mode: 'queue',
+                content: [{ type: 'text', text }],
+              });
+            }}
+            getSessionId={() => ctx.sidebarRight?.mounted?.getSnapshot?.()}
+          />
+        );
+        return () => {
+          try { root.unmount(); } catch { /* ignore */ }
+          try { host.remove(); } catch { /* ignore */ }
+        };
+      });
     } catch (err) {
       console.error('[aura-shortcut] 注册失败:', err?.message ?? err);
     }
