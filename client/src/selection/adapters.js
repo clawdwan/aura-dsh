@@ -1,0 +1,154 @@
+/**
+ * aura-dsh / client / src / selection / adapters.js
+ * 圈选适配器协议：把「圈中的 DOM 元素」翻译成可提问的上下文。
+ *
+ * 设计目标（P1）：
+ *   - 圈选层不再硬编码 aura 卡片选择器
+ *   - 每个适配器声明「哪些元素可圈」+「怎么描述」
+ *   - 通用 DOM 适配器兜底，任何区域都能圈
+ *
+ * 未来拆出 dsh-select-ask 时，这份协议可以直接搬走。
+ */
+
+/**
+ * @typedef {object} SelectionHit
+ * @property {string} adapterId   - 命中的适配器 id
+ * @property {string} label       - 人类可读标签（卡片名 / 元素名）
+ * @property {string} [text]      - 精确命中的文本片段
+ * @property {unknown} [data]     - 结构化数据（如 aura 卡片 data）
+ * @property {string} [cardId]    - aura 卡片 id（其他适配器可缺省）
+ * @property {{left:number,top:number,right:number,bottom:number}} rect - 视口坐标
+ */
+
+/**
+ * @typedef {object} SelectAdapter
+ * @property {string} id
+ * @property {string} [selector]  - 可圈选元素的 CSS 选择器（generic 适配器可省略）
+ * @property {(el: Element) => {label:string, text?:string, data?:unknown, cardId?:string} | null} describe
+ */
+
+/** aura 面板卡片适配器：卡片容器带 data-aura-card-id / data-aura-card-title */
+export function createAuraCardAdapter() {
+  return {
+    id: 'aura-card',
+    selector: '[data-aura-card-id]',
+    describe(el) {
+      const cardId = el?.dataset?.auraCardId;
+      if (!cardId) return null;
+      return {
+        label: el.dataset.auraCardTitle || cardId,
+        cardId,
+      };
+    },
+  };
+}
+
+/**
+ * 通用 DOM 适配器：任何可见元素都可圈（兜底）。
+ * 命中优先级低——只有在没有其它适配器命中时才用。
+ */
+export function createGenericDomAdapter() {
+  return {
+    id: 'generic-dom',
+    selector: null,
+    describe(el) {
+      if (!el || el === document.body || el === document.documentElement) return null;
+      const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!text) return null;
+      const tag = (el.tagName || 'unknown').toLowerCase();
+      return { label: tag, text: text.slice(0, 300) };
+    },
+  };
+}
+
+/** 默认适配器集合（aura 优先，通用兜底） */
+export function createDefaultAdapters() {
+  return [createAuraCardAdapter(), createGenericDomAdapter()];
+}
+
+/**
+ * 收集圈选矩形内的命中（视口坐标）。
+ * 策略：
+ *   1. 逐个适配器扫描其 selector（aura 卡片等结构化元素）
+ *   2. 若某区域没有结构化命中，用 elementsFromPoint 取通用 DOM（兜底）
+ *   3. 同一适配器内取最深层（面积最小、互不包含）
+ *
+ * @param {SelectAdapter[]} adapters
+ * @param {{left:number,top:number,right:number,bottom:number}} sel - 视口坐标
+ * @returns {SelectionHit[]}
+ */
+export function collectHits(adapters, sel) {
+  const hits = [];
+  const covered = []; // 已被结构化命中的区域（避免通用适配器重复）
+
+  const inSel = (r) => sel.left < r.right && sel.right > r.left && sel.top < r.bottom && sel.bottom > r.top;
+  const rectOf = (el) => {
+    const r = el.getBoundingClientRect();
+    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, area: r.width * r.height };
+  };
+  const contains = (outer, inner) => outer.left <= inner.left + 1 && outer.top <= inner.top + 1
+    && outer.right >= inner.right - 1 && outer.bottom >= inner.bottom + 1;
+
+  for (const adapter of adapters) {
+    if (!adapter?.selector || typeof adapter.describe !== 'function') continue;
+    let els = [];
+    try { els = [...document.querySelectorAll(adapter.selector)]; } catch { els = []; }
+    const candidates = [];
+    for (const el of els) {
+      const rect = rectOf(el);
+      if (rect.area < 16 || !inSel(rect)) continue;
+      const described = adapter.describe(el);
+      if (!described) continue;
+      candidates.push({ el, rect, described });
+    }
+    // 同适配器内去重：保留最深层（面积最小、互不包含）
+    candidates.sort((a, b) => a.rect.area - b.rect.area);
+    const kept = [];
+    for (const c of candidates) {
+      const overlapped = kept.some((k) => contains(k.rect, c.rect) || contains(c.rect, k.rect));
+      if (!overlapped) kept.push(c);
+    }
+    for (const c of kept) {
+      hits.push({
+        adapterId: adapter.id,
+        label: c.described.label,
+        text: c.described.text,
+        data: c.described.data,
+        cardId: c.described.cardId,
+        rect: { left: c.rect.left, top: c.rect.top, right: c.rect.right, bottom: c.rect.bottom },
+      });
+      covered.push(c.rect);
+    }
+  }
+
+  // 通用兜底：elementsFromPoint 取圈选区域内的文本元素
+  if (hits.length === 0) {
+    const generic = adapters.find((a) => a.id === 'generic-dom');
+    if (generic) {
+      const points = [
+        [sel.left + 2, sel.top + 2],
+        [sel.right - 2, sel.top + 2],
+        [sel.left + 2, sel.bottom - 2],
+        [sel.right - 2, sel.bottom - 2],
+        [(sel.left + sel.right) / 2, (sel.top + sel.bottom) / 2],
+      ];
+      const seen = new Set();
+      for (const [x, y] of points) {
+        const el = document.elementFromPoint(x, y);
+        if (!el || seen.has(el)) continue;
+        seen.add(el);
+        const described = generic.describe(el);
+        if (!described) continue;
+        const r = el.getBoundingClientRect();
+        hits.push({
+          adapterId: generic.id,
+          label: described.label,
+          text: described.text,
+          rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom },
+        });
+      }
+    }
+  }
+
+  return hits;
+}

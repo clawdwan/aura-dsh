@@ -1429,5 +1429,51 @@ svg.react-flow__connectionline {
   fill: var(--aura-accent-strong, #4868b2);
   font-weight: 700;
 }
+/* ---- 全局圈选层（快捷键 ⌘⌥S / 任意区域） ---- */
+.aura-global-select {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  cursor: crosshair;
+  background: rgba(0, 0, 0, 0.04);
+  touch-action: none;
+}
+.aura-global-select-hint {
+  position: fixed;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--dsw-alias-bg-base, #fff);
+  background: rgba(0, 0, 0, 0.62);
+  pointer-events: none;
+  z-index: 9002;
+}
+.aura-global-select-box {
+  position: fixed;
+  border: 1.5px dashed var(--dsw-static-deepseek-500, #4176e6);
+  background: rgba(65, 118, 230, 0.1);
+  pointer-events: none;
+  border-radius: 4px;
+}
+.aura-global-select-popover {
+  position: fixed;
+  width: 380px;
+  max-width: calc(100vw - 40px);
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-base, #fff);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  z-index: 9003;
+  cursor: default;
+}
+.aura-global-select-title {
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary, #666);
+  margin-bottom: 8px;
+}
+
 `;
 export default auraCss;

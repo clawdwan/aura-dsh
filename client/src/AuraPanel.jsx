@@ -178,23 +178,7 @@ export default function AuraPanel(props) {
     return () => clearTimeout(timer);
   }, []);
 
-  // 快捷键（⌘⌥S / Ctrl+Alt+S）进入圈选：多 tab 同时挂载时只让可见的那个响应
-  React.useEffect(() => {
-    console.log('[aura-panel] mounted, tabKey =', tabKey);
-    const onEnter = () => {
-      const el = panelRef.current;
-      if (!el) {
-        console.warn('[aura-panel] enter-select: 面板未挂载');
-        return;
-      }
-      const rect = el.getBoundingClientRect();
-      console.log('[aura-panel] enter-select 收到, 尺寸=', Math.round(rect.width), 'x', Math.round(rect.height));
-      if (rect.width <= 1 || rect.height <= 1) return;
-      setSelecting(true);
-    };
-    window.addEventListener('aura:enter-select', onEnter);
-    return () => window.removeEventListener('aura:enter-select', onEnter);
-  }, []);
+  // 面板内圈选：只走顶部「圈选提问」按钮；快捷键已交给全局圈选层（GlobalSelector）
   const panelRef = React.useRef(null);
   const cardsRef = React.useRef([]);
   const nodesRef = React.useRef([]);
