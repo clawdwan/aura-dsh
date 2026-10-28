@@ -1529,11 +1529,24 @@ svg.react-flow__connectionline {
   margin-bottom: 8px;
 }
 
-/* 卡片右上角关闭（悬浮显示） */
-.aura-panel-card-close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+/* 卡片标题行（标题 + 操作按钮） */
+.aura-panel-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+}
+.aura-panel-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  flex: none;
+}
+.aura-panel-card:hover .aura-panel-card-actions { opacity: 1; }
+.aura-panel-card-action {
   width: 20px;
   height: 20px;
   display: inline-flex;
@@ -1543,14 +1556,13 @@ svg.react-flow__connectionline {
   border-radius: 999px;
   background: transparent;
   color: var(--dsw-alias-label-tertiary, #999);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
 }
-.aura-panel-card:hover .aura-panel-card-close { opacity: 1; }
-.aura-panel-card-close:hover {
+.aura-panel-card-action:hover {
   background: var(--dsw-alias-interactive-bg-hover-solid, rgba(128,128,128,0.14));
   color: var(--dsw-alias-label-primary, #1f2329);
 }
@@ -183305,7 +183317,21 @@ function AuraPanel(props) {
 		const res = await __auraSend(ctx);
 		if (!res?.ok) throw new Error(res?.error?.message ?? "发送失败");
 	}, [__auraSend]);
-	/** 隐藏卡片：先本地隐藏（立即生效），再通知 agent 标记 dismissed（持久化） */
+	/** 折叠状态（本地，不持久） */
+	const [collapsedIds, setCollapsedIds] = react$1.default.useState(() => /* @__PURE__ */ new Set());
+	const handleToggleCollapse = react$1.default.useCallback((cardId) => {
+		if (!cardId) return;
+		setCollapsedIds((prev) => {
+			const next = new Set(prev);
+			if (next.has(cardId)) next.delete(cardId);
+			else next.add(cardId);
+			return next;
+		});
+	}, []);
+	/**
+	* 关闭卡片：本地立即隐藏 + 让 agent 标记 dismissed（持久，刷新/重启后不再出现）。
+	* 注：用户确认走 dismissed 语义（A 方案），因此需要发一条简短指令。
+	*/
 	const [hiddenIds, setHiddenIds] = react$1.default.useState(() => /* @__PURE__ */ new Set());
 	const handleDismissCard = react$1.default.useCallback((cardId) => {
 		if (!cardId) return;
@@ -183314,7 +183340,7 @@ function AuraPanel(props) {
 			next.add(cardId);
 			return next;
 		});
-		if (typeof __auraSend === "function") __auraSend(`[面板操作] 把卡片「${cardId}」设为 dismissed=true（隐藏，数据保留），不要回复解释，直接调用 aura_panel 完成。`).catch((err) => console.warn("[aura-panel] 隐藏持久化失败:", err?.message ?? err));
+		if (typeof __auraSend === "function") __auraSend(`[面板] 关闭卡片「${cardId}」（设为 dismissed=true），不要解释，直接调 aura_panel。`).catch((err) => console.warn("[aura-panel] 关闭持久化失败:", err?.message ?? err));
 	}, [__auraSend]);
 	const handleAction = react$1.default.useCallback(async (action) => {
 		if (typeof __auraSend !== "function") {
@@ -183498,19 +183524,31 @@ function AuraPanel(props) {
 					"data-aura-card-id": card.id,
 					"data-aura-card-title": card.title ?? card.id,
 					children: [
-						card.title ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("h4", {
-							className: "aura-panel-card-title",
-							children: card.title
-						}) : null,
-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-							type: "button",
-							className: "aura-panel-card-close",
-							title: "隐藏这张卡片",
-							onClick: () => handleDismissCard(card.id),
-							children: "×"
+						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+							className: "aura-panel-card-head",
+							children: [card.title ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("h4", {
+								className: "aura-panel-card-title",
+								children: card.title
+							}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: "aura-panel-card-actions",
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: "aura-panel-card-action",
+									title: collapsedIds.has(card.id) ? "展开" : "折叠",
+									onClick: () => handleToggleCollapse(card.id),
+									children: collapsedIds.has(card.id) ? "▸" : "▾"
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: "aura-panel-card-action",
+									title: "关闭这张卡片（持久移除）",
+									onClick: () => handleDismissCard(card.id),
+									children: "×"
+								})]
+							})]
 						}),
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 							className: "aura-panel-card-body",
+							hidden: collapsedIds.has(card.id),
 							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(CardBoundary, { children: isPendingCard(card) ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(CardSkeleton, { type: card.type }) : renderComponent({
 								type: card.type,
 								data: card.data

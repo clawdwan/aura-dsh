@@ -1483,11 +1483,24 @@ svg.react-flow__connectionline {
   margin-bottom: 8px;
 }
 
-/* 卡片右上角关闭（悬浮显示） */
-.aura-panel-card-close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+/* 卡片标题行（标题 + 操作按钮） */
+.aura-panel-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+}
+.aura-panel-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  flex: none;
+}
+.aura-panel-card:hover .aura-panel-card-actions { opacity: 1; }
+.aura-panel-card-action {
   width: 20px;
   height: 20px;
   display: inline-flex;
@@ -1497,14 +1510,13 @@ svg.react-flow__connectionline {
   border-radius: 999px;
   background: transparent;
   color: var(--dsw-alias-label-tertiary, #999);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
 }
-.aura-panel-card:hover .aura-panel-card-close { opacity: 1; }
-.aura-panel-card-close:hover {
+.aura-panel-card-action:hover {
   background: var(--dsw-alias-interactive-bg-hover-solid, rgba(128,128,128,0.14));
   color: var(--dsw-alias-label-primary, #1f2329);
 }
