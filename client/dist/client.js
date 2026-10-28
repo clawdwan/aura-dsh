@@ -184236,6 +184236,38 @@ const RADIAL_OPTIONS = [
 		})
 	}
 ];
+/** 判断圈选区域是否包含"视觉类"内容（图表/图形/iframe）→ 需要截图 */
+function needsVisualCapture(rect) {
+	const points = [
+		[rect.left + 4, rect.top + 4],
+		[rect.right - 4, rect.top + 4],
+		[rect.left + 4, rect.bottom - 4],
+		[rect.right - 4, rect.bottom - 4],
+		[(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2]
+	];
+	for (const [x, y] of points) {
+		const stack = typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(x, y) : [document.elementFromPoint(x, y)];
+		for (const el of stack) {
+			if (!el || el.closest?.(".aura-global-select")) continue;
+			const tag = (el.tagName || "").toLowerCase();
+			if (tag === "canvas" || tag === "svg" || tag === "iframe") return true;
+			if (el.closest?.(".aura-chart, .aura-graph, .aura-html-card")) return true;
+			break;
+		}
+	}
+	return false;
+}
+/** 截取圈选区域（浏览器 API；iframe 内容截不到，会成为空白） */
+async function captureSelection(rect) {
+	const canvas = await (await import("modern-screenshot")).domToCanvas(document.body, { scale: 1 });
+	const out = document.createElement("canvas");
+	const w = Math.max(1, Math.round(rect.left + rect.width > 0 ? rect.width : 1));
+	const h = Math.max(1, Math.round(rect.height));
+	out.width = w;
+	out.height = h;
+	out.getContext("2d").drawImage(canvas, Math.round(rect.left + window.scrollX), Math.round(rect.top + window.scrollY), w, h, 0, 0, w, h);
+	return out.toDataURL("image/png").split(",")[1] ?? null;
+}
 /**
 * 把命中结果拼成提问上下文。
 * 原则（P1.5）：
@@ -184243,7 +184275,7 @@ const RADIAL_OPTIONS = [
 *   - 不重复完整消息内容（agent 在当前会话里有上下文记忆）
 *   - 无 id 的内容退回行级文本 + 语义容器
 */
-function buildContext({ hits, rect, question }) {
+function buildContext({ hits, rect, question, hasImage }) {
 	const lines = [];
 	const vw = window.innerWidth || 1;
 	const vh = window.innerHeight || 1;
@@ -184262,6 +184294,10 @@ function buildContext({ hits, rect, question }) {
 		if (hits.length > 6) lines.push(`- …另有 ${hits.length - 6} 处`);
 	}
 	lines.push("");
+	if (hasImage) {
+		lines.push("");
+		lines.push("📷 已附圈选区域截图（视觉参考：布局/颜色/图形；iframe 内容在截图中为空白）。");
+	}
 	lines.push(`❓ 问题：${question}`);
 	lines.push("");
 	lines.push("【说明】");
@@ -184385,17 +184421,30 @@ function GlobalSelector({ send, getSessionId }) {
 		setBusy(true);
 		setError(null);
 		try {
+			const sel = {
+				left: rect.left,
+				top: rect.top,
+				right: rect.left + rect.width,
+				bottom: rect.top + rect.height
+			};
+			let image = null;
+			if (needsVisualCapture(sel)) try {
+				const base64 = await captureSelection(sel);
+				if (base64) image = {
+					mediaType: "image/png",
+					data: base64,
+					name: "selection.png"
+				};
+			} catch (err) {
+				console.warn("[aura-global-select] 截图失败（降级为纯文本）:", err?.message ?? err);
+			}
 			const ctx = buildContext({
 				hits,
-				rect: {
-					left: rect.left,
-					top: rect.top,
-					right: rect.left + rect.width,
-					bottom: rect.top + rect.height
-				},
-				question: q
+				rect: sel,
+				question: q,
+				hasImage: Boolean(image)
 			});
-			const res = await send?.(ctx);
+			const res = await send?.(ctx, image);
 			if (res?.ok === false) throw new Error(res?.error?.message ?? "发送失败");
 			reset();
 		} catch (err) {
@@ -184737,17 +184786,24 @@ function apply(ctx) {
 				document.body.appendChild(host);
 				const root = (0, react_dom_client.createRoot)(host);
 				root.render(/* @__PURE__ */ (0, react_jsx_runtime.jsx)(GlobalSelector, {
-					send: (text) => {
+					send: (text, image) => {
 						const sid = ctx.sidebarRight?.mounted?.getSnapshot?.();
 						if (!sid) return Promise.reject(/* @__PURE__ */ new Error("当前没有会话"));
+						const content = [{
+							type: "text",
+							text
+						}];
+						if (image?.data) content.push({
+							type: "image",
+							mediaType: image.mediaType ?? "image/png",
+							data: image.data,
+							name: image.name ?? "selection.png"
+						});
 						return ctx.remote.session.prompt({
 							requestId: `aura-global-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
 							sessionId: sid,
 							mode: "queue",
-							content: [{
-								type: "text",
-								text
-							}]
+							content
 						});
 					},
 					getSessionId: () => ctx.sidebarRight?.mounted?.getSnapshot?.()

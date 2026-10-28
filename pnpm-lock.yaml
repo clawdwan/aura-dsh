@@ -23,6 +23,9 @@ importers:
       echarts:
         specifier: ^6.1.0
         version: 6.1.0
+      modern-screenshot:
+        specifier: ^4.7.0
+        version: 4.7.0
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: ^4.0.2
@@ -956,6 +959,9 @@ packages:
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
     hasBin: true
+
+  modern-screenshot@4.7.0:
+    resolution: {integrity: sha512-9YxN+ddPSMMlhylOv25VHzXrl9u67QRxoh7+SEewGtgUw7t6hHTrjptSDJUSne9oG4Xk/h2cwG15nIt4Hc9ujg==}
 
   obug@2.2.1:
     resolution: {integrity: sha512-XrsrhT5sybtKI6wakr2SPOlGZWWYbUXZ7a0jT8/QOeAPau+1X/bSegNe5YR75oJmEZQbKningirmGOEJCIk61Q==}
@@ -1957,6 +1963,8 @@ snapshots:
   loose-envify@1.4.0:
     dependencies:
       js-tokens: 4.0.0
+
+  modern-screenshot@4.7.0: {}
 
   obug@2.2.1: {}
 

@@ -22,6 +22,51 @@ const RADIAL_OPTIONS = [
   { label: '查来源', prompt: '请核查圈选内容的来源与依据：出自哪里、是否准确、有无可验证的出处。', color: 'var(--dsw-alias-state-info-primary, #6b4fd8)', icon: <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="4"/><path d="M10.5 10.5 14 14"/></g> },
 ];
 
+/** 判断圈选区域是否包含"视觉类"内容（图表/图形/iframe）→ 需要截图 */
+function needsVisualCapture(rect) {
+  const points = [
+    [rect.left + 4, rect.top + 4],
+    [rect.right - 4, rect.top + 4],
+    [rect.left + 4, rect.bottom - 4],
+    [rect.right - 4, rect.bottom - 4],
+    [(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2],
+  ];
+  for (const [x, y] of points) {
+    const stack = typeof document.elementsFromPoint === 'function'
+      ? document.elementsFromPoint(x, y)
+      : [document.elementFromPoint(x, y)];
+    for (const el of stack) {
+      if (!el || el.closest?.('.aura-global-select')) continue;
+      const tag = (el.tagName || '').toLowerCase();
+      if (tag === 'canvas' || tag === 'svg' || tag === 'iframe') return true;
+      if (el.closest?.('.aura-chart, .aura-graph, .aura-html-card')) return true;
+      break; // 只看最上层非圈选层元素
+    }
+  }
+  return false;
+}
+
+/** 截取圈选区域（浏览器 API；iframe 内容截不到，会成为空白） */
+async function captureSelection(rect) {
+  const mod = await import('modern-screenshot');
+  const canvas = await mod.domToCanvas(document.body, { scale: 1 });
+  const out = document.createElement('canvas');
+  const w = Math.max(1, Math.round(rect.left + rect.width > 0 ? rect.width : 1));
+  const h = Math.max(1, Math.round(rect.height));
+  out.width = w;
+  out.height = h;
+  const ctx = out.getContext('2d');
+  // body 的 canvas 是内容坐标：加上滚动偏移
+  ctx.drawImage(
+    canvas,
+    Math.round(rect.left + window.scrollX), Math.round(rect.top + window.scrollY),
+    w, h,
+    0, 0, w, h,
+  );
+  const url = out.toDataURL('image/png');
+  return url.split(',')[1] ?? null;
+}
+
 /**
  * 把命中结果拼成提问上下文。
  * 原则（P1.5）：
@@ -29,7 +74,7 @@ const RADIAL_OPTIONS = [
  *   - 不重复完整消息内容（agent 在当前会话里有上下文记忆）
  *   - 无 id 的内容退回行级文本 + 语义容器
  */
-function buildContext({ hits, rect, question }) {
+function buildContext({ hits, rect, question, hasImage }) {
   const lines = [];
   const vw = window.innerWidth || 1;
   const vh = window.innerHeight || 1;
@@ -52,6 +97,10 @@ function buildContext({ hits, rect, question }) {
     if (hits.length > 6) lines.push(`- …另有 ${hits.length - 6} 处`);
   }
   lines.push('');
+  if (hasImage) {
+    lines.push('');
+    lines.push('📷 已附圈选区域截图（视觉参考：布局/颜色/图形；iframe 内容在截图中为空白）。');
+  }
   lines.push(`❓ 问题：${question}`);
   lines.push('');
   lines.push('【说明】');
@@ -164,15 +213,22 @@ export default function GlobalSelector({ send, getSessionId }) {
     setBusy(true);
     setError(null);
     try {
-      const ctx = buildContext({
-        hits,
-        rect: {
-          left: rect.left, top: rect.top,
-          right: rect.left + rect.width, bottom: rect.top + rect.height,
-        },
-        question: q,
-      });
-      const res = await send?.(ctx);
+      const sel = {
+        left: rect.left, top: rect.top,
+        right: rect.left + rect.width, bottom: rect.top + rect.height,
+      };
+      // 视觉类内容（图表/图形/iframe）额外截一张图，作为视觉补充
+      let image = null;
+      if (needsVisualCapture(sel)) {
+        try {
+          const base64 = await captureSelection(sel);
+          if (base64) image = { mediaType: 'image/png', data: base64, name: 'selection.png' };
+        } catch (err) {
+          console.warn('[aura-global-select] 截图失败（降级为纯文本）:', err?.message ?? err);
+        }
+      }
+      const ctx = buildContext({ hits, rect: sel, question: q, hasImage: Boolean(image) });
+      const res = await send?.(ctx, image);
       if (res?.ok === false) throw new Error(res?.error?.message ?? '发送失败');
       reset();
     } catch (err) {
