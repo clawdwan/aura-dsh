@@ -168082,15 +168082,22 @@ function buildOption$1(data) {
 		grid: {
 			left: 44,
 			right: 16,
-			top: 24,
+			top: series.length > 1 ? 40 : 24,
 			bottom: 28
 		},
 		tooltip: { trigger: "axis" },
 		legend: series.length > 1 ? {
-			bottom: 0,
+			top: 0,
+			left: "center",
 			icon: "roundRect",
 			itemWidth: 12,
-			itemHeight: 8
+			itemHeight: 8,
+			itemGap: 16,
+			tooltip: { show: true },
+			textStyle: {
+				width: 120,
+				overflow: "truncate"
+			}
 		} : void 0,
 		xAxis: {
 			type: "category",
@@ -183172,6 +183179,201 @@ function buildSelectionContext({ cards, rect, question, fineHits, panelCards, no
 	return lines.join("\n");
 }
 //#endregion
+//#region client/src/export-md.js
+/**
+* aura-dsh / client / src / export-md.js
+* 把面板卡片转成 Markdown（面向飞书云文档/其他软件阅读，保留结构）。
+*
+* 结构映射：
+*   metric_card      → 列表（指标：值（变化））
+*   comparison_table → md 表格
+*   insight_cards    → 列表（[评级] 标题：正文）
+*   article_list     → 列表
+*   trend_chart      → 数据表
+*   html             → HTML → Markdown（h1/h2/table/list/p）
+*   其他             → 简化列表
+*/
+/** 转义 md 内联特殊字符（保留中文） */
+function esc(text) {
+	return String(text ?? "").replace(/\|/g, "\\|").replace(/\n+/g, " ").trim();
+}
+/** metric_card */
+function metricToMd(card) {
+	const lines = [`### ${esc(card.title ?? card.id)}`, ""];
+	for (const m of card.data?.metrics ?? []) {
+		const change = m.change ? `（${esc(m.change)}）` : "";
+		lines.push(`- **${esc(m.label ?? "")}**：${esc(m.value ?? "")}${change}`);
+	}
+	return lines.join("\n");
+}
+/** comparison_table */
+function tableToMd(card) {
+	const headers = card.data?.headers ?? [];
+	const rows = card.data?.rows ?? [];
+	if (!headers.length && !rows.length) return `### ${esc(card.title ?? card.id)}\n\n（空表格）`;
+	const lines = [`### ${esc(card.title ?? card.id)}`, ""];
+	if (headers.length) {
+		lines.push(`| ${headers.map(esc).join(" | ")} |`);
+		lines.push(`| ${headers.map(() => "---").join(" | ")} |`);
+	}
+	for (const row of rows) lines.push(`| ${(Array.isArray(row) ? row : [row]).map(esc).join(" | ")} |`);
+	return lines.join("\n");
+}
+/** insight_cards */
+function insightToMd(card) {
+	const lines = [`### ${esc(card.title ?? card.id)}`, ""];
+	for (const c of card.data?.cards ?? []) {
+		const rating = c.rating ? `[${esc(c.rating)}] ` : "";
+		lines.push(`- **${rating}${esc(c.title ?? "")}**：${esc(c.body ?? "")}`);
+	}
+	return lines.join("\n");
+}
+/** article_list */
+function articleToMd(card) {
+	const lines = [`### ${esc(card.title ?? card.id)}`, ""];
+	for (const a of card.data?.articles ?? []) {
+		const src = a.source ? `（${esc(a.source)}）` : "";
+		const url = a.url ? `[链接](${a.url})` : "";
+		lines.push(`- **${esc(a.title ?? "")}**${src}：${esc(a.summary ?? "")} ${url}`.trim());
+	}
+	return lines.join("\n");
+}
+/** trend_chart → 数据表 */
+function chartToMd(card) {
+	const lines = [`### ${esc(card.title ?? card.id)}`, ""];
+	const series = card.data?.series ?? [];
+	for (const s of series) {
+		lines.push(`**${esc(s.name ?? "系列")}**${card.data?.unit ? `（${esc(card.data.unit)}）` : ""}`, "");
+		lines.push("| x | y |");
+		lines.push("| --- | --- |");
+		for (const p of s.data ?? []) lines.push(`| ${esc(p.x)} | ${esc(p.y)} |`);
+		lines.push("");
+	}
+	return lines.join("\n");
+}
+/** 其他结构化类型：简化列表 */
+function listToMd(card) {
+	const lines = [`### ${esc(card.title ?? card.id)}`, ""];
+	const d = card.data ?? {};
+	const pick = d.steps ?? d.events ?? d.root?.children ?? d.nodes ?? [];
+	if (Array.isArray(pick)) for (const it of pick) {
+		const label = it.label ?? it.title ?? it.time ?? it.name ?? JSON.stringify(it);
+		lines.push(`- ${esc(label)}`);
+	}
+	else lines.push("```json", JSON.stringify(d, null, 2), "```");
+	return lines.join("\n");
+}
+/** HTML → Markdown（html 卡：面向飞书阅读，保留结构） */
+function htmlToMd(html) {
+	let doc;
+	try {
+		doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+	} catch {
+		return html;
+	}
+	const root = doc.body.firstElementChild ?? doc.body;
+	const out = [];
+	const textOf = (el) => (el.textContent ?? "").replace(/\s+/g, " ").trim();
+	const walk = (el) => {
+		for (const node of el.childNodes ?? []) {
+			if (node.nodeType === 3) {
+				const t = node.textContent?.replace(/\s+/g, " ").trim();
+				if (t) out.push(t);
+				continue;
+			}
+			if (node.nodeType !== 1) continue;
+			const tag = node.tagName.toLowerCase();
+			const cls = typeof node.className === "string" ? node.className : "";
+			if (cls.includes("a-h1")) {
+				out.push(`# ${textOf(node)}`, "");
+				continue;
+			}
+			if (cls.includes("a-h2") || tag === "h3") {
+				out.push(`## ${textOf(node)}`, "");
+				continue;
+			}
+			if (tag === "table") {
+				const trs = [...node.querySelectorAll("tr")];
+				if (trs.length) {
+					const cells = (tr) => [...tr.children].map((c) => textOf(c));
+					out.push(`| ${cells(trs[0]).join(" | ")} |`);
+					out.push(`| ${cells(trs[0]).map(() => "---").join(" | ")} |`);
+					for (const tr of trs.slice(1)) out.push(`| ${cells(tr).join(" | ")} |`);
+					out.push("");
+				}
+				continue;
+			}
+			if (tag === "ul" || tag === "ol") {
+				for (const li of node.querySelectorAll(":scope > li")) out.push(`- ${textOf(li)}`);
+				out.push("");
+				continue;
+			}
+			if (cls.includes("a-note") || cls.includes("a-warn") || cls.includes("a-quote")) {
+				out.push(`> ${textOf(node)}`, "");
+				continue;
+			}
+			if (tag === "p") {
+				out.push(textOf(node), "");
+				continue;
+			}
+			if (tag === "br") {
+				out.push("");
+				continue;
+			}
+			if ([
+				"div",
+				"section",
+				"span"
+			].includes(tag)) {
+				walk(node);
+				continue;
+			}
+			out.push(textOf(node), "");
+		}
+	};
+	walk(root);
+	return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+/** 单卡 → md 片段 */
+function cardToMd(card) {
+	if (!card) return "";
+	switch (card.type ?? "comparison_table") {
+		case "metric_card": return metricToMd(card);
+		case "comparison_table": return tableToMd(card);
+		case "insight_cards": return insightToMd(card);
+		case "article_list": return articleToMd(card);
+		case "trend_chart": return chartToMd(card);
+		case "html": return `### ${esc(card.title ?? card.id)}\n\n${htmlToMd(card.data?.html ?? "")}`;
+		default: return listToMd(card);
+	}
+}
+/** 多卡 → 完整 md 文档 */
+function cardsToMd(cards, { sessionId } = {}) {
+	const head = ["# Aura 面板导出", ""];
+	if (sessionId) head.push(`> 会话：${sessionId}`, "");
+	head.push(`> 导出时间：${(/* @__PURE__ */ new Date()).toLocaleString()}`, "");
+	const bodies = (cards ?? []).map((c, i) => `## ${i + 1}. ${c.title ?? c.id}\n\n${cardToMd(c)}`);
+	return [...head, ...bodies].join("\n\n");
+}
+/** 触发浏览器下载 .md */
+function downloadMd(filename, content) {
+	try {
+		const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = filename.endsWith(".md") ? filename : `${filename}.md`;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		setTimeout(() => URL.revokeObjectURL(url), 1e3);
+		return true;
+	} catch (err) {
+		console.error("[aura-export] 下载失败:", err?.message ?? err);
+		return false;
+	}
+}
+//#endregion
 //#region client/src/AuraPanel.jsx
 /**
 * aura-dsh / client / src / AuraPanel.jsx
@@ -183361,6 +183563,19 @@ function AuraPanel(props) {
 		const res = await __auraSend(ctx);
 		if (!res?.ok) throw new Error(res?.error?.message ?? "发送失败");
 	}, [__auraSend]);
+	/** 导出单张卡片为 .md */
+	const handleExportCard = react$1.default.useCallback((card) => {
+		if (!card) return;
+		const md = cardToMd(card);
+		if (!downloadMd(String(card.title ?? card.id ?? "card").replace(/[\\/:*?"<>|]/g, "_"), `## ${card.title ?? card.id}\n\n${md}`)) console.warn("[aura-panel] 单卡导出失败");
+	}, []);
+	/** 导出面板全部卡片为 .md（用 cardsRef 避免 TDZ：cards 定义在后面） */
+	const handleExportAll = react$1.default.useCallback(() => {
+		const list = cardsRef.current ?? [];
+		if (!list.length) return;
+		const md = cardsToMd(list, { sessionId: props?.sessionId });
+		if (!downloadMd(`aura-panel-${Date.now()}`, md)) console.warn("[aura-panel] 全部导出失败");
+	}, [props?.sessionId]);
 	/** 折叠状态（本地，不持久） */
 	const [collapsedIds, setCollapsedIds] = react$1.default.useState(() => /* @__PURE__ */ new Set());
 	const handleToggleCollapse = react$1.default.useCallback((cardId) => {
@@ -183550,13 +183765,19 @@ function AuraPanel(props) {
 		className: "aura-panel",
 		ref: panelRef,
 		children: [
-			selecting ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+			/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 				className: "aura-panel-toolbar",
-				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+				children: selecting ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 					className: "aura-panel-tool-hint",
 					children: "在面板上拖拽圈选要提问的区域（Esc 退出）"
+				}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+					type: "button",
+					className: "aura-panel-tool",
+					onClick: handleExportAll,
+					disabled: cards.length === 0,
+					children: "⬇ 全部导出"
 				})
-			}) : null,
+			}),
 			cards.map((card) => {
 				const actions = Array.isArray(card.actions) ? card.actions : [];
 				return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
@@ -183571,19 +183792,29 @@ function AuraPanel(props) {
 								children: card.title
 							}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 								className: "aura-panel-card-actions",
-								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-									type: "button",
-									className: "aura-panel-card-action",
-									title: collapsedIds.has(card.id) ? "展开" : "折叠",
-									onClick: () => handleToggleCollapse(card.id),
-									children: collapsedIds.has(card.id) ? "▸" : "▾"
-								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-									type: "button",
-									className: "aura-panel-card-action",
-									title: "关闭这张卡片（持久移除）",
-									onClick: () => handleDismissCard(card.id),
-									children: "×"
-								})]
+								children: [
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+										type: "button",
+										className: "aura-panel-card-action",
+										title: "导出这张卡片（Markdown）",
+										onClick: () => handleExportCard(card),
+										children: "↧"
+									}),
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+										type: "button",
+										className: "aura-panel-card-action",
+										title: collapsedIds.has(card.id) ? "展开" : "折叠",
+										onClick: () => handleToggleCollapse(card.id),
+										children: collapsedIds.has(card.id) ? "▸" : "▾"
+									}),
+									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+										type: "button",
+										className: "aura-panel-card-action",
+										title: "关闭这张卡片（持久移除）",
+										onClick: () => handleDismissCard(card.id),
+										children: "×"
+									})
+								]
 							})]
 						}),
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
@@ -184997,6 +185228,49 @@ function createAuraCardAdapter() {
 * 通用 DOM 适配器：任何可见元素都可圈（兜底）。
 * 命中优先级低——只有在没有其它适配器命中时才用。
 */
+/**
+* 侧边栏文件项（官方文件浏览器）：提取文件路径。
+* 官方 DOM：data-files-entry / data-files-row 上带 data-files-path。
+* 圈选后上下文给路径 → agent 可用 read 读内容。
+*/
+function createFileAdapter() {
+	return {
+		id: "file",
+		selector: "[data-files-entry], [data-files-row]",
+		describe(el) {
+			if (!el) return null;
+			const path = el.getAttribute?.("data-files-path") ?? el.querySelector?.("[data-files-path]")?.getAttribute("data-files-path") ?? el.closest?.("[data-files-path]")?.getAttribute("data-files-path") ?? null;
+			const name = path ? path.split("/").pop() : (el.textContent ?? "").trim().slice(0, 60);
+			if (!path && !name) return null;
+			return {
+				label: name || path,
+				data: {
+					kind: "file",
+					path: path || null,
+					name: name || null
+				}
+			};
+		}
+	};
+}
+/**
+* 文档/代码预览（官方 sidebar-documentpreview）：提取文档或代码块内容。
+* 官方 DOM：data-document-markdown（渲染后的 markdown）、data-code-block-content（代码块）。
+*/
+function createDocAdapter() {
+	return {
+		id: "doc",
+		selector: "[data-document-markdown], [data-code-block-content]",
+		describe(el, sel) {
+			if (!el) return null;
+			return {
+				label: (el.querySelector?.("h1, h2, h3") ?? el.closest?.("[data-document-markdown]")?.querySelector("h1"))?.textContent?.trim().slice(0, 40) || (el.hasAttribute?.("data-code-block-content") ? "代码预览" : "文档预览"),
+				data: { kind: "doc" },
+				lines: extractLines(sel, el)
+			};
+		}
+	};
+}
 function createGenericDomAdapter() {
 	return {
 		id: "generic-dom",
@@ -185037,6 +185311,8 @@ function createDefaultAdapters() {
 	return [
 		createAuraCardAdapter(),
 		createConversationAdapter(),
+		createFileAdapter(),
+		createDocAdapter(),
 		createGenericDomAdapter()
 	];
 }
@@ -185055,7 +185331,20 @@ function extractLines(sel, root, maxLines = 10) {
 	if (!sel) return lines;
 	const scope = root ?? document.body;
 	if (!scope) return lines;
-	const inSel = (r) => sel.left < r.right && sel.right > r.left && sel.top < r.bottom && sel.bottom > r.top;
+	const selArea = Math.max(1, (sel.right - sel.left) * (sel.bottom - sel.top));
+	const inSel = (r) => {
+		const area = Math.max(1, (r.right - r.left) * (r.bottom - r.top));
+		const ow = Math.min(sel.right, r.right) - Math.max(sel.left, r.left);
+		const oh = Math.min(sel.bottom, r.bottom) - Math.max(sel.top, r.top);
+		const overlap = Math.max(0, ow) * Math.max(0, oh);
+		if (overlap <= 0) return false;
+		if (area < selArea * 1.5) {
+			const cx = (r.left + r.right) / 2;
+			const cy = (r.top + r.bottom) / 2;
+			return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
+		}
+		return overlap / area >= .15;
+	};
 	const contains = (a, b) => a.left <= b.left + 1 && a.top <= b.top + 1 && a.right >= b.right - 1 && a.bottom >= b.bottom + 1;
 	const squeeze = (t) => (t || "").replace(/\s+/g, " ").trim();
 	const seen = /* @__PURE__ */ new Set();
@@ -185177,7 +185466,20 @@ function extractLines(sel, root, maxLines = 10) {
 function collectHits(adapters, sel) {
 	const hits = [];
 	const covered = [];
-	const inSel = (r) => sel.left < r.right && sel.right > r.left && sel.top < r.bottom && sel.bottom > r.top;
+	const selArea = Math.max(1, (sel.right - sel.left) * (sel.bottom - sel.top));
+	const inSel = (r) => {
+		const area = Math.max(1, (r.right - r.left) * (r.bottom - r.top));
+		const ow = Math.min(sel.right, r.right) - Math.max(sel.left, r.left);
+		const oh = Math.min(sel.bottom, r.bottom) - Math.max(sel.top, r.top);
+		const overlap = Math.max(0, ow) * Math.max(0, oh);
+		if (overlap <= 0) return false;
+		if (area < selArea * 1.5) {
+			const cx = (r.left + r.right) / 2;
+			const cy = (r.top + r.bottom) / 2;
+			return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
+		}
+		return overlap / area >= .15;
+	};
 	const rectOf = (el) => {
 		const r = el.getBoundingClientRect();
 		return {
@@ -185276,7 +185578,7 @@ function collectHits(adapters, sel) {
 			}
 		}
 	}
-	return hits.filter((h) => Array.isArray(h.lines) && h.lines.length > 0 || typeof h.text === "string" && h.text.trim().length > 0 || Boolean(h.cardId) || Boolean(h.turn));
+	return hits.filter((h) => Array.isArray(h.lines) && h.lines.length > 0 || typeof h.text === "string" && h.text.trim().length > 0 || Boolean(h.cardId) || Boolean(h.turn) || Boolean(h.data?.path));
 }
 //#endregion
 //#region client/src/GlobalSelector.jsx
@@ -185493,6 +185795,10 @@ function buildContext({ hits, rect, question, hasImage, shotDebug }) {
 	else {
 		for (const hit of hits.slice(0, 6)) {
 			const where = hit.turn ? `turn ${hit.turn}` : hit.cardId ? `卡片 ${hit.cardId}` : hit.label;
+			if (hit.data?.path) {
+				lines.push(`- 文件：${hit.data.path}（可用 read 工具读取内容）`);
+				continue;
+			}
 			const body = Array.isArray(hit.lines) && hit.lines.length ? hit.lines.map((l) => `「${l}」`).join(" ") : hit.text ? `「${hit.text}」` : "";
 			lines.push(`- ${where}${body ? `：${body}` : ""}`);
 		}

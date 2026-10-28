@@ -13,6 +13,7 @@ import React, { useMemo } from 'react';
 import { renderComponent } from './AuraToolRow';
 import SelectionLayer from './SelectionLayer';
 import { buildSelectionContext } from './selection-context';
+import { cardToMd, cardsToMd, downloadMd } from './export-md';
 
 /**
  * 从会话节点提取 aura_panel 的返回值 {cards}。
@@ -220,6 +221,24 @@ export default function AuraPanel(props) {
     if (!res?.ok) throw new Error(res?.error?.message ?? '发送失败');
   }, [__auraSend]);
 
+  /** 导出单张卡片为 .md */
+  const handleExportCard = React.useCallback((card) => {
+    if (!card) return;
+    const md = cardToMd(card);
+    const safe = String(card.title ?? card.id ?? 'card').replace(/[\\/:*?"<>|]/g, '_');
+    const ok = downloadMd(safe, `## ${card.title ?? card.id}\n\n${md}`);
+    if (!ok) console.warn('[aura-panel] 单卡导出失败');
+  }, []);
+
+  /** 导出面板全部卡片为 .md（用 cardsRef 避免 TDZ：cards 定义在后面） */
+  const handleExportAll = React.useCallback(() => {
+    const list = cardsRef.current ?? [];
+    if (!list.length) return;
+    const md = cardsToMd(list, { sessionId: props?.sessionId });
+    const ok = downloadMd(`aura-panel-${Date.now()}`, md);
+    if (!ok) console.warn('[aura-panel] 全部导出失败');
+  }, [props?.sessionId]);
+
   /** 折叠状态（本地，不持久） */
   const [collapsedIds, setCollapsedIds] = React.useState(() => new Set());
   const handleToggleCollapse = React.useCallback((cardId) => {
@@ -394,11 +413,20 @@ export default function AuraPanel(props) {
 
   return (
     <div className="aura-panel" ref={panelRef}>
-      {selecting ? (
-        <div className="aura-panel-toolbar">
+      <div className="aura-panel-toolbar">
+        {selecting ? (
           <span className="aura-panel-tool-hint">在面板上拖拽圈选要提问的区域（Esc 退出）</span>
-        </div>
-      ) : null}
+        ) : (
+          <button
+            type="button"
+            className="aura-panel-tool"
+            onClick={handleExportAll}
+            disabled={cards.length === 0}
+          >
+            ⬇ 全部导出
+          </button>
+        )}
+      </div>
       {cards.map((card) => {
         const actions = Array.isArray(card.actions) ? card.actions : [];
         return (
@@ -411,6 +439,14 @@ export default function AuraPanel(props) {
             <div className="aura-panel-card-head">
               {card.title ? <h4 className="aura-panel-card-title">{card.title}</h4> : <span />}
               <div className="aura-panel-card-actions">
+                <button
+                  type="button"
+                  className="aura-panel-card-action"
+                  title="导出这张卡片（Markdown）"
+                  onClick={() => handleExportCard(card)}
+                >
+                  ↧
+                </button>
                 <button
                   type="button"
                   className="aura-panel-card-action"

@@ -148,6 +148,11 @@ function buildContext({ hits, rect, question, hasImage, shotDebug }) {
   } else {
     for (const hit of hits.slice(0, 6)) {
       const where = hit.turn ? `turn ${hit.turn}` : (hit.cardId ? `卡片 ${hit.cardId}` : hit.label);
+      // 侧边栏文件项：输出路径，agent 可直接 read 读内容
+      if (hit.data?.path) {
+        lines.push(`- 文件：${hit.data.path}（可用 read 工具读取内容）`);
+        continue;
+      }
       const body = Array.isArray(hit.lines) && hit.lines.length
         ? hit.lines.map((l) => `「${l}」`).join(' ')
         : (hit.text ? `「${hit.text}」` : '');

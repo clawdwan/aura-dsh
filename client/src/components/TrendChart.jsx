@@ -41,9 +41,21 @@ function buildOption(data) {
     animationDuration: 1400,
     animationEasing: 'cubicOut',
     animationThreshold: 2000,
-    grid: { left: 44, right: 16, top: 24, bottom: 28 },
+    // 顶部给图例留空间（多系列时），底部给横轴标签留空间
+    grid: { left: 44, right: 16, top: series.length > 1 ? 40 : 24, bottom: 28 },
     tooltip: { trigger: 'axis' },
-    legend: series.length > 1 ? { bottom: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 8 } : undefined,
+    legend: series.length > 1 ? {
+      top: 0,
+      left: 'center',
+      icon: 'roundRect',
+      itemWidth: 12,
+      itemHeight: 8,
+      itemGap: 16,
+      // hover 图例项时显示完整名称（宽度截断的补偿）
+      tooltip: { show: true },
+      // 宽度放宽到 120，超长再截断（配合上方 tooltip）
+      textStyle: { width: 120, overflow: 'truncate' },
+    } : undefined,
     xAxis: { type: 'category', data: categories, axisTick: { show: false } },
     yAxis: { type: 'value', name: unit, scale: true },
     series: series.map((s) => ({

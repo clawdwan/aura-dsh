@@ -49,6 +49,55 @@ export function createAuraCardAdapter() {
  * 通用 DOM 适配器：任何可见元素都可圈（兜底）。
  * 命中优先级低——只有在没有其它适配器命中时才用。
  */
+/**
+ * 侧边栏文件项（官方文件浏览器）：提取文件路径。
+ * 官方 DOM：data-files-entry / data-files-row 上带 data-files-path。
+ * 圈选后上下文给路径 → agent 可用 read 读内容。
+ */
+export function createFileAdapter() {
+  return {
+    id: 'file',
+    selector: '[data-files-entry], [data-files-row]',
+    describe(el) {
+      if (!el) return null;
+      const path = el.getAttribute?.('data-files-path')
+        ?? el.querySelector?.('[data-files-path]')?.getAttribute('data-files-path')
+        ?? el.closest?.('[data-files-path]')?.getAttribute('data-files-path')
+        ?? null;
+      const name = path ? path.split('/').pop() : (el.textContent ?? '').trim().slice(0, 60);
+      if (!path && !name) return null;
+      return {
+        label: name || path,
+        data: { kind: 'file', path: path || null, name: name || null },
+      };
+    },
+  };
+}
+
+/**
+ * 文档/代码预览（官方 sidebar-documentpreview）：提取文档或代码块内容。
+ * 官方 DOM：data-document-markdown（渲染后的 markdown）、data-code-block-content（代码块）。
+ */
+export function createDocAdapter() {
+  return {
+    id: 'doc',
+    selector: '[data-document-markdown], [data-code-block-content]',
+    describe(el, sel) {
+      if (!el) return null;
+      const heading = el.querySelector?.('h1, h2, h3')
+        ?? el.closest?.('[data-document-markdown]')?.querySelector('h1');
+      const label = heading?.textContent?.trim().slice(0, 40)
+        || (el.hasAttribute?.('data-code-block-content') ? '代码预览' : '文档预览');
+      const lines = extractLines(sel, el);
+      return {
+        label,
+        data: { kind: 'doc' },
+        lines,
+      };
+    },
+  };
+}
+
 export function createGenericDomAdapter() {
   return {
     id: 'generic-dom',
@@ -89,7 +138,13 @@ export function createConversationAdapter() {
 
 /** 默认适配器集合（aura 优先，对话流次之，通用兜底） */
 export function createDefaultAdapters() {
-  return [createAuraCardAdapter(), createConversationAdapter(), createGenericDomAdapter()];
+  return [
+    createAuraCardAdapter(),
+    createConversationAdapter(),
+    createFileAdapter(),
+    createDocAdapter(),
+    createGenericDomAdapter(),
+  ];
 }
 
 /**
@@ -108,7 +163,23 @@ export function extractLines(sel, root, maxLines = 10) {
   const scope = root ?? document.body;
   if (!scope) return lines;
 
-  const inSel = (r) => sel.left < r.right && sel.right > r.left && sel.top < r.bottom && sel.bottom > r.top;
+  const selArea = Math.max(1, (sel.right - sel.left) * (sel.bottom - sel.top));
+  // 命中判定：
+  // - 小元素（文件行/文本片段）：要求「中心点落在圈选区内」，避免相邻行边缘沾边被误收
+  // - 大元素（卡片/容器）：用重叠比例（圈选局部也要能命中）
+  const inSel = (r) => {
+    const area = Math.max(1, (r.right - r.left) * (r.bottom - r.top));
+    const ow = Math.min(sel.right, r.right) - Math.max(sel.left, r.left);
+    const oh = Math.min(sel.bottom, r.bottom) - Math.max(sel.top, r.top);
+    const overlap = Math.max(0, ow) * Math.max(0, oh);
+    if (overlap <= 0) return false;
+    if (area < selArea * 1.5) {
+      const cx = (r.left + r.right) / 2;
+      const cy = (r.top + r.bottom) / 2;
+      return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
+    }
+    return overlap / area >= 0.15;
+  };
   const contains = (a, b) => a.left <= b.left + 1 && a.top <= b.top + 1 && a.right >= b.right - 1 && a.bottom >= b.bottom + 1;
   const squeeze = (t) => (t || '').replace(/\s+/g, ' ').trim();
   const seen = new Set();
@@ -215,7 +286,23 @@ export function collectHits(adapters, sel) {
   const hits = [];
   const covered = []; // 已被结构化命中的区域（避免通用适配器重复）
 
-  const inSel = (r) => sel.left < r.right && sel.right > r.left && sel.top < r.bottom && sel.bottom > r.top;
+  const selArea = Math.max(1, (sel.right - sel.left) * (sel.bottom - sel.top));
+  // 命中判定：
+  // - 小元素（文件行/文本片段）：要求「中心点落在圈选区内」，避免相邻行边缘沾边被误收
+  // - 大元素（卡片/容器）：用重叠比例（圈选局部也要能命中）
+  const inSel = (r) => {
+    const area = Math.max(1, (r.right - r.left) * (r.bottom - r.top));
+    const ow = Math.min(sel.right, r.right) - Math.max(sel.left, r.left);
+    const oh = Math.min(sel.bottom, r.bottom) - Math.max(sel.top, r.top);
+    const overlap = Math.max(0, ow) * Math.max(0, oh);
+    if (overlap <= 0) return false;
+    if (area < selArea * 1.5) {
+      const cx = (r.left + r.right) / 2;
+      const cy = (r.top + r.bottom) / 2;
+      return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
+    }
+    return overlap / area >= 0.15;
+  };
   const rectOf = (el) => {
     const r = el.getBoundingClientRect();
     return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, area: r.width * r.height };
@@ -312,6 +399,8 @@ export function collectHits(adapters, sel) {
   return hits.filter((h) => (Array.isArray(h.lines) && h.lines.length > 0)
     || (typeof h.text === 'string' && h.text.trim().length > 0)
     || Boolean(h.cardId)
-    || Boolean(h.turn));
+    || Boolean(h.turn)
+    // 侧边栏文件项：有路径也算有效（内容由 agent 用 read 读）
+    || Boolean(h.data?.path));
 }
 
