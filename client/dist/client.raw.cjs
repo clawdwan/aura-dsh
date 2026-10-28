@@ -183675,18 +183675,42 @@ function createGenericDomAdapter() {
 		selector: null,
 		describe(el) {
 			if (!el || el === document.body || el === document.documentElement) return null;
-			const text = (el.textContent || "").replace(/\s+/g, " ").trim();
-			if (!text) return null;
+			const raw = (el.textContent || "").replace(/\s+/g, " ").trim();
+			if (!raw) return null;
 			return {
 				label: (el.tagName || "unknown").toLowerCase(),
-				text: text.slice(0, 300)
+				text: raw.length > 150 ? `${raw.slice(0, 150)}…` : raw
 			};
 		}
 	};
 }
-/** 默认适配器集合（aura 优先，通用兜底） */
+/**
+* 对话流适配器：DSH 对话节点带 data-chat-node-key / data-chat-turn，
+* 可精确定位到单个节点（而不是把整轮内容拼在一起）。
+*/
+function createConversationAdapter() {
+	return {
+		id: "conversation",
+		selector: "[data-chat-node-key]",
+		describe(el) {
+			if (!el?.dataset?.chatNodeKey) return null;
+			const turn = el.dataset.chatTurn;
+			const text = (el.textContent || "").replace(/\s+/g, " ").trim();
+			if (!text) return null;
+			return {
+				label: turn ? `对话节点（turn ${turn}）` : "对话节点",
+				text: text.length > 200 ? `${text.slice(0, 200)}…` : text
+			};
+		}
+	};
+}
+/** 默认适配器集合（aura 优先，对话流次之，通用兜底） */
 function createDefaultAdapters() {
-	return [createAuraCardAdapter(), createGenericDomAdapter()];
+	return [
+		createAuraCardAdapter(),
+		createConversationAdapter(),
+		createGenericDomAdapter()
+	];
 }
 /**
 * 收集圈选矩形内的命中（视口坐标）。
