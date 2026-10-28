@@ -183183,6 +183183,21 @@ function extractPanelResult(node) {
 	}
 	return null;
 }
+/** 本浏览器内持久化「已关闭卡片」集合（按会话隔离，静默无消息） */
+function loadHiddenIds(sessionId) {
+	try {
+		const raw = localStorage.getItem(`aura-hidden:${sessionId}`);
+		const list = raw ? JSON.parse(raw) : [];
+		return new Set(Array.isArray(list) ? list : []);
+	} catch {
+		return /* @__PURE__ */ new Set();
+	}
+}
+function saveHiddenIds(sessionId, ids) {
+	try {
+		localStorage.setItem(`aura-hidden:${sessionId}`, JSON.stringify([...ids]));
+	} catch {}
+}
 /**
 * 从事件流窗口提取面板卡片：取**最后一条** aura_panel 的 tool/result 里的 cards。
 * 事件流（eventSource.entries）含被折叠的 tool/call 与 tool/result，
@@ -183331,19 +183346,19 @@ function AuraPanel(props) {
 		});
 	}, []);
 	/**
-	* 关闭卡片：本地立即隐藏 + 让 agent 标记 dismissed（持久，刷新/重启后不再出现）。
-	* 注：用户确认走 dismissed 语义（A 方案），因此需要发一条简短指令。
+	* 关闭卡片：本地隐藏 + localStorage 持久化（静默，不发消息）。
+	* 刷新/重开页面后仍保持隐藏（按 sessionId 隔离，仅本浏览器）。
 	*/
-	const [hiddenIds, setHiddenIds] = react$1.default.useState(() => /* @__PURE__ */ new Set());
+	const [hiddenIds, setHiddenIds] = react$1.default.useState(() => loadHiddenIds(props?.sessionId));
 	const handleDismissCard = react$1.default.useCallback((cardId) => {
 		if (!cardId) return;
 		setHiddenIds((prev) => {
 			const next = new Set(prev);
 			next.add(cardId);
+			saveHiddenIds(props?.sessionId, next);
 			return next;
 		});
-		if (typeof __auraSend === "function") __auraSend(`[面板] 关闭卡片「${cardId}」（设为 dismissed=true），不要解释，直接调 aura_panel。`).catch((err) => console.warn("[aura-panel] 关闭持久化失败:", err?.message ?? err));
-	}, [__auraSend]);
+	}, [props?.sessionId]);
 	const handleAction = react$1.default.useCallback(async (action) => {
 		if (typeof __auraSend !== "function") {
 			setLastResult("❌ 未注入发送函数");
