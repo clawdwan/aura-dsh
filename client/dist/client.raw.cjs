@@ -185362,17 +185362,30 @@ function needsVisualCapture(rect) {
 			const tag = (el.tagName || "").toLowerCase();
 			const cls = typeof el.className === "string" ? el.className.split(" ")[0] : "";
 			debug.push(`${tag}${cls ? `.${cls}` : ""}`);
-			if (tag === "canvas" || tag === "svg" || tag === "iframe") return {
+			const w = el.clientWidth || 0;
+			const h = el.clientHeight || 0;
+			if (tag === "canvas" && w >= 200 && h >= 100) return {
 				visual: true,
-				debug: debug.slice(0, 8).join(" > ")
+				debug: `canvas ${w}x${h}`
 			};
-			if (typeof el.querySelector === "function" && el.querySelector("canvas, svg, iframe")) return {
+			if (tag === "svg" && w >= 240 && h >= 120) return {
 				visual: true,
-				debug: `容器含视觉元素 ${debug.slice(0, 6).join(" > ")}`
+				debug: `svg ${w}x${h}`
 			};
-			if (el.closest?.(".aura-chart, .aura-graph, .aura-html-card")) return {
+			if (tag === "iframe" && w >= 200 && h >= 120) return {
 				visual: true,
-				debug: `命中视觉容器 ${debug.slice(0, 6).join(" > ")}`
+				debug: `iframe ${w}x${h}`
+			};
+			if (typeof el.querySelector === "function") {
+				const big = el.querySelector("canvas");
+				if (big && (big.clientWidth || 0) >= 200 && (big.clientHeight || 0) >= 100) return {
+					visual: true,
+					debug: `容器含大 canvas ${big.clientWidth}x${big.clientHeight}`
+				};
+			}
+			if (el.closest?.(".aura-chart, .aura-graph")) return {
+				visual: true,
+				debug: `命中图表容器 ${debug.slice(0, 6).join(" > ")}`
 			};
 		}
 	}
