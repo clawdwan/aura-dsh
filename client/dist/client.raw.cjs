@@ -185325,7 +185325,20 @@ function extractLines(sel, root, maxLines = 10) {
 	if (!sel) return lines;
 	const scope = root ?? document.body;
 	if (!scope) return lines;
-	const inSel = (r) => sel.left < r.right && sel.right > r.left && sel.top < r.bottom && sel.bottom > r.top;
+	const selArea = Math.max(1, (sel.right - sel.left) * (sel.bottom - sel.top));
+	const inSel = (r) => {
+		const area = Math.max(1, (r.right - r.left) * (r.bottom - r.top));
+		const ow = Math.min(sel.right, r.right) - Math.max(sel.left, r.left);
+		const oh = Math.min(sel.bottom, r.bottom) - Math.max(sel.top, r.top);
+		const overlap = Math.max(0, ow) * Math.max(0, oh);
+		if (overlap <= 0) return false;
+		if (area < selArea * 1.5) {
+			const cx = (r.left + r.right) / 2;
+			const cy = (r.top + r.bottom) / 2;
+			return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
+		}
+		return overlap / area >= .15;
+	};
 	const contains = (a, b) => a.left <= b.left + 1 && a.top <= b.top + 1 && a.right >= b.right - 1 && a.bottom >= b.bottom + 1;
 	const squeeze = (t) => (t || "").replace(/\s+/g, " ").trim();
 	const seen = /* @__PURE__ */ new Set();
@@ -185447,7 +185460,20 @@ function extractLines(sel, root, maxLines = 10) {
 function collectHits(adapters, sel) {
 	const hits = [];
 	const covered = [];
-	const inSel = (r) => sel.left < r.right && sel.right > r.left && sel.top < r.bottom && sel.bottom > r.top;
+	const selArea = Math.max(1, (sel.right - sel.left) * (sel.bottom - sel.top));
+	const inSel = (r) => {
+		const area = Math.max(1, (r.right - r.left) * (r.bottom - r.top));
+		const ow = Math.min(sel.right, r.right) - Math.max(sel.left, r.left);
+		const oh = Math.min(sel.bottom, r.bottom) - Math.max(sel.top, r.top);
+		const overlap = Math.max(0, ow) * Math.max(0, oh);
+		if (overlap <= 0) return false;
+		if (area < selArea * 1.5) {
+			const cx = (r.left + r.right) / 2;
+			const cy = (r.top + r.bottom) / 2;
+			return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
+		}
+		return overlap / area >= .15;
+	};
 	const rectOf = (el) => {
 		const r = el.getBoundingClientRect();
 		return {
