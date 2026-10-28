@@ -1431,22 +1431,20 @@ svg.react-flow__connectionline {
   from { opacity: 0; transform: scale(0.9); }
   to { opacity: 1; transform: scale(1); }
 }
-.aura-radial svg { display: block; overflow: visible; }
-/* 极简：无任何描边，只有阴影托起；hover 才填色 */
-.aura-radial-base {
-  fill: var(--dsw-alias-bg-base, #ffffff);
-  stroke: none;
+.aura-radial svg {
+  display: block;
+  overflow: visible;
   filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.14));
 }
 .aura-radial-sector {
-  /* 透明蓝（而非 transparent）——避免过渡经过灰色 */
-  fill: rgba(65, 118, 230, 0);
+  /* 白色扇区（无圆底，gap 透出背景） */
+  fill: var(--dsw-alias-bg-base, #ffffff);
   stroke: none;
   transition: fill 0.08s ease;
   cursor: pointer;
 }
 .aura-radial-sector.is-active {
-  fill: rgba(65, 118, 230, 0.12);
+  fill: var(--dsw-static-deepseek-100, #e4edfd);
   stroke: none;
 }
 .aura-radial-icon {
@@ -1466,10 +1464,10 @@ svg.react-flow__connectionline {
   fill: var(--aura-accent-strong, #4868b2);
 }
 .aura-radial-center {
-  /* 方案 A：浅蓝中心（与 hover 高亮同色系） */
-  fill: var(--dsw-static-deepseek-100, #e4edfd);
+  /* 默认白色（与未选中扇区一致） */
+  fill: var(--dsw-alias-bg-base, #ffffff);
   stroke: none;
-  transition: fill 0.12s ease;
+  transition: fill 0.08s ease;
   cursor: pointer;
 }
 .aura-radial-center.is-active {
@@ -182496,12 +182494,6 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 			height: size,
 			viewBox: `0 0 ${size} ${size}`,
 			children: [
-				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
-					cx,
-					cy,
-					r: outerRadius,
-					className: "aura-radial-base"
-				}),
 				options?.map((opt, i) => {
 					const a = startBase + i * step;
 					const b = a + step;
@@ -182509,7 +182501,7 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 					const labelPos = polar(cx, cy, (outerRadius + centerRadius) / 2 + 6, mid);
 					return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", { children: [
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
-							d: sectorPath(cx, cy, centerRadius, outerRadius, a + 1, b - 1),
+							d: sectorPath(cx, cy, centerRadius + 4, outerRadius, a + 1, b - 1),
 							className: `aura-radial-sector${active(i) ? " is-active" : ""}`
 						}),
 						opt.icon ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
