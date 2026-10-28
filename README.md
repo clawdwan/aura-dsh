@@ -61,7 +61,7 @@
 dsh plugin --profile web add /path/to/aura-dsh
 
 # 从 GitHub（钉版本更稳）
-dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.0
+dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.1
 ```
 
 重启 dsh web 后生效。安装前可运行自检确认与宿主兼容：
@@ -195,6 +195,7 @@ npm run watch        # 开发热重建
 | 0.6.0 | 面板多 tab + 圈选快捷键（⌘⌥S）+ 径向菜单 + 来源 turn 追溯修复 |
 | 0.7.0 | 圈选精确命中 + 上下文精确与完整 + 面板持久化 + persist/dismissed 标记 |
 | 0.8.0 | 全局圈选（⌘⌥S 任意区域）+ 适配器协议 + 行级精确（表格行/代码块/段落）+ 简洁上下文 |
+| 0.8.1 | 径向菜单 5 个通用操作（图标分色）+ 卡片折叠/静默关闭 + 抖动修复 |
 
 详细变更见 [CHANGELOG.md](./CHANGELOG.md)。
 
