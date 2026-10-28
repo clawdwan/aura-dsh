@@ -103,77 +103,35 @@ export function apply(ctx) {
       />
     );
 
-    // 待注册队列：ctx.slots.inject 只能在 effect 上下文里生效，
-    // 所以 ensureTab 只登记，由下面的注册循环在 effect 内真正注册。
-    const pendingTabs = new Map(); // tabKey -> title | undefined
+    // ==== 右侧栏面板：单一 main tab（方案 A） ====
+    // 多 tab 需要动态注册，而 cordis 的 slots.inject 只能在 effect 同步上下文调用，
+    // 事件回调里注册会被忽略 → 先只保留 main tab，所有卡片都进它。
+    try {
+      const disposeTab = ctx.sidebarRightTabs.register({
+        id: 'dsh-aura-panel',
+        kind: 'aura-panel',
+        priority: 'extension',
+        multiple: false,
+        keepMounted: true,
+        title: () => 'Aura 面板',
+      });
+      const disposeInject = ctx.slots.inject('sidebar.right.pane.tab', () =>
+        ctx.slots.register({ name: 'sidebar.right.pane.tab', key: 'dsh-aura-panel' }, makePanelBody('main'))
+      );
+      ctx.effect(() => () => {
+        try { disposeInject?.(); } catch { /* ignore */ }
+        try { disposeTab?.(); } catch { /* ignore */ }
+      });
+    } catch (err) {
+      console.error('[aura-panel] tab 注册失败:', err?.message ?? err);
+    }
 
-    /** 登记一个 tab（幂等）；返回其 kind */
-    const ensureTab = (rawTabKey, rawTitle) => {
-      const tabKey = typeof rawTabKey === 'string' && rawTabKey.trim() ? rawTabKey.trim() : 'main';
-      if (!registeredTabs.has(tabKey) && !pendingTabs.has(tabKey)) {
-        pendingTabs.set(tabKey, typeof rawTitle === 'string' && rawTitle.trim() ? rawTitle.trim() : undefined);
-      }
-      return kindOf(tabKey);
-    };
-
-    /** 在 effect 内真正注册 tab 类型与 body（幂等） */
-    const registerTab = (tabKey) => {
-      if (registeredTabs.has(tabKey)) return;
-      const kind = kindOf(tabKey);
-      const id = idOf(tabKey);
-      const title = pendingTabs.get(tabKey);
-      try {
-        const disposeTab = ctx.sidebarRightTabs.register({
-          id,
-          kind,
-          priority: 'extension',
-          multiple: false,
-          keepMounted: true,
-          title: () => title ?? (tabKey === 'main' ? 'Aura 面板' : tabKey),
-        });
-        const disposeInject = ctx.slots.inject('sidebar.right.pane.tab', () =>
-          ctx.slots.register({ name: 'sidebar.right.pane.tab', key: id }, makePanelBody(tabKey))
-        );
-        registeredTabs.set(tabKey, () => {
-          try { disposeInject?.(); } catch { /* ignore */ }
-          try { disposeTab?.(); } catch { /* ignore */ }
-        });
-      } catch (err) {
-        console.error('[aura-panel] tab 注册失败:', tabKey, err?.message ?? err);
-      }
-    };
-
-    // 默认 main tab 始终存在（登记，稍后由 effect 注册）
-    ensureTab('main');
-
-    // tab 注册循环：effect 上下文内注册 pendingTabs（每 300ms 兜底 + 立即跑一次）
-    ctx.effect(() => {
-      const flush = () => {
-        for (const key of [...pendingTabs.keys()]) {
-          registerTab(key);
-          pendingTabs.delete(key);
-        }
-      };
-      flush();
-      const timer = setInterval(flush, 300);
-      return () => clearInterval(timer);
-    });
-
-    // 事件驱动打开：按推送卡片的 tab 字段路由到对应 tab（没有则先注册）
+    // 事件驱动打开：只开 main 面板（忽略卡片 tab 字段）
     ctx.effect(() => {
       const signal = createPanelSignal({
         sessions: ctx.sessions,
         sidebarRight: ctx.sidebarRight,
-        config: { tabKind: kindOf('main'), restoreOnHistory: true },
-        resolveTargets: (event) => {
-          let card = null;
-          try {
-            card = JSON.parse(event?.data?.arguments ?? '{}')?.card ?? null;
-          } catch { card = null; }
-          const tabKey = card?.tab ?? 'main';
-          const kind = ensureTab(tabKey, card?.tabTitle);
-          return [kind];
-        },
+        config: { tabKind: 'aura-panel', restoreOnHistory: true },
       });
       const stop = signal.start();
       try {
@@ -182,10 +140,6 @@ export function apply(ctx) {
       return () => {
         try { stop?.(); } catch { /* ignore */ }
         try { delete window.__auraProbe; } catch { /* ignore */ }
-        for (const dispose of registeredTabs.values()) {
-          try { dispose?.(); } catch { /* ignore */ }
-        }
-        registeredTabs.clear();
       };
     });
 

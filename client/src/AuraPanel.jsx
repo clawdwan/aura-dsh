@@ -358,10 +358,10 @@ export default function AuraPanel(props) {
     if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
     return allCards;
   }, [eventCards, allCards]);
-  // 多 tab：本面板只展示归属当前 tabKey 的卡片（缺省 main）；dismissed 卡不渲染
+  // 单 main 面板：展示所有未隐藏的卡片（忽略 card.tab；多 tab 后续再做）
   const cards = useMemo(
-    () => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id) && (c?.tab ?? 'main') === tabKey),
-    [sourceCards, tabKey, hiddenIds],
+    () => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)),
+    [sourceCards, hiddenIds],
   );
   cardsRef.current = cards;
 
