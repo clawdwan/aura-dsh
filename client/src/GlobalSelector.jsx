@@ -23,6 +23,7 @@ const RADIAL_OPTIONS = [
   { label: '解释这段', prompt: '请解释圈选的这部分内容（它是什么、含义、作用）。', color: 'var(--dsw-alias-label-secondary, #646a73)', icon: <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H7l-3 2v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></g> },
   { label: '质疑', prompt: '请对圈选的这部分内容提出质疑：有哪些问题、反例或不确定之处？', color: 'var(--dsw-alias-state-warning-primary, #d7771c)', icon: <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v4.5"/><circle cx="8" cy="11.5" r=".6" fill="currentColor" stroke="none"/></g> },
   { label: '查来源', prompt: '请核查圈选内容的来源与依据：出自哪里、是否准确、有无可验证的出处。', color: 'var(--dsw-alias-state-info-primary, #6b4fd8)', icon: <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="4"/><path d="M10.5 10.5 14 14"/></g> },
+  { label: '自定义', custom: true, icon: <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M11.5 2.5l2 2L5 13H3v-2z"/><path d="M10 4l2 2"/></g> },
 ];
 
 /** 判断圈选区域是否包含"视觉类"内容（图表/图形/iframe）→ 需要截图 */

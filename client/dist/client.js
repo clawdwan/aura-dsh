@@ -182426,12 +182426,18 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 	const commit = (0, react$1.useCallback)((target) => {
 		if (target === null || target === void 0) return;
 		if (target === "center") {
-			onCustom?.();
+			onCancel?.();
 			return;
 		}
 		const option = options?.[target];
-		if (option) onSelect?.(option);
+		if (!option) return;
+		if (option.custom) {
+			onCustom?.();
+			return;
+		}
+		onSelect?.(option);
 	}, [
+		onCancel,
 		onCustom,
 		onSelect,
 		options
@@ -182445,10 +182451,7 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 	}, [hitTest, hover]);
 	const handleClick = (0, react$1.useCallback)((e) => {
 		const target = hitTest(e);
-		if (target === null) {
-			onCancel?.();
-			return;
-		}
+		if (target === null) return;
 		if (performance.now() - hoverSince.current < confirmDelay) return;
 		commit(target);
 	}, [
@@ -182537,7 +182540,7 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 					className: `aura-radial-center-label${hover === "center" ? " is-active" : ""}`,
 					textAnchor: "middle",
 					dominantBaseline: "middle",
-					children: "自定义"
+					children: "取消"
 				})
 			]
 		})
@@ -182746,6 +182749,18 @@ const RADIAL_OPTIONS$1 = [
 				cy: "7",
 				r: "4"
 			}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M10.5 10.5 14 14" })]
+		})
+	},
+	{
+		label: "自定义",
+		custom: true,
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M11.5 2.5l2 2L5 13H3v-2z" }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M10 4l2 2" })]
 		})
 	}
 ];
@@ -185344,6 +185359,18 @@ const RADIAL_OPTIONS = [
 				cy: "7",
 				r: "4"
 			}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M10.5 10.5 14 14" })]
+		})
+	},
+	{
+		label: "自定义",
+		custom: true,
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M11.5 2.5l2 2L5 13H3v-2z" }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M10 4l2 2" })]
 		})
 	}
 ];

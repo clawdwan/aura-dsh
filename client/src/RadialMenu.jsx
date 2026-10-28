@@ -98,10 +98,14 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
 
   const commit = useCallback((target) => {
     if (target === null || target === undefined) return;
-    if (target === 'center') { onCustom?.(); return; }
+    // 中心圆 = 取消（点中间即退出）
+    if (target === 'center') { onCancel?.(); return; }
     const option = options?.[target];
-    if (option) onSelect?.(option);
-  }, [onCustom, onSelect, options]);
+    if (!option) return;
+    // 「自定义」扇区 → 展开输入框
+    if (option.custom) { onCustom?.(); return; }
+    onSelect?.(option);
+  }, [onCancel, onCustom, onSelect, options]);
 
   const handleMove = useCallback((e) => {
     const next = hitTest(e);
@@ -113,7 +117,8 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
 
   const handleClick = useCallback((e) => {
     const target = hitTest(e);
-    if (target === null) { onCancel?.(); return; }
+    // 点击空白不再取消（取消只走中心圆「取消」或 Esc，避免误触）
+    if (target === null) return;
     // 停留确认：避免鼠标掠过时误选
     if (performance.now() - hoverSince.current < confirmDelay) return;
     commit(target);
@@ -197,7 +202,7 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
           textAnchor="middle"
           dominantBaseline="middle"
         >
-          自定义
+          取消
         </text>
       </svg>
     </div>
