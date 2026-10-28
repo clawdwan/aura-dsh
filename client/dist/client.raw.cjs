@@ -1458,7 +1458,6 @@ svg.react-flow__connectionline {
 }
 .aura-radial-label.is-active {
   fill: var(--aura-accent-strong, #4868b2);
-  font-weight: 700;
 }
 .aura-radial-center {
   /* 方案 A：浅蓝中心（与 hover 高亮同色系） */
