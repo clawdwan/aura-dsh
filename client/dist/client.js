@@ -185360,17 +185360,32 @@ function needsVisualCapture(rect) {
 		[rect.right - 4, rect.bottom - 4],
 		[(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2]
 	];
+	const debug = [];
 	for (const [x, y] of points) {
 		const stack = typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(x, y) : [document.elementFromPoint(x, y)];
 		for (const el of stack) {
 			if (!el || el.closest?.(".aura-global-select")) continue;
 			const tag = (el.tagName || "").toLowerCase();
-			if (tag === "canvas" || tag === "svg" || tag === "iframe") return true;
-			if (typeof el.querySelector === "function" && el.querySelector("canvas, svg, iframe")) return true;
-			if (el.closest?.(".aura-chart, .aura-graph, .aura-html-card")) return true;
+			const cls = typeof el.className === "string" ? el.className.split(" ")[0] : "";
+			debug.push(`${tag}${cls ? `.${cls}` : ""}`);
+			if (tag === "canvas" || tag === "svg" || tag === "iframe") return {
+				visual: true,
+				debug: debug.slice(0, 8).join(" > ")
+			};
+			if (typeof el.querySelector === "function" && el.querySelector("canvas, svg, iframe")) return {
+				visual: true,
+				debug: `容器含视觉元素 ${debug.slice(0, 6).join(" > ")}`
+			};
+			if (el.closest?.(".aura-chart, .aura-graph, .aura-html-card")) return {
+				visual: true,
+				debug: `命中视觉容器 ${debug.slice(0, 6).join(" > ")}`
+			};
 		}
 	}
-	return false;
+	return {
+		visual: false,
+		debug: debug.slice(0, 8).join(" > ") || "无可识别层"
+	};
 }
 /** 截取圈选区域（浏览器 API；iframe 内容截不到，会成为空白） */
 async function captureSelection(rect) {
@@ -185390,7 +185405,7 @@ async function captureSelection(rect) {
 *   - 不重复完整消息内容（agent 在当前会话里有上下文记忆）
 *   - 无 id 的内容退回行级文本 + 语义容器
 */
-function buildContext({ hits, rect, question, hasImage }) {
+function buildContext({ hits, rect, question, hasImage, shotDebug }) {
 	const lines = [];
 	const vw = window.innerWidth || 1;
 	const vh = window.innerHeight || 1;
@@ -185412,6 +185427,10 @@ function buildContext({ hits, rect, question, hasImage }) {
 	if (hasImage) {
 		lines.push("");
 		lines.push("📷 已附圈选区域截图（视觉参考：布局/颜色/图形；iframe 内容在截图中为空白）。");
+	}
+	if (shotDebug) {
+		lines.push("");
+		lines.push(`【截图诊断（临时）】${shotDebug}`);
 	}
 	lines.push(`❓ 问题：${question}`);
 	lines.push("");
@@ -185543,25 +185562,27 @@ function GlobalSelector({ send, getSessionId }) {
 				bottom: rect.top + rect.height
 			};
 			let image = null;
-			const visual = needsVisualCapture(sel);
-			console.log("[aura-global-select] 视觉检测:", visual ? "需要截图" : "纯文本（不截图）", sel);
-			if (visual) try {
-				console.log("[aura-global-select] 开始截图…");
+			const visualCheck = needsVisualCapture(sel);
+			let shotDebug = visualCheck.visual ? "" : "未检测到视觉元素";
+			if (visualCheck.visual) try {
 				const base64 = await captureSelection(sel);
-				console.log("[aura-global-select] 截图完成:", base64 ? `${base64.length} chars` : "null");
-				if (base64) image = {
-					mediaType: "image/png",
-					data: base64,
-					name: "selection.png"
-				};
+				if (base64) {
+					image = {
+						mediaType: "image/png",
+						data: base64,
+						name: "selection.png"
+					};
+					shotDebug = `截图成功 ${Math.round(base64.length / 1024)}KB`;
+				} else shotDebug = "截图返回空";
 			} catch (err) {
-				console.error("[aura-global-select] 截图失败（降级为纯文本）:", err);
+				shotDebug = `截图失败：${String(err?.message ?? err).slice(0, 160)}`;
 			}
 			const ctx = buildContext({
 				hits,
 				rect: sel,
 				question: q,
-				hasImage: Boolean(image)
+				hasImage: Boolean(image),
+				shotDebug: `视觉=${visualCheck.visual}；${shotDebug}；层=${visualCheck.debug}`
 			});
 			const res = await send?.(ctx, image);
 			if (res?.ok === false) throw new Error(res?.error?.message ?? "发送失败");
