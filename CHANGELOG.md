@@ -2,6 +2,29 @@
 
 本项目所有重要变更记录于此。版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.8.5] — 2026-10-19
+
+### 新增
+
+- **Markdown 导出**：卡片右上角 ↧（单张）+ 面板顶部「全部导出」
+  · 新增 `client/src/export-md.js`：metric/table/insight/article/chart → 结构化 md
+  · html 卡 → HTML→Markdown（保留标题/表格/列表/引用，面向飞书云文档阅读）
+  · 下载为 .md 文件
+- **侧边栏文件/文档适配器**（无 id 语义容器）
+  · `createFileAdapter`：读官方文件浏览器的 `data-files-path` → 上下文给路径
+    （agent 可用 read 读内容，形成闭环）
+  · `createDocAdapter`：读 `data-document-markdown` / `data-code-block-content`
+  · 适配器优先级：aura 卡片 > 对话流 > file > doc > generic
+  · 仅只读官方 DOM 标记，不改 DSH 与官方插件
+
+### 修复
+
+- **折线图图例与横轴重叠**：图例从底部移到顶部，grid.top 留出图例空间
+- **图例文字重叠**：宽度 90→120 + `legend.tooltip`（hover 显示完整系列名）
+- **命中范围过宽**：小元素（文件行/文本片段）须中心点落在圈选区内；
+  大元素（卡片/容器）用 15% 重叠比例，避免相邻行边缘沾边被误收
+- **导出 TDZ**：`handleExportAll` 改用 `cardsRef`（cards 定义在函数之后导致面板崩溃）
+
 ## [0.8.4] — 2026-10-19
 
 ### 变更
