@@ -185455,10 +185455,6 @@ function buildContext({ hits, rect, question, hasImage, shotDebug }) {
 		lines.push("");
 		lines.push("📷 已附圈选区域截图（视觉参考：布局/颜色/图形；iframe 内容在截图中为空白）。");
 	}
-	if (shotDebug) {
-		lines.push("");
-		lines.push(`【截图诊断（临时）】${shotDebug}`);
-	}
 	lines.push(`❓ 问题：${question}`);
 	lines.push("");
 	lines.push("【说明】");
@@ -185589,9 +185585,7 @@ function GlobalSelector({ send, getSessionId }) {
 				bottom: rect.top + rect.height
 			};
 			let image = null;
-			const visualCheck = needsVisualCapture(sel);
-			let shotDebug = visualCheck.visual ? "" : "未检测到视觉元素";
-			if (visualCheck.visual) try {
+			if (needsVisualCapture(sel).visual) try {
 				const shot = await captureSelection(sel);
 				if (shot?.base64) {
 					image = {
@@ -185599,17 +185593,16 @@ function GlobalSelector({ send, getSessionId }) {
 						data: shot.base64,
 						name: "selection.png"
 					};
-					shotDebug = `截图成功 ${Math.round(shot.base64.length / 1024)}KB ${shot.debug}`;
-				} else shotDebug = `截图返回空 ${shot?.debug ?? ""}`;
+					console.log("[aura-global-select] 截图成功:", shot.debug);
+				} else console.warn("[aura-global-select] 截图返回空:", shot?.debug);
 			} catch (err) {
-				shotDebug = `截图失败：${String(err?.message ?? err).slice(0, 160)}`;
+				console.warn("[aura-global-select] 截图失败（降级纯文本）:", err?.message ?? err);
 			}
 			const ctx = buildContext({
 				hits,
 				rect: sel,
 				question: q,
-				hasImage: Boolean(image),
-				shotDebug: `视觉=${visualCheck.visual}；${shotDebug}；层=${visualCheck.debug}`
+				hasImage: Boolean(image)
 			});
 			const res = await send?.(ctx, image);
 			if (res?.ok === false) throw new Error(res?.error?.message ?? "发送失败");

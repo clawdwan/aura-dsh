@@ -2,6 +2,26 @@
 
 本项目所有重要变更记录于此。版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.8.2] — 2026-10-19
+
+### 新增
+
+- **视觉类圈选自动截图**：圈选图表/图形/iframe 区域时自动截取该区域，
+  以图片形式随提问发送（文字锚点 + 截图为视觉补充）
+  · **canvas 直出**：趋势图等 `<canvas>` 直接 `toDataURL`，瞬间完成
+  · **DOM 截图兜底**：非 canvas 的视觉区域用 modern-screenshot 截容器后裁剪
+  · **视觉检测**：`elementsFromPoint` 遍历层栈 + 容器子元素检查
+    （修复此前被卡片容器 div 挡住、break 太早的问题）
+
+### 修复
+
+- **canvas 圈选无径向菜单**：折线图无文本节点，命中被空过滤清空 → 只显示输入框；
+  改为有 cardId/turn 也算有效命中
+- **截图裁剪宽高 NaN**：`rect` 只有 `left/top/right/bottom`，改用差值计算
+- **截图容器检测**：`elementFromPoint` 命中圈选层自身 → 改用 `elementsFromPoint` 跳过
+- **modern-screenshot 模块解析失败**：DSH `__ModuleLoader__` 不支持动态 import
+  与外部依赖 → 改静态 import 并加入 `alwaysBundle` 内联进 bundle
+
 ## [0.8.1] — 2026-10-19
 
 ### 变更
