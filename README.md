@@ -61,7 +61,7 @@
 dsh plugin --profile web add /path/to/aura-dsh
 
 # 从 GitHub（钉版本更稳）
-dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.3
+dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.4
 ```
 
 重启 dsh web 后生效。安装前可运行自检确认与宿主兼容：
@@ -198,6 +198,7 @@ npm run watch        # 开发热重建
 | 0.8.1 | 径向菜单 5 个通用操作（图标分色）+ 卡片折叠/静默关闭 + 抖动修复 |
 | 0.8.2 | 视觉类圈选自动截图（canvas 直出 + DOM 兜底，随提问以图片发送） |
 | 0.8.3 | 面板回退单一 main tab + 截图尺寸阈值 + 工具参数 JSON 约束强化 |
+| 0.8.4 | 径向菜单 6 扇区 + 中心取消 + 视觉/动画打磨 |
 
 详细变更见 [CHANGELOG.md](./CHANGELOG.md)。
 

@@ -1378,24 +1378,23 @@ svg.react-flow__connectionline {
   /* fixed：相对视口定位，面板滚动时菜单不跟着偏移；坐标由组件 clamp 到视口内 */
   position: fixed;
   z-index: 45;
-  animation: aura-radial-in 0.15s ease-out both;
+  animation: aura-radial-in 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   touch-action: none;
 }
 @keyframes aura-radial-in {
   from { opacity: 0; transform: scale(0.9); }
   to { opacity: 1; transform: scale(1); }
 }
-.aura-radial svg { display: block; overflow: visible; }
-/* 极简：无任何描边，只有阴影托起；hover 才填色 */
-.aura-radial-base {
-  fill: var(--dsw-alias-bg-base, #ffffff);
-  stroke: none;
+.aura-radial svg {
+  display: block;
+  overflow: visible;
   filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.14));
 }
 .aura-radial-sector {
-  fill: transparent;
+  /* 白色扇区（无圆底，gap 透出背景） */
+  fill: var(--dsw-alias-bg-base, #ffffff);
   stroke: none;
-  transition: fill 0.12s ease;
+  transition: fill 0.08s ease;
   cursor: pointer;
 }
 .aura-radial-sector.is-active {
@@ -1417,27 +1416,34 @@ svg.react-flow__connectionline {
 }
 .aura-radial-label.is-active {
   fill: var(--aura-accent-strong, #4868b2);
-  font-weight: 700;
 }
 .aura-radial-center {
-  fill: var(--dsw-alias-bg-l2, rgba(128, 128, 128, 0.1));
+  /* 默认白色（与未选中扇区一致） */
+  fill: var(--dsw-alias-bg-base, #ffffff);
   stroke: none;
-  transition: fill 0.12s ease;
+  transition: fill 0.08s ease;
   cursor: pointer;
 }
 .aura-radial-center.is-active {
   fill: var(--dsw-static-deepseek-100, #e4edfd);
   stroke: none;
 }
+.aura-radial-center-icon {
+  color: var(--aura-accent-strong, #4868b2);
+  pointer-events: none;
+  transition: color 0.08s ease;
+}
+.aura-radial-center-icon.is-active {
+  color: var(--aura-accent-strong, #4868b2);
+}
 .aura-radial-center-label {
-  font-size: 10.5px;
-  fill: var(--dsw-alias-label-secondary, #646a73);
+  font-size: 13px;
+  fill: var(--dsw-static-deepseek-600, #2b5bd7);
   pointer-events: none;
   transition: fill 0.12s ease;
 }
 .aura-radial-center-label.is-active {
   fill: var(--aura-accent-strong, #4868b2);
-  font-weight: 700;
 }
 /* ---- 全局圈选层（快捷键 ⌘⌥S / 任意区域） ---- */
 .aura-global-select {

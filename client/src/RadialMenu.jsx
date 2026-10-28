@@ -15,9 +15,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 export const RADIAL_DEFAULTS = {
   /** 外环半径（px） */
-  outerRadius: 110,
+  outerRadius: 120,
   /** 中心圆半径（px） */
-  centerRadius: 40,
+  centerRadius: 34,
   /** 判定为"有效方向"的最小半径（px），小于它视为在中心附近 */
   minRadius: 28,
   /** 高亮停留多久后才允许选中（ms） */
@@ -62,7 +62,7 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
   const cx = size / 2;
   const cy = size / 2;
 
-  const [hover, setHover] = useState(null); // 扇区索引 | 'center' | null
+  const [hover, setHover] = useState(0); // 默认高亮第一个扇区（避免“唤起后无反馈”）
   const hoverSince = useRef(0);
   const rootRef = useRef(null);
 
@@ -98,10 +98,14 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
 
   const commit = useCallback((target) => {
     if (target === null || target === undefined) return;
-    if (target === 'center') { onCustom?.(); return; }
+    // 中心圆 = 取消（点中间即退出）
+    if (target === 'center') { onCancel?.(); return; }
     const option = options?.[target];
-    if (option) onSelect?.(option);
-  }, [onCustom, onSelect, options]);
+    if (!option) return;
+    // 「自定义」扇区 → 展开输入框
+    if (option.custom) { onCustom?.(); return; }
+    onSelect?.(option);
+  }, [onCancel, onCustom, onSelect, options]);
 
   const handleMove = useCallback((e) => {
     const next = hitTest(e);
@@ -113,7 +117,8 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
 
   const handleClick = useCallback((e) => {
     const target = hitTest(e);
-    if (target === null) { onCancel?.(); return; }
+    // 点击空白不再取消（取消只走中心圆「取消」或 Esc，避免误触）
+    if (target === null) return;
     // 停留确认：避免鼠标掠过时误选
     if (performance.now() - hoverSince.current < confirmDelay) return;
     commit(target);
@@ -150,8 +155,6 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
       aria-label="圈选提问选项"
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {/* 不透明圆形底：避免半透明色叠在卡片上发闷 */}
-        <circle cx={cx} cy={cy} r={outerRadius + 3} className="aura-radial-base" />
         {options?.map((opt, i) => {
           const a = startBase + i * step;
           const b = a + step;
@@ -160,7 +163,7 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
           return (
             <g key={opt.label}>
               <path
-                d={sectorPath(cx, cy, centerRadius + 6, outerRadius, a + 1, b - 1)}
+                d={sectorPath(cx, cy, centerRadius + 10, outerRadius, a, b)}
                 className={`aura-radial-sector${active(i) ? ' is-active' : ''}`}
               />
               {opt.icon ? (
@@ -190,14 +193,22 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
           r={centerRadius}
           className={`aura-radial-center${hover === 'center' ? ' is-active' : ''}`}
         />
+        <g
+          className={`aura-radial-center-icon${hover === 'center' ? ' is-active' : ''}`}
+          transform={`translate(${cx}, ${cy - 10})`}
+        >
+          <g transform="translate(-6, -6)" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <path d="M2 2l8 8M10 2l-8 8" />
+          </g>
+        </g>
         <text
           x={cx}
-          y={cy}
+          y={cy + 10}
           className={`aura-radial-center-label${hover === 'center' ? ' is-active' : ''}`}
           textAnchor="middle"
           dominantBaseline="middle"
         >
-          自定义
+          取消
         </text>
       </svg>
     </div>

@@ -1424,24 +1424,23 @@ svg.react-flow__connectionline {
   /* fixed：相对视口定位，面板滚动时菜单不跟着偏移；坐标由组件 clamp 到视口内 */
   position: fixed;
   z-index: 45;
-  animation: aura-radial-in 0.15s ease-out both;
+  animation: aura-radial-in 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   touch-action: none;
 }
 @keyframes aura-radial-in {
   from { opacity: 0; transform: scale(0.9); }
   to { opacity: 1; transform: scale(1); }
 }
-.aura-radial svg { display: block; overflow: visible; }
-/* 极简：无任何描边，只有阴影托起；hover 才填色 */
-.aura-radial-base {
-  fill: var(--dsw-alias-bg-base, #ffffff);
-  stroke: none;
+.aura-radial svg {
+  display: block;
+  overflow: visible;
   filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.14));
 }
 .aura-radial-sector {
-  fill: transparent;
+  /* 白色扇区（无圆底，gap 透出背景） */
+  fill: var(--dsw-alias-bg-base, #ffffff);
   stroke: none;
-  transition: fill 0.12s ease;
+  transition: fill 0.08s ease;
   cursor: pointer;
 }
 .aura-radial-sector.is-active {
@@ -1463,27 +1462,34 @@ svg.react-flow__connectionline {
 }
 .aura-radial-label.is-active {
   fill: var(--aura-accent-strong, #4868b2);
-  font-weight: 700;
 }
 .aura-radial-center {
-  fill: var(--dsw-alias-bg-l2, rgba(128, 128, 128, 0.1));
+  /* 默认白色（与未选中扇区一致） */
+  fill: var(--dsw-alias-bg-base, #ffffff);
   stroke: none;
-  transition: fill 0.12s ease;
+  transition: fill 0.08s ease;
   cursor: pointer;
 }
 .aura-radial-center.is-active {
   fill: var(--dsw-static-deepseek-100, #e4edfd);
   stroke: none;
 }
+.aura-radial-center-icon {
+  color: var(--aura-accent-strong, #4868b2);
+  pointer-events: none;
+  transition: color 0.08s ease;
+}
+.aura-radial-center-icon.is-active {
+  color: var(--aura-accent-strong, #4868b2);
+}
 .aura-radial-center-label {
-  font-size: 10.5px;
-  fill: var(--dsw-alias-label-secondary, #646a73);
+  font-size: 13px;
+  fill: var(--dsw-static-deepseek-600, #2b5bd7);
   pointer-events: none;
   transition: fill 0.12s ease;
 }
 .aura-radial-center-label.is-active {
   fill: var(--aura-accent-strong, #4868b2);
-  font-weight: 700;
 }
 /* ---- 全局圈选层（快捷键 ⌘⌥S / 任意区域） ---- */
 .aura-global-select {
@@ -182340,9 +182346,9 @@ const auraDefinition = {
 */
 const RADIAL_DEFAULTS = {
 	/** 外环半径（px） */
-	outerRadius: 110,
+	outerRadius: 120,
 	/** 中心圆半径（px） */
-	centerRadius: 40,
+	centerRadius: 34,
 	/** 判定为"有效方向"的最小半径（px），小于它视为在中心附近 */
 	minRadius: 28,
 	/** 高亮停留多久后才允许选中（ms） */
@@ -182388,7 +182394,7 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 	const size = outerRadius * 2 + 24;
 	const cx = size / 2;
 	const cy = size / 2;
-	const [hover, setHover] = (0, react$1.useState)(null);
+	const [hover, setHover] = (0, react$1.useState)(0);
 	const hoverSince = (0, react$1.useRef)(0);
 	const rootRef = (0, react$1.useRef)(null);
 	const count = Math.max(options?.length ?? 0, 1);
@@ -182426,12 +182432,18 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 	const commit = (0, react$1.useCallback)((target) => {
 		if (target === null || target === void 0) return;
 		if (target === "center") {
-			onCustom?.();
+			onCancel?.();
 			return;
 		}
 		const option = options?.[target];
-		if (option) onSelect?.(option);
+		if (!option) return;
+		if (option.custom) {
+			onCustom?.();
+			return;
+		}
+		onSelect?.(option);
 	}, [
+		onCancel,
 		onCustom,
 		onSelect,
 		options
@@ -182445,10 +182457,7 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 	}, [hitTest, hover]);
 	const handleClick = (0, react$1.useCallback)((e) => {
 		const target = hitTest(e);
-		if (target === null) {
-			onCancel?.();
-			return;
-		}
+		if (target === null) return;
 		if (performance.now() - hoverSince.current < confirmDelay) return;
 		commit(target);
 	}, [
@@ -182493,12 +182502,6 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 			height: size,
 			viewBox: `0 0 ${size} ${size}`,
 			children: [
-				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
-					cx,
-					cy,
-					r: outerRadius + 3,
-					className: "aura-radial-base"
-				}),
 				options?.map((opt, i) => {
 					const a = startBase + i * step;
 					const b = a + step;
@@ -182506,7 +182509,7 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 					const labelPos = polar(cx, cy, (outerRadius + centerRadius) / 2 + 6, mid);
 					return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", { children: [
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
-							d: sectorPath(cx, cy, centerRadius + 6, outerRadius, a + 1, b - 1),
+							d: sectorPath(cx, cy, centerRadius + 10, outerRadius, a, b),
 							className: `aura-radial-sector${active(i) ? " is-active" : ""}`
 						}),
 						opt.icon ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
@@ -182531,13 +182534,25 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 					r: centerRadius,
 					className: `aura-radial-center${hover === "center" ? " is-active" : ""}`
 				}),
+				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
+					className: `aura-radial-center-icon${hover === "center" ? " is-active" : ""}`,
+					transform: `translate(${cx}, ${cy - 10})`,
+					children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
+						transform: "translate(-6, -6)",
+						fill: "none",
+						stroke: "currentColor",
+						strokeWidth: "1.6",
+						strokeLinecap: "round",
+						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M2 2l8 8M10 2l-8 8" })
+					})
+				}),
 				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("text", {
 					x: cx,
-					y: cy,
+					y: cy + 10,
 					className: `aura-radial-center-label${hover === "center" ? " is-active" : ""}`,
 					textAnchor: "middle",
 					dominantBaseline: "middle",
-					children: "自定义"
+					children: "取消"
 				})
 			]
 		})
@@ -182746,6 +182761,18 @@ const RADIAL_OPTIONS$1 = [
 				cy: "7",
 				r: "4"
 			}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M10.5 10.5 14 14" })]
+		})
+	},
+	{
+		label: "自定义",
+		custom: true,
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M11.5 2.5l2 2L5 13H3v-2z" }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M10 4l2 2" })]
 		})
 	}
 ];
@@ -185345,6 +185372,18 @@ const RADIAL_OPTIONS = [
 				r: "4"
 			}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M10.5 10.5 14 14" })]
 		})
+	},
+	{
+		label: "自定义",
+		custom: true,
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M11.5 2.5l2 2L5 13H3v-2z" }), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M10 4l2 2" })]
+		})
 	}
 ];
 /** 判断圈选区域是否包含"视觉类"内容（图表/图形/iframe）→ 需要截图 */
@@ -185526,6 +185565,7 @@ function GlobalSelector({ send, getSessionId }) {
 	}, [active, reset]);
 	const onPointerDown = (0, react$1.useCallback)((e) => {
 		if (e.button !== 0) return;
+		if (hits) return;
 		e.preventDefault();
 		startRef.current = {
 			x: e.clientX,
@@ -185537,7 +185577,7 @@ function GlobalSelector({ send, getSessionId }) {
 			width: 0,
 			height: 0
 		});
-	}, []);
+	}, [hits]);
 	const onPointerMove = (0, react$1.useCallback)((e) => {
 		if (!startRef.current) return;
 		const s = startRef.current;
