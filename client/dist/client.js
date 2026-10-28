@@ -183960,7 +183960,7 @@ function collectHits(adapters, sel) {
 			}
 		}
 	}
-	return hits;
+	return hits.filter((h) => Array.isArray(h.lines) && h.lines.length > 0 || typeof h.text === "string" && h.text.trim().length > 0);
 }
 //#endregion
 //#region client/src/GlobalSelector.jsx

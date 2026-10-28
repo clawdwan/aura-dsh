@@ -307,5 +307,8 @@ export function collectHits(adapters, sel) {
     }
   }
 
-  return hits;
+  // 过滤空命中：只有 turn/id 没有文本的条目会污染上下文
+  return hits.filter((h) => (Array.isArray(h.lines) && h.lines.length > 0)
+    || (typeof h.text === 'string' && h.text.trim().length > 0));
 }
+
