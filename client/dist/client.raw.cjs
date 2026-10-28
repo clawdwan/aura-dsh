@@ -183093,7 +183093,7 @@ function isPendingCard(card) {
 	return typeof d === "object" && !Array.isArray(d) && Object.keys(d).length === 0;
 }
 function AuraPanel(props) {
-	const { useChat, __auraSend, __auraLoadOlder, tabKey = "main" } = props;
+	const { useChat, __auraSend, tabKey = "main" } = props;
 	const [sendingId, setSendingId] = react$1.default.useState(null);
 	const [lastResult, setLastResult] = react$1.default.useState(null);
 	const [selecting, setSelecting] = react$1.default.useState(false);
@@ -183220,23 +183220,6 @@ function AuraPanel(props) {
 		firstKeys: safeState.firstKeys ?? null
 	};
 	cardsRef.current = cards;
-	const loadOlderRef = react$1.default.useRef(false);
-	react$1.default.useEffect(() => {
-		if (loadOlderRef.current) return;
-		if (typeof __auraLoadOlder !== "function") return;
-		if (diag.nodeCount === 0) return;
-		if (diag.panelNodes > 0) return;
-		loadOlderRef.current = true;
-		const sid = props?.sessionId;
-		if (!sid) return;
-		console.log("[aura-panel] 窗口内无 aura_panel 节点，尝试加载更早历史…");
-		__auraLoadOlder(sid).then((r) => console.log("[aura-panel] loadOlder 完成:", r)).catch((e) => console.error("[aura-panel] loadOlder 异常:", e?.message ?? e));
-	}, [
-		diag.nodeCount,
-		diag.panelNodes,
-		__auraLoadOlder,
-		props?.sessionId
-	]);
 	if (cards.length === 0) {
 		if (!hydrated) return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 			className: "aura-panel-loading-state",
@@ -183618,38 +183601,10 @@ function apply(ctx) {
 				}]
 			});
 		};
-		/** 往前加载历史（会话窗口不足时把旧 aura_panel 调用拉进来） */
-		const loadOlderHistory = async (sessionId) => {
-			if (!sessionId) return { loaded: 0 };
-			let reference;
-			try {
-				reference = ctx.sessions?.retain?.(sessionId, { source: "controllerOperation" });
-				const binding = reference?.binding;
-				if (!binding?.loadOlder) return { loaded: 0 };
-				let pages = 0;
-				for (let i = 0; i < 10; i += 1) {
-					if (!(binding.eventSource?.getSnapshot?.())?.hasMore) break;
-					await binding.loadOlder();
-					pages += 1;
-				}
-				return { loaded: pages };
-			} catch (err) {
-				console.error("[aura-panel] loadOlder 失败:", err?.message ?? err);
-				return {
-					loaded: 0,
-					error: String(err?.message ?? err)
-				};
-			} finally {
-				try {
-					reference?.release?.();
-				} catch {}
-			}
-		};
 		const makePanelBody = (tabKey) => (props) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(AuraPanel, {
 			...props,
 			tabKey,
-			__auraSend: makeSend(props),
-			__auraLoadOlder: loadOlderHistory
+			__auraSend: makeSend(props)
 		}, `${props?.sessionId}:${tabKey}`);
 		const pendingTabs = /* @__PURE__ */ new Map();
 		/** 登记一个 tab（幂等）；返回其 kind */

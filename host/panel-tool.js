@@ -29,6 +29,7 @@ export const panelParameters = {
     description: "卡片对象（action='upsert' 时必填）：{ id, type, title?, data?, actions?, pending? }。"
       + "pending=true 或省略 data 时，面板显示骨架屏占位（适合多卡片任务：先推结构再填数据）。"
       + "type 与 data 契约同 aura_render；actions[].prompt 是点击按钮后注入会话的指令文本。"
+      + "persist=true 表示常驻卡片（不参与 20 张上限淘汰、跨刷新/重启保留）；dismissed=true 表示隐藏（不渲染、数据保留）；"
       + "tab 是面板内频道键（如 'market'/'research'，缺省 'main'），tabTitle 是该频道显示名；"
       + "同一会话可在多个 tab 里分别组织内容。"
       + "action='remove' 时只需 { id }。",
@@ -77,6 +78,8 @@ function normalizeCard(raw) {
     ...(actions ? { actions } : {}),
     ...(raw.collapsed === true ? { collapsed: true } : {}),
     ...(raw.pending === true ? { pending: true } : {}),
+    ...(raw.persist === true ? { persist: true } : {}),
+    ...(raw.dismissed === true ? { dismissed: true } : {}),
     ...(safeType !== type ? { downgradedFrom: type } : {}),
   };
 }
@@ -93,6 +96,9 @@ export function createPanelExecute(store) {
     }
     const action = typeof args?.action === 'string' ? args.action : 'upsert';
     const note = typeof args?.text === 'string' ? args.text : '';
+
+    // 懒加载磁盘状态（刷新/重启后恢复）
+    try { await store.ensureLoaded?.(sessionId); } catch { /* 忽略 */ }
 
     if (action === 'clear') {
       const cards = store.clear(sessionId);
