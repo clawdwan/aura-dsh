@@ -107,10 +107,48 @@ export function extractLines(sel, root, maxLines = 10) {
   if (!sel) return lines;
   const scope = root ?? document.body;
   if (!scope) return lines;
-  const caretAt = (x, y) => {
-    if (typeof document.caretRangeFromPoint === 'function') {
-      return document.caretRangeFromPoint(x, y);
+
+  const inSel = (r) => sel.left < r.right && sel.right > r.left && sel.top < r.bottom && sel.bottom > r.top;
+  const contains = (a, b) => a.left <= b.left + 1 && a.top <= b.top + 1 && a.right >= b.right - 1 && a.bottom >= b.bottom + 1;
+  const squeeze = (t) => (t || '').replace(/\s+/g, ' ').trim();
+  const seen = new Set();
+  const used = []; // 已被语义元素覆盖的矩形（避免单元格/子元素重复）
+
+  // 1) 语义元素优先：表格行 → 列表项 → 代码块 → 段落 → 标题 → 引用
+  const SEMANTIC = [
+    { q: 'tr', kind: 'row' },
+    { q: 'li', kind: 'item' },
+    { q: 'pre', kind: 'code' },
+    { q: 'p', kind: 'para' },
+    { q: 'h1, h2, h3, h4, h5, h6', kind: 'heading' },
+    { q: 'blockquote', kind: 'quote' },
+  ];
+  for (const { q, kind } of SEMANTIC) {
+    let els = [];
+    try { els = [...scope.querySelectorAll(q)]; } catch { els = []; }
+    for (const el of els) {
+      const r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4 || !inSel(r)) continue;
+      if (used.some((u) => contains(u, r))) continue;
+      let text = '';
+      if (kind === 'row') {
+        text = [...el.querySelectorAll('td,th')].map((c) => squeeze(c.textContent)).filter(Boolean).join(' / ');
+      } else if (kind === 'code') {
+        text = `代码块：${squeeze(el.textContent).slice(0, 300)}`;
+      } else {
+        text = squeeze(el.textContent).slice(0, 300);
+      }
+      if (text.length < 4 || seen.has(text)) continue;
+      seen.add(text);
+      lines.push(text);
+      used.push(r);
+      if (lines.length >= maxLines) return lines;
     }
+  }
+
+  // 2) 兜底：文本节点（跳过已覆盖区域与圈选层自身）
+  const caretAt = (x, y) => {
+    if (typeof document.caretRangeFromPoint === 'function') return document.caretRangeFromPoint(x, y);
     if (typeof document.caretPositionFromPoint === 'function') {
       const pos = document.caretPositionFromPoint(x, y);
       if (!pos) return null;
@@ -121,28 +159,12 @@ export function extractLines(sel, root, maxLines = 10) {
     }
     return null;
   };
-  const seen = new Set();
-  const seenCode = new Set();
   const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
   let node = walker.nextNode();
   while (node && lines.length < maxLines) {
     const raw = node.textContent;
     if (raw && raw.trim()) {
       const parent = node.parentElement;
-      // 代码块：语法高亮会把代码拆成大量 token 文本节点 —— 整体提取一次，跳过碎片
-      const codeBlock = parent?.closest('pre, code');
-      if (codeBlock && !seenCode.has(codeBlock)) {
-        seenCode.add(codeBlock);
-        const cr = codeBlock.getBoundingClientRect();
-        if (sel.left < cr.right && sel.right > cr.left && sel.top < cr.bottom && sel.bottom > cr.top) {
-          const codeText = (codeBlock.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300);
-          if (codeText) lines.push(`代码块：${codeText}`);
-          if (lines.length >= maxLines) break;
-        }
-        node = walker.nextNode();
-        continue;
-      }
-      if (codeBlock) { node = walker.nextNode(); continue; }
       if (parent && !parent.closest('.aura-global-select')) {
         const range = document.createRange();
         range.selectNodeContents(node);
@@ -150,7 +172,8 @@ export function extractLines(sel, root, maxLines = 10) {
         try { rects = [...range.getClientRects()]; } catch { rects = []; }
         for (const rect of rects) {
           if (rect.width < 2 || rect.height < 2) continue;
-          if (!(sel.left < rect.right && sel.right > rect.left && sel.top < rect.bottom && sel.bottom > rect.top)) continue;
+          if (!inSel(rect)) continue;
+          if (used.some((u) => contains(u, rect))) continue;
           const y = rect.top + rect.height / 2;
           const startR = caretAt(rect.left + 2, y);
           const endR = caretAt(rect.right - 2, y);
@@ -160,13 +183,10 @@ export function extractLines(sel, root, maxLines = 10) {
               const r = document.createRange();
               r.setStart(startR.startContainer, startR.startOffset);
               r.setEnd(endR.endContainer, endR.endOffset ?? endR.startOffset);
-              text = r.toString().replace(/\s+/g, ' ').trim();
+              text = squeeze(r.toString());
             } catch { text = ''; }
           }
-          // 退回：caretRangeFromPoint 不可用/失败时，用该文本节点内容（截断）
-          if (!text) {
-            text = raw.replace(/\s+/g, ' ').trim().slice(0, 200);
-          }
+          if (!text) text = squeeze(raw).slice(0, 200);
           if (text.length >= 4 && !seen.has(text)) {
             seen.add(text);
             lines.push(text);
