@@ -329,8 +329,6 @@ export default function AuraPanel(props) {
     };
   }, [__auraSubscribeEvents, props?.sessionId]);
 
-  cardsRef.current = cards;
-
   // 数据源优先级：事件流（含折叠的 tool/result）> useChat 渲染节点
   const sourceCards = useMemo(() => {
     if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
@@ -341,6 +339,8 @@ export default function AuraPanel(props) {
     () => sourceCards.filter((c) => (c?.tab ?? 'main') === tabKey),
     [sourceCards, tabKey],
   );
+  cardsRef.current = cards;
+
   const diag = {
     nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
     panelNodes: Number.isFinite(safeState.panelNodes) ? safeState.panelNodes : 0,

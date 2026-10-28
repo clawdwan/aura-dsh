@@ -183263,12 +183263,12 @@ function AuraPanel(props) {
 			} catch {}
 		};
 	}, [__auraSubscribeEvents, props?.sessionId]);
-	cardsRef.current = cards;
 	const sourceCards = (0, react$1.useMemo)(() => {
 		if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
 		return allCards;
 	}, [eventCards, allCards]);
 	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => (c?.tab ?? "main") === tabKey), [sourceCards, tabKey]);
+	cardsRef.current = cards;
 	const diag = {
 		nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
 		panelNodes: Number.isFinite(safeState.panelNodes) ? safeState.panelNodes : 0,
