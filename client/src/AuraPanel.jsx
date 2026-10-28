@@ -362,8 +362,7 @@ export default function AuraPanel(props) {
       <div className="aura-panel-empty-state" ref={panelRef}>
         面板暂无卡片。agent 调用 <code>aura_panel</code> 推送后会显示在这里。
         <div className="aura-panel-diag">
-          [v0.4.0 diag] 会话节点 {diag.nodeCount} 个 · aura_panel 节点 {diag.panelNodes} 个
-          {diag.panelNodes > 0 ? '（有节点但没解析出卡片）' : '（未收到 aura_panel 事件）'}
+          会话节点 {diag.nodeCount} 个 · aura_panel 节点 {diag.panelNodes} 个
         </div>
       </div>
     );
@@ -423,9 +422,6 @@ export default function AuraPanel(props) {
         onInquiry={handleInquiry}
         onCancel={() => setSelecting(false)}
       />
-      <div className="aura-panel-diag-line">
-        {`[diag] 节点 ${diag.nodeCount} · panel ${diag.panelNodes} · 事件 ${eventInfo?.entries ?? '-'} · 事件卡 ${eventInfo?.cards ?? '-'}`}
-      </div>
     </div>
   );
 }

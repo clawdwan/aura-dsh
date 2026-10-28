@@ -183308,12 +183308,11 @@ function AuraPanel(props) {
 				/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 					className: "aura-panel-diag",
 					children: [
-						"[v0.4.0 diag] 会话节点 ",
+						"会话节点 ",
 						diag.nodeCount,
 						" 个 · aura_panel 节点 ",
 						diag.panelNodes,
-						" 个",
-						diag.panelNodes > 0 ? "（有节点但没解析出卡片）" : "（未收到 aura_panel 事件）"
+						" 个"
 					]
 				})
 			]
@@ -183375,10 +183374,6 @@ function AuraPanel(props) {
 				containerRef: panelRef,
 				onInquiry: handleInquiry,
 				onCancel: () => setSelecting(false)
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
-				className: "aura-panel-diag-line",
-				children: `[diag] 节点 ${diag.nodeCount} · panel ${diag.panelNodes} · 事件 ${eventInfo?.entries ?? "-"} · 事件卡 ${eventInfo?.cards ?? "-"}`
 			})
 		]
 	});
