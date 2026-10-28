@@ -133,13 +133,29 @@ export function collectHits(adapters, sel) {
         [(sel.left + sel.right) / 2, (sel.top + sel.bottom) / 2],
       ];
       const seen = new Set();
+      /** 取「有直接文本」的最小元素（避免命中把多段内容拼在一起的容器 div） */
+      const pickLeaf = (stack) => {
+        let fallback = null;
+        for (const node of stack) {
+          if (!node || node.closest?.('.aura-global-select')) continue;
+          if (!fallback) fallback = node;
+          // 直接文本节点（不算子元素文本）——说明这个元素本身承载文字
+          let direct = '';
+          for (const child of node.childNodes ?? []) {
+            if (child.nodeType === 3) direct += child.textContent ?? '';
+          }
+          direct = direct.replace(/\s+/g, ' ').trim();
+          if (direct.length >= 4) return node;
+        }
+        return fallback;
+      };
       for (const [x, y] of points) {
         // elementsFromPoint 返回「从上到下」的所有层；跳过圈选层自身（覆盖全屏，
         // 否则命中的永远是圈选提示 div）
         const stack = typeof document.elementsFromPoint === 'function'
           ? document.elementsFromPoint(x, y)
           : [document.elementFromPoint(x, y)];
-        const el = stack.find((node) => node && !node.closest?.('.aura-global-select'));
+        const el = pickLeaf(stack);
         if (!el || seen.has(el)) continue;
         seen.add(el);
         const described = generic.describe(el);

@@ -183771,8 +183771,21 @@ function collectHits(adapters, sel) {
 				[(sel.left + sel.right) / 2, (sel.top + sel.bottom) / 2]
 			];
 			const seen = /* @__PURE__ */ new Set();
+			/** 取「有直接文本」的最小元素（避免命中把多段内容拼在一起的容器 div） */
+			const pickLeaf = (stack) => {
+				let fallback = null;
+				for (const node of stack) {
+					if (!node || node.closest?.(".aura-global-select")) continue;
+					if (!fallback) fallback = node;
+					let direct = "";
+					for (const child of node.childNodes ?? []) if (child.nodeType === 3) direct += child.textContent ?? "";
+					direct = direct.replace(/\s+/g, " ").trim();
+					if (direct.length >= 4) return node;
+				}
+				return fallback;
+			};
 			for (const [x, y] of points) {
-				const el = (typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(x, y) : [document.elementFromPoint(x, y)]).find((node) => node && !node.closest?.(".aura-global-select"));
+				const el = pickLeaf(typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(x, y) : [document.elementFromPoint(x, y)]);
 				if (!el || seen.has(el)) continue;
 				seen.add(el);
 				const described = generic.describe(el);
