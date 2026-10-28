@@ -151,7 +151,7 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
     >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {/* 不透明圆形底：避免半透明色叠在卡片上发闷 */}
-        <circle cx={cx} cy={cy} r={outerRadius + 3} className="aura-radial-base" />
+        <circle cx={cx} cy={cy} r={outerRadius} className="aura-radial-base" />
         {options?.map((opt, i) => {
           const a = startBase + i * step;
           const b = a + step;
@@ -160,7 +160,7 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
           return (
             <g key={opt.label}>
               <path
-                d={sectorPath(cx, cy, centerRadius + 6, outerRadius, a + 1, b - 1)}
+                d={sectorPath(cx, cy, centerRadius, outerRadius, a + 1, b - 1)}
                 className={`aura-radial-sector${active(i) ? ' is-active' : ''}`}
               />
               {opt.icon ? (

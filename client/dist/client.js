@@ -1424,7 +1424,7 @@ svg.react-flow__connectionline {
   /* fixed：相对视口定位，面板滚动时菜单不跟着偏移；坐标由组件 clamp 到视口内 */
   position: fixed;
   z-index: 45;
-  animation: aura-radial-in 0.15s ease-out both;
+  animation: aura-radial-in 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   touch-action: none;
 }
 @keyframes aura-radial-in {
@@ -1439,13 +1439,14 @@ svg.react-flow__connectionline {
   filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.14));
 }
 .aura-radial-sector {
-  fill: transparent;
+  /* 透明蓝（而非 transparent）——避免过渡经过灰色 */
+  fill: rgba(65, 118, 230, 0);
   stroke: none;
-  transition: fill 0.12s ease;
+  transition: fill 0.08s ease;
   cursor: pointer;
 }
 .aura-radial-sector.is-active {
-  fill: var(--dsw-static-deepseek-100, #e4edfd);
+  fill: rgba(65, 118, 230, 0.12);
   stroke: none;
 }
 .aura-radial-icon {
@@ -1466,23 +1467,24 @@ svg.react-flow__connectionline {
   font-weight: 700;
 }
 .aura-radial-center {
-  fill: var(--dsw-alias-bg-l2, rgba(128, 128, 128, 0.1));
+  /* 方案 A：浅蓝中心（与 hover 高亮同色系） */
+  fill: var(--dsw-static-deepseek-100, #e4edfd);
   stroke: none;
   transition: fill 0.12s ease;
   cursor: pointer;
 }
 .aura-radial-center.is-active {
-  fill: var(--dsw-static-deepseek-100, #e4edfd);
+  fill: var(--dsw-static-deepseek-500, #4176e6);
   stroke: none;
 }
 .aura-radial-center-label {
-  font-size: 10.5px;
-  fill: var(--dsw-alias-label-secondary, #646a73);
+  font-size: 11.5px;
+  fill: var(--dsw-static-deepseek-600, #2b5bd7);
   pointer-events: none;
   transition: fill 0.12s ease;
 }
 .aura-radial-center-label.is-active {
-  fill: var(--aura-accent-strong, #4868b2);
+  fill: #ffffff;
   font-weight: 700;
 }
 /* ---- 全局圈选层（快捷键 ⌘⌥S / 任意区域） ---- */
@@ -182496,7 +182498,7 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
 					cx,
 					cy,
-					r: outerRadius + 3,
+					r: outerRadius,
 					className: "aura-radial-base"
 				}),
 				options?.map((opt, i) => {
@@ -182506,7 +182508,7 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 					const labelPos = polar(cx, cy, (outerRadius + centerRadius) / 2 + 6, mid);
 					return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", { children: [
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
-							d: sectorPath(cx, cy, centerRadius + 6, outerRadius, a + 1, b - 1),
+							d: sectorPath(cx, cy, centerRadius, outerRadius, a + 1, b - 1),
 							className: `aura-radial-sector${active(i) ? " is-active" : ""}`
 						}),
 						opt.icon ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
