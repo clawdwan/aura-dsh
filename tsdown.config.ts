@@ -41,6 +41,6 @@ export default defineConfig({
       '@deepseek-ai/dsh-api-remotes',
       '@deepseek-ai/cordis',
     ],
-    alwaysBundle: [/^(antd|echarts|@xyflow|@dagrejs|graphlib|d3|khroma|dompurify|cytoscape|stylis|ts-dedent|marked|@iconify|elkjs|katex|roughjs|uuid|micromark|mdast|unist|vfile|rc-|@rc-component|@ant-design|@babel\/runtime)/],
+    alwaysBundle: [/^(antd|echarts|@xyflow|@dagrejs|graphlib|d3|khroma|dompurify|cytoscape|stylis|ts-dedent|marked|@iconify|elkjs|katex|roughjs|uuid|micromark|mdast|unist|vfile|rc-|@rc-component|@ant-design|@babel\/runtime|modern-screenshot)/],
   },
 });

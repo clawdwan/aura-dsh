@@ -9,6 +9,9 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import RadialMenu from './RadialMenu';
+// 注意：DSH 的 client 插件用自定义 __ModuleLoader__，不支持动态 import()，
+// 必须静态 import（打包进 bundle）。
+import { domToCanvas } from 'modern-screenshot';
 import { collectHits, createDefaultAdapters } from './selection/adapters';
 
 const RADIAL_OPTIONS = [
@@ -22,6 +25,93 @@ const RADIAL_OPTIONS = [
   { label: '查来源', prompt: '请核查圈选内容的来源与依据：出自哪里、是否准确、有无可验证的出处。', color: 'var(--dsw-alias-state-info-primary, #6b4fd8)', icon: <g fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="4"/><path d="M10.5 10.5 14 14"/></g> },
 ];
 
+/** 判断圈选区域是否包含"视觉类"内容（图表/图形/iframe）→ 需要截图 */
+function needsVisualCapture(rect) {
+  const points = [
+    [rect.left + 4, rect.top + 4],
+    [rect.right - 4, rect.top + 4],
+    [rect.left + 4, rect.bottom - 4],
+    [rect.right - 4, rect.bottom - 4],
+    [(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2],
+  ];
+  const debug = [];
+  for (const [x, y] of points) {
+    const stack = typeof document.elementsFromPoint === 'function'
+      ? document.elementsFromPoint(x, y)
+      : [document.elementFromPoint(x, y)];
+    for (const el of stack) {
+      if (!el || el.closest?.('.aura-global-select')) continue;
+      const tag = (el.tagName || '').toLowerCase();
+      const cls = typeof el.className === 'string' ? el.className.split(' ')[0] : '';
+      debug.push(`${tag}${cls ? `.${cls}` : ''}`);
+      if (tag === 'canvas' || tag === 'svg' || tag === 'iframe') {
+        return { visual: true, debug: debug.slice(0, 8).join(' > ') };
+      }
+      if (typeof el.querySelector === 'function' && el.querySelector('canvas, svg, iframe')) {
+        return { visual: true, debug: `容器含视觉元素 ${debug.slice(0, 6).join(' > ')}` };
+      }
+      if (el.closest?.('.aura-chart, .aura-graph, .aura-html-card')) {
+        return { visual: true, debug: `命中视觉容器 ${debug.slice(0, 6).join(' > ')}` };
+      }
+    }
+  }
+  return { visual: false, debug: debug.slice(0, 8).join(' > ') || '无可识别层' };
+}
+
+/** 截取圈选区域（浏览器 API；iframe 内容截不到，会成为空白） */
+async function captureSelection(rect) {
+  // 圈选层覆盖全屏，elementFromPoint 会命中它自身 → 用 elementsFromPoint 跳过
+  const cx = (rect.left + rect.right) / 2;
+  const cy = (rect.top + rect.bottom) / 2;
+  const stack = typeof document.elementsFromPoint === 'function'
+    ? document.elementsFromPoint(cx, cy)
+    : [document.elementFromPoint(cx, cy)];
+  const hitEl = stack.find((el) => el && !el.closest?.('.aura-global-select')) ?? null;
+
+  // 优先：圈选区域内若有 <canvas>（趋势图等），直接 toDataURL —— 瞬间完成
+  const canvasInRect = (() => {
+    if (!hitEl) return null;
+    const scope = hitEl.closest?.('[data-aura-card-id], .aura-panel, section, article') ?? hitEl;
+    for (const c of scope.querySelectorAll?.('canvas') ?? []) {
+      const r = c.getBoundingClientRect();
+      if (rect.left < r.right && rect.right > r.left && rect.top < r.bottom && rect.bottom > r.top) return c;
+    }
+    return null;
+  })();
+  if (canvasInRect) {
+    try {
+      const url = canvasInRect.toDataURL('image/png');
+      if (url.startsWith('data:image')) {
+        return { base64: url.split(',')[1] ?? null, debug: `canvas 直出 ${canvasInRect.width}x${canvasInRect.height}` };
+      }
+    } catch { /* 污染的画布退回 DOM 截图 */ }
+  }
+
+  // 兜底：截取圈选中心所在容器（比 body 小、更快）
+  const container = hitEl?.closest?.('[data-aura-card-id], .aura-panel, section, article')
+    ?? document.body;
+  const box = container.getBoundingClientRect();
+  const canvas = await domToCanvas(container, { scale: 1 });
+  const sx = Math.max(0, Math.round(rect.left - box.left));
+  const sy = Math.max(0, Math.round(rect.top - box.top));
+  // 注意：rect 是 {left,top,right,bottom}，没有 width/height 字段
+  const w = Math.max(1, Math.min(Math.round(rect.right - rect.left), canvas.width - sx));
+  const h = Math.max(1, Math.min(Math.round(rect.bottom - rect.top), canvas.height - sy));
+
+  const out = document.createElement('canvas');
+  out.width = w;
+  out.height = h;
+  const ctx = out.getContext('2d');
+  ctx.drawImage(canvas, sx, sy, w, h, 0, 0, w, h);
+  const url = out.toDataURL('image/png');
+  const base64 = url.startsWith('data:image') ? url.split(',')[1] : null;
+  return {
+    base64,
+    debug: `容器=${container.tagName.toLowerCase()}${container.dataset?.auraCardId ? '#' + container.dataset.auraCardId : ''}`
+      + ` canvas=${canvas.width}x${canvas.height} crop=(${sx},${sy},${w},${h})`,
+  };
+}
+
 /**
  * 把命中结果拼成提问上下文。
  * 原则（P1.5）：
@@ -29,7 +119,7 @@ const RADIAL_OPTIONS = [
  *   - 不重复完整消息内容（agent 在当前会话里有上下文记忆）
  *   - 无 id 的内容退回行级文本 + 语义容器
  */
-function buildContext({ hits, rect, question }) {
+function buildContext({ hits, rect, question, hasImage, shotDebug }) {
   const lines = [];
   const vw = window.innerWidth || 1;
   const vh = window.innerHeight || 1;
@@ -52,6 +142,10 @@ function buildContext({ hits, rect, question }) {
     if (hits.length > 6) lines.push(`- …另有 ${hits.length - 6} 处`);
   }
   lines.push('');
+  if (hasImage) {
+    lines.push('');
+    lines.push('📷 已附圈选区域截图（视觉参考：布局/颜色/图形；iframe 内容在截图中为空白）。');
+  }
   lines.push(`❓ 问题：${question}`);
   lines.push('');
   lines.push('【说明】');
@@ -164,15 +258,28 @@ export default function GlobalSelector({ send, getSessionId }) {
     setBusy(true);
     setError(null);
     try {
-      const ctx = buildContext({
-        hits,
-        rect: {
-          left: rect.left, top: rect.top,
-          right: rect.left + rect.width, bottom: rect.top + rect.height,
-        },
-        question: q,
-      });
-      const res = await send?.(ctx);
+      const sel = {
+        left: rect.left, top: rect.top,
+        right: rect.left + rect.width, bottom: rect.top + rect.height,
+      };
+      // 视觉类内容（图表/图形/iframe）额外截一张图，作为视觉补充
+      let image = null;
+      const visualCheck = needsVisualCapture(sel);
+      if (visualCheck.visual) {
+        try {
+          const shot = await captureSelection(sel);
+          if (shot?.base64) {
+            image = { mediaType: 'image/png', data: shot.base64, name: 'selection.png' };
+            console.log('[aura-global-select] 截图成功:', shot.debug);
+          } else {
+            console.warn('[aura-global-select] 截图返回空:', shot?.debug);
+          }
+        } catch (err) {
+          console.warn('[aura-global-select] 截图失败（降级纯文本）:', err?.message ?? err);
+        }
+      }
+      const ctx = buildContext({ hits, rect: sel, question: q, hasImage: Boolean(image) });
+      const res = await send?.(ctx, image);
       if (res?.ok === false) throw new Error(res?.error?.message ?? '发送失败');
       reset();
     } catch (err) {

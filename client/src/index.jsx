@@ -237,14 +237,23 @@ export function apply(ctx) {
         const root = createRoot(host);
         root.render(
           <GlobalSelector
-            send={(text) => {
+            send={(text, image) => {
               const sid = ctx.sidebarRight?.mounted?.getSnapshot?.();
               if (!sid) return Promise.reject(new Error('当前没有会话'));
+              const content = [{ type: 'text', text }];
+              if (image?.data) {
+                content.push({
+                  type: 'image',
+                  mediaType: image.mediaType ?? 'image/png',
+                  data: image.data,
+                  name: image.name ?? 'selection.png',
+                });
+              }
               return ctx.remote.session.prompt({
                 requestId: `aura-global-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                 sessionId: sid,
                 mode: 'queue',
-                content: [{ type: 'text', text }],
+                content,
               });
             }}
             getSessionId={() => ctx.sidebarRight?.mounted?.getSnapshot?.()}
