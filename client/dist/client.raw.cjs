@@ -235,10 +235,13 @@ const auraCss = `/* ============================================================
   gap: 14px;
   padding: 14px 12px 18px;
   overflow-y: auto;
+  /* 始终为滚动条预留空间：折叠/展开卡片时内容宽度不跳变 */
+  scrollbar-gutter: stable;
   height: 100%;
   box-sizing: border-box;
 }
 .aura-panel-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1439,8 +1442,15 @@ svg.react-flow__connectionline {
   fill: var(--dsw-static-deepseek-100, #e4edfd);
   stroke: none;
 }
+.aura-radial-icon {
+  /* 注意：icon 是根 SVG 内的 <g>（16 单位 = 16px），不能设 width/height */
+  color: var(--dsw-alias-label-secondary, #646a73);
+  pointer-events: none;
+  transition: color 0.12s ease;
+}
+.aura-radial-icon.is-active { color: var(--dsw-static-deepseek-600, #2b5bd7); }
 .aura-radial-label {
-  font-size: 11.5px;
+  font-size: 13px;
   fill: var(--dsw-alias-label-primary, #1f2329);
   pointer-events: none;
   transition: fill 0.12s ease, font-weight 0.12s ease;
@@ -1513,6 +1523,44 @@ svg.react-flow__connectionline {
   font-size: 12px;
   color: var(--dsw-alias-label-secondary, #666);
   margin-bottom: 8px;
+}
+
+/* 卡片标题行（标题 + 操作按钮） */
+.aura-panel-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+}
+.aura-panel-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  flex: none;
+}
+.aura-panel-card:hover .aura-panel-card-actions { opacity: 1; }
+.aura-panel-card-action {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, #999);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.aura-panel-card-action:hover {
+  background: var(--dsw-alias-interactive-bg-hover-solid, rgba(128,128,128,0.14));
+  color: var(--dsw-alias-label-primary, #1f2329);
 }
 
 `;
@@ -182450,17 +182498,26 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 					const b = a + step;
 					const mid = (a + b) / 2;
 					const labelPos = polar(cx, cy, (outerRadius + centerRadius) / 2 + 6, mid);
-					return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
-						d: sectorPath(cx, cy, centerRadius + 6, outerRadius, a + 1, b - 1),
-						className: `aura-radial-sector${active(i) ? " is-active" : ""}`
-					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("text", {
-						x: labelPos.x,
-						y: labelPos.y,
-						className: `aura-radial-label${active(i) ? " is-active" : ""}`,
-						textAnchor: "middle",
-						dominantBaseline: "middle",
-						children: opt.label
-					})] }, opt.label);
+					return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", { children: [
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
+							d: sectorPath(cx, cy, centerRadius + 6, outerRadius, a + 1, b - 1),
+							className: `aura-radial-sector${active(i) ? " is-active" : ""}`
+						}),
+						opt.icon ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
+							className: `aura-radial-icon${active(i) ? " is-active" : ""}`,
+							style: opt.color ? { color: opt.color } : void 0,
+							transform: `translate(${labelPos.x - 9}, ${labelPos.y - 22}) scale(1.125)`,
+							children: opt.icon
+						}) : null,
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("text", {
+							x: labelPos.x,
+							y: labelPos.y + (opt.icon ? 12 : 0),
+							className: `aura-radial-label${active(i) ? " is-active" : ""}`,
+							textAnchor: "middle",
+							dominantBaseline: "middle",
+							children: opt.label
+						})
+					] }, opt.label);
 				}),
 				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
 					cx,
@@ -182603,20 +182660,87 @@ function collectFineHits(containerEl, selAbs) {
 }
 const RADIAL_OPTIONS$1 = [
 	{
+		label: "给出操作",
+		prompt: "基于圈选内容，给出可直接执行的操作（命令/步骤/代码），并说明预期结果。",
+		color: "var(--dsw-static-deepseek-500, #4176e6)",
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M8.5 2 4 9h3l-.5 5L12 7H9z" })
+		})
+	},
+	{
+		label: "整理并推送",
+		prompt: "请提炼圈选内容的要点，并**结合最近几轮对话的上下文**，整理成合适的卡片推送到右侧面板（按内容选择便签/指标/表格/洞察/HTML 报告等形态）。",
+		color: "var(--dsw-alias-state-success-primary, #1f9d55)",
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M8 12V3M5 6l3-3 3 3M3 14h10" })
+		})
+	},
+	{
 		label: "解释这段",
-		prompt: "请解释圈选的这部分内容。"
+		prompt: "请解释圈选的这部分内容（它是什么、含义、作用）。",
+		color: "var(--dsw-alias-label-secondary, #646a73)",
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M3 4h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H7l-3 2v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" })
+		})
 	},
 	{
-		label: "为什么这样",
-		prompt: "为什么会出现这样的情况？"
+		label: "质疑",
+		prompt: "请对圈选的这部分内容提出质疑：有哪些问题、反例或不确定之处？",
+		color: "var(--dsw-alias-state-warning-primary, #d7771c)",
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: [
+				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
+					cx: "8",
+					cy: "8",
+					r: "6"
+				}),
+				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M8 5v4.5" }),
+				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
+					cx: "8",
+					cy: "11.5",
+					r: ".6",
+					fill: "currentColor",
+					stroke: "none"
+				})
+			]
+		})
 	},
 	{
-		label: "有什么问题",
-		prompt: "这里有什么潜在问题或风险？"
-	},
-	{
-		label: "怎么改进",
-		prompt: "可以怎么改进？"
+		label: "查来源",
+		prompt: "请核查圈选内容的来源与依据：出自哪里、是否准确、有无可验证的出处。",
+		color: "var(--dsw-alias-state-info-primary, #6b4fd8)",
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
+				cx: "7",
+				cy: "7",
+				r: "4"
+			}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M10.5 10.5 14 14" })]
+		})
 	}
 ];
 /** 两矩形是否相交 */
@@ -183053,6 +183177,21 @@ function extractPanelResult(node) {
 	}
 	return null;
 }
+/** 本浏览器内持久化「已关闭卡片」集合（按会话隔离，静默无消息） */
+function loadHiddenIds(sessionId) {
+	try {
+		const raw = localStorage.getItem(`aura-hidden:${sessionId}`);
+		const list = raw ? JSON.parse(raw) : [];
+		return new Set(Array.isArray(list) ? list : []);
+	} catch {
+		return /* @__PURE__ */ new Set();
+	}
+}
+function saveHiddenIds(sessionId, ids) {
+	try {
+		localStorage.setItem(`aura-hidden:${sessionId}`, JSON.stringify([...ids]));
+	} catch {}
+}
 /**
 * 从事件流窗口提取面板卡片：取**最后一条** aura_panel 的 tool/result 里的 cards。
 * 事件流（eventSource.entries）含被折叠的 tool/call 与 tool/result，
@@ -183189,6 +183328,31 @@ function AuraPanel(props) {
 		const res = await __auraSend(ctx);
 		if (!res?.ok) throw new Error(res?.error?.message ?? "发送失败");
 	}, [__auraSend]);
+	/** 折叠状态（本地，不持久） */
+	const [collapsedIds, setCollapsedIds] = react$1.default.useState(() => /* @__PURE__ */ new Set());
+	const handleToggleCollapse = react$1.default.useCallback((cardId) => {
+		if (!cardId) return;
+		setCollapsedIds((prev) => {
+			const next = new Set(prev);
+			if (next.has(cardId)) next.delete(cardId);
+			else next.add(cardId);
+			return next;
+		});
+	}, []);
+	/**
+	* 关闭卡片：本地隐藏 + localStorage 持久化（静默，不发消息）。
+	* 刷新/重开页面后仍保持隐藏（按 sessionId 隔离，仅本浏览器）。
+	*/
+	const [hiddenIds, setHiddenIds] = react$1.default.useState(() => loadHiddenIds(props?.sessionId));
+	const handleDismissCard = react$1.default.useCallback((cardId) => {
+		if (!cardId) return;
+		setHiddenIds((prev) => {
+			const next = new Set(prev);
+			next.add(cardId);
+			saveHiddenIds(props?.sessionId, next);
+			return next;
+		});
+	}, [props?.sessionId]);
 	const handleAction = react$1.default.useCallback(async (action) => {
 		if (typeof __auraSend !== "function") {
 			setLastResult("❌ 未注入发送函数");
@@ -183298,7 +183462,11 @@ function AuraPanel(props) {
 		if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
 		return allCards;
 	}, [eventCards, allCards]);
-	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && (c?.tab ?? "main") === tabKey), [sourceCards, tabKey]);
+	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id) && (c?.tab ?? "main") === tabKey), [
+		sourceCards,
+		tabKey,
+		hiddenIds
+	]);
 	cardsRef.current = cards;
 	const diag = {
 		nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
@@ -183353,18 +183521,13 @@ function AuraPanel(props) {
 		className: "aura-panel",
 		ref: panelRef,
 		children: [
-			/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+			selecting ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 				className: "aura-panel-toolbar",
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-					type: "button",
-					className: `aura-panel-tool${selecting ? " aura-panel-tool--active" : ""}`,
-					onClick: () => setSelecting((v) => !v),
-					children: selecting ? "✕ 退出圈选" : "🔍 圈选提问"
-				}), selecting ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
 					className: "aura-panel-tool-hint",
-					children: "在面板上拖拽圈选要提问的区域"
-				}) : null]
-			}),
+					children: "在面板上拖拽圈选要提问的区域（Esc 退出）"
+				})
+			}) : null,
 			cards.map((card) => {
 				const actions = Array.isArray(card.actions) ? card.actions : [];
 				return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
@@ -183372,12 +183535,31 @@ function AuraPanel(props) {
 					"data-aura-card-id": card.id,
 					"data-aura-card-title": card.title ?? card.id,
 					children: [
-						card.title ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("h4", {
-							className: "aura-panel-card-title",
-							children: card.title
-						}) : null,
+						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+							className: "aura-panel-card-head",
+							children: [card.title ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("h4", {
+								className: "aura-panel-card-title",
+								children: card.title
+							}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+								className: "aura-panel-card-actions",
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: "aura-panel-card-action",
+									title: collapsedIds.has(card.id) ? "展开" : "折叠",
+									onClick: () => handleToggleCollapse(card.id),
+									children: collapsedIds.has(card.id) ? "▸" : "▾"
+								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: "aura-panel-card-action",
+									title: "关闭这张卡片（持久移除）",
+									onClick: () => handleDismissCard(card.id),
+									children: "×"
+								})]
+							})]
+						}),
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
 							className: "aura-panel-card-body",
+							hidden: collapsedIds.has(card.id),
 							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(CardBoundary, { children: isPendingCard(card) ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(CardSkeleton, { type: card.type }) : renderComponent({
 								type: card.type,
 								data: card.data
@@ -183950,7 +184132,7 @@ function collectHits(adapters, sel) {
 			}
 		}
 	}
-	return hits;
+	return hits.filter((h) => Array.isArray(h.lines) && h.lines.length > 0 || typeof h.text === "string" && h.text.trim().length > 0);
 }
 //#endregion
 //#region client/src/GlobalSelector.jsx
@@ -183965,20 +184147,87 @@ function collectHits(adapters, sel) {
 */
 const RADIAL_OPTIONS = [
 	{
+		label: "给出操作",
+		prompt: "基于圈选内容，给出可直接执行的操作（命令/步骤/代码），并说明预期结果。",
+		color: "var(--dsw-static-deepseek-500, #4176e6)",
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M8.5 2 4 9h3l-.5 5L12 7H9z" })
+		})
+	},
+	{
+		label: "整理并推送",
+		prompt: "请提炼圈选内容的要点，并**结合最近几轮对话的上下文**，整理成合适的卡片推送到右侧面板（按内容选择便签/指标/表格/洞察/HTML 报告等形态）。",
+		color: "var(--dsw-alias-state-success-primary, #1f9d55)",
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M8 12V3M5 6l3-3 3 3M3 14h10" })
+		})
+	},
+	{
 		label: "解释这段",
-		prompt: "请解释圈选的这部分内容。"
+		prompt: "请解释圈选的这部分内容（它是什么、含义、作用）。",
+		color: "var(--dsw-alias-label-secondary, #646a73)",
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M3 4h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H7l-3 2v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" })
+		})
 	},
 	{
-		label: "为什么这样",
-		prompt: "为什么会出现这样的情况？"
+		label: "质疑",
+		prompt: "请对圈选的这部分内容提出质疑：有哪些问题、反例或不确定之处？",
+		color: "var(--dsw-alias-state-warning-primary, #d7771c)",
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: [
+				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
+					cx: "8",
+					cy: "8",
+					r: "6"
+				}),
+				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M8 5v4.5" }),
+				/* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
+					cx: "8",
+					cy: "11.5",
+					r: ".6",
+					fill: "currentColor",
+					stroke: "none"
+				})
+			]
+		})
 	},
 	{
-		label: "有什么问题",
-		prompt: "这里有什么潜在问题或风险？"
-	},
-	{
-		label: "怎么改进",
-		prompt: "可以怎么改进？"
+		label: "查来源",
+		prompt: "请核查圈选内容的来源与依据：出自哪里、是否准确、有无可验证的出处。",
+		color: "var(--dsw-alias-state-info-primary, #6b4fd8)",
+		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
+			fill: "none",
+			stroke: "currentColor",
+			strokeWidth: "1.4",
+			strokeLinecap: "round",
+			strokeLinejoin: "round",
+			children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("circle", {
+				cx: "7",
+				cy: "7",
+				r: "4"
+			}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", { d: "M10.5 10.5 14 14" })]
+		})
 	}
 ];
 /**

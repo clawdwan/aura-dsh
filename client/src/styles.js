@@ -195,10 +195,13 @@ const auraCss = `/* ============================================================
   gap: 14px;
   padding: 14px 12px 18px;
   overflow-y: auto;
+  /* 始终为滚动条预留空间：折叠/展开卡片时内容宽度不跳变 */
+  scrollbar-gutter: stable;
   height: 100%;
   box-sizing: border-box;
 }
 .aura-panel-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1399,8 +1402,15 @@ svg.react-flow__connectionline {
   fill: var(--dsw-static-deepseek-100, #e4edfd);
   stroke: none;
 }
+.aura-radial-icon {
+  /* 注意：icon 是根 SVG 内的 <g>（16 单位 = 16px），不能设 width/height */
+  color: var(--dsw-alias-label-secondary, #646a73);
+  pointer-events: none;
+  transition: color 0.12s ease;
+}
+.aura-radial-icon.is-active { color: var(--dsw-static-deepseek-600, #2b5bd7); }
 .aura-radial-label {
-  font-size: 11.5px;
+  font-size: 13px;
   fill: var(--dsw-alias-label-primary, #1f2329);
   pointer-events: none;
   transition: fill 0.12s ease, font-weight 0.12s ease;
@@ -1473,6 +1483,44 @@ svg.react-flow__connectionline {
   font-size: 12px;
   color: var(--dsw-alias-label-secondary, #666);
   margin-bottom: 8px;
+}
+
+/* 卡片标题行（标题 + 操作按钮） */
+.aura-panel-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+}
+.aura-panel-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  flex: none;
+}
+.aura-panel-card:hover .aura-panel-card-actions { opacity: 1; }
+.aura-panel-card-action {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, #999);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.aura-panel-card-action:hover {
+  background: var(--dsw-alias-interactive-bg-hover-solid, rgba(128,128,128,0.14));
+  color: var(--dsw-alias-label-primary, #1f2329);
 }
 
 `;

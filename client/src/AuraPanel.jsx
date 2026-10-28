@@ -54,6 +54,20 @@ function extractPanelResult(node) {
 }
 
 
+/** 本浏览器内持久化「已关闭卡片」集合（按会话隔离，静默无消息） */
+function loadHiddenIds(sessionId) {
+  try {
+    const raw = localStorage.getItem(`aura-hidden:${sessionId}`);
+    const list = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(list) ? list : []);
+  } catch { return new Set(); }
+}
+function saveHiddenIds(sessionId, ids) {
+  try {
+    localStorage.setItem(`aura-hidden:${sessionId}`, JSON.stringify([...ids]));
+  } catch { /* ignore */ }
+}
+
 /**
  * 从事件流窗口提取面板卡片：取**最后一条** aura_panel 的 tool/result 里的 cards。
  * 事件流（eventSource.entries）含被折叠的 tool/call 与 tool/result，
@@ -206,6 +220,32 @@ export default function AuraPanel(props) {
     if (!res?.ok) throw new Error(res?.error?.message ?? '发送失败');
   }, [__auraSend]);
 
+  /** 折叠状态（本地，不持久） */
+  const [collapsedIds, setCollapsedIds] = React.useState(() => new Set());
+  const handleToggleCollapse = React.useCallback((cardId) => {
+    if (!cardId) return;
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cardId)) next.delete(cardId); else next.add(cardId);
+      return next;
+    });
+  }, []);
+
+  /**
+   * 关闭卡片：本地隐藏 + localStorage 持久化（静默，不发消息）。
+   * 刷新/重开页面后仍保持隐藏（按 sessionId 隔离，仅本浏览器）。
+   */
+  const [hiddenIds, setHiddenIds] = React.useState(() => loadHiddenIds(props?.sessionId));
+  const handleDismissCard = React.useCallback((cardId) => {
+    if (!cardId) return;
+    setHiddenIds((prev) => {
+      const next = new Set(prev);
+      next.add(cardId);
+      saveHiddenIds(props?.sessionId, next);
+      return next;
+    });
+  }, [props?.sessionId]);
+
   const handleAction = React.useCallback(async (action) => {
     if (typeof __auraSend !== 'function') {
       setLastResult('❌ 未注入发送函数');
@@ -320,8 +360,8 @@ export default function AuraPanel(props) {
   }, [eventCards, allCards]);
   // 多 tab：本面板只展示归属当前 tabKey 的卡片（缺省 main）；dismissed 卡不渲染
   const cards = useMemo(
-    () => sourceCards.filter((c) => !c?.dismissed && (c?.tab ?? 'main') === tabKey),
-    [sourceCards, tabKey],
+    () => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id) && (c?.tab ?? 'main') === tabKey),
+    [sourceCards, tabKey, hiddenIds],
   );
   cardsRef.current = cards;
 
@@ -354,16 +394,11 @@ export default function AuraPanel(props) {
 
   return (
     <div className="aura-panel" ref={panelRef}>
-      <div className="aura-panel-toolbar">
-        <button
-          type="button"
-          className={`aura-panel-tool${selecting ? ' aura-panel-tool--active' : ''}`}
-          onClick={() => setSelecting((v) => !v)}
-        >
-          {selecting ? '✕ 退出圈选' : '🔍 圈选提问'}
-        </button>
-        {selecting ? <span className="aura-panel-tool-hint">在面板上拖拽圈选要提问的区域</span> : null}
-      </div>
+      {selecting ? (
+        <div className="aura-panel-toolbar">
+          <span className="aura-panel-tool-hint">在面板上拖拽圈选要提问的区域（Esc 退出）</span>
+        </div>
+      ) : null}
       {cards.map((card) => {
         const actions = Array.isArray(card.actions) ? card.actions : [];
         return (
@@ -373,8 +408,28 @@ export default function AuraPanel(props) {
             data-aura-card-id={card.id}
             data-aura-card-title={card.title ?? card.id}
           >
-            {card.title ? <h4 className="aura-panel-card-title">{card.title}</h4> : null}
-            <div className="aura-panel-card-body">
+            <div className="aura-panel-card-head">
+              {card.title ? <h4 className="aura-panel-card-title">{card.title}</h4> : <span />}
+              <div className="aura-panel-card-actions">
+                <button
+                  type="button"
+                  className="aura-panel-card-action"
+                  title={collapsedIds.has(card.id) ? '展开' : '折叠'}
+                  onClick={() => handleToggleCollapse(card.id)}
+                >
+                  {collapsedIds.has(card.id) ? '▸' : '▾'}
+                </button>
+                <button
+                  type="button"
+                  className="aura-panel-card-action"
+                  title="关闭这张卡片（持久移除）"
+                  onClick={() => handleDismissCard(card.id)}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="aura-panel-card-body" hidden={collapsedIds.has(card.id)}>
               <CardBoundary>
                 {isPendingCard(card)
                   ? <CardSkeleton type={card.type} />
