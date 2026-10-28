@@ -183232,18 +183232,6 @@ function AuraPanel(props) {
 	}, (a, b) => a === b || a.nodeCount === b.nodeCount && a.panelNodes === b.panelNodes && JSON.stringify(a.cards) === JSON.stringify(b.cards)) : EMPTY_DIAG;
 	const safeState = state && typeof state === "object" ? state : EMPTY_DIAG;
 	const allCards = Array.isArray(safeState.cards) ? safeState.cards : EMPTY;
-	const sourceCards = (0, react$1.useMemo)(() => {
-		if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
-		return allCards;
-	}, [eventCards, allCards]);
-	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => (c?.tab ?? "main") === tabKey), [sourceCards, tabKey]);
-	const diag = {
-		nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
-		panelNodes: Number.isFinite(safeState.panelNodes) ? safeState.panelNodes : 0,
-		replayed: Number.isFinite(safeState.replayed) ? safeState.replayed : 0,
-		firstKeys: safeState.firstKeys ?? null
-	};
-	cardsRef.current = cards;
 	const [eventCards, setEventCards] = react$1.default.useState(null);
 	const [eventInfo, setEventInfo] = react$1.default.useState(null);
 	react$1.default.useEffect(() => {
@@ -183275,6 +183263,18 @@ function AuraPanel(props) {
 			} catch {}
 		};
 	}, [__auraSubscribeEvents, props?.sessionId]);
+	cardsRef.current = cards;
+	const sourceCards = (0, react$1.useMemo)(() => {
+		if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
+		return allCards;
+	}, [eventCards, allCards]);
+	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => (c?.tab ?? "main") === tabKey), [sourceCards, tabKey]);
+	const diag = {
+		nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
+		panelNodes: Number.isFinite(safeState.panelNodes) ? safeState.panelNodes : 0,
+		replayed: Number.isFinite(safeState.replayed) ? safeState.replayed : 0,
+		firstKeys: safeState.firstKeys ?? null
+	};
 	if (cards.length === 0) {
 		if (!hydrated) return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 			className: "aura-panel-loading-state",

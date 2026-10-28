@@ -298,24 +298,6 @@ export default function AuraPanel(props) {
   // 防御：useChat 在会话未就绪时可能返回 undefined，这里兜底成空状态，避免渲染崩溃
   const safeState = state && typeof state === 'object' ? state : EMPTY_DIAG;
   const allCards = Array.isArray(safeState.cards) ? safeState.cards : EMPTY;
-  // 数据源优先级：事件流（含折叠的 tool/result）> useChat 渲染节点
-  const sourceCards = useMemo(() => {
-    if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
-    return allCards;
-  }, [eventCards, allCards]);
-  // 多 tab：本面板只展示归属当前 tabKey 的卡片（缺省 main）
-  const cards = useMemo(
-    () => sourceCards.filter((c) => (c?.tab ?? 'main') === tabKey),
-    [sourceCards, tabKey],
-  );
-  const diag = {
-    nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
-    panelNodes: Number.isFinite(safeState.panelNodes) ? safeState.panelNodes : 0,
-    replayed: Number.isFinite(safeState.replayed) ? safeState.replayed : 0,
-    firstKeys: safeState.firstKeys ?? null,
-  };
-  cardsRef.current = cards;
-
   // 事件流兜底：useChat 的 nodes 不含折叠的 tool 节点时，改用 eventSource 的最新 tool/result
   const [eventCards, setEventCards] = React.useState(null);
   const [eventInfo, setEventInfo] = React.useState(null);
@@ -347,6 +329,24 @@ export default function AuraPanel(props) {
     };
   }, [__auraSubscribeEvents, props?.sessionId]);
 
+  cardsRef.current = cards;
+
+  // 数据源优先级：事件流（含折叠的 tool/result）> useChat 渲染节点
+  const sourceCards = useMemo(() => {
+    if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
+    return allCards;
+  }, [eventCards, allCards]);
+  // 多 tab：本面板只展示归属当前 tabKey 的卡片（缺省 main）
+  const cards = useMemo(
+    () => sourceCards.filter((c) => (c?.tab ?? 'main') === tabKey),
+    [sourceCards, tabKey],
+  );
+  const diag = {
+    nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
+    panelNodes: Number.isFinite(safeState.panelNodes) ? safeState.panelNodes : 0,
+    replayed: Number.isFinite(safeState.replayed) ? safeState.replayed : 0,
+    firstKeys: safeState.firstKeys ?? null,
+  };
   if (cards.length === 0) {
     if (!hydrated) {
       return (
