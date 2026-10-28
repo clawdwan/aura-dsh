@@ -39,8 +39,11 @@ function needsVisualCapture(rect) {
       if (!el || el.closest?.('.aura-global-select')) continue;
       const tag = (el.tagName || '').toLowerCase();
       if (tag === 'canvas' || tag === 'svg' || tag === 'iframe') return true;
+      // 容器内包含视觉元素（卡片容器是 div，需要往下查）
+      if (typeof el.querySelector === 'function'
+        && el.querySelector('canvas, svg, iframe')) return true;
       if (el.closest?.('.aura-chart, .aura-graph, .aura-html-card')) return true;
-      break; // 只看最上层非圈选层元素
+      // 不 break：继续检查更下层元素
     }
   }
   return false;

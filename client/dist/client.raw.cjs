@@ -184245,8 +184245,8 @@ function needsVisualCapture(rect) {
 			if (!el || el.closest?.(".aura-global-select")) continue;
 			const tag = (el.tagName || "").toLowerCase();
 			if (tag === "canvas" || tag === "svg" || tag === "iframe") return true;
+			if (typeof el.querySelector === "function" && el.querySelector("canvas, svg, iframe")) return true;
 			if (el.closest?.(".aura-chart, .aura-graph, .aura-html-card")) return true;
-			break;
 		}
 	}
 	return false;
