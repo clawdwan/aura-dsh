@@ -103,6 +103,7 @@ export const REGISTRY = [
     best_for: ['调研报告', '长文档', '富排版', '自由布局', '自定义布局'],
     input_shape: 'html_document',
     data_schema: '{ html: string, height?: number }。'
+      + '【优先结构化组件】能用 comparison_table/insight_cards/metric_card 表达时不要用 html（参数更简单、不易转义失败）；'
       + '【安全】HTML 属性一律用单引号（class=\'a-h1\'），避免 JSON 双引号转义出错；'
       + '【长度】单卡 html 建议 ≤ 6000 字符，超长请拆成多张卡分别 upsert；'
       + '【必须】用预设结构类写骨架，禁止写死颜色/字号/自创卡片样式：'

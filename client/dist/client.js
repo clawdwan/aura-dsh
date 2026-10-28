@@ -183468,11 +183468,7 @@ function AuraPanel(props) {
 		if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
 		return allCards;
 	}, [eventCards, allCards]);
-	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id) && (c?.tab ?? "main") === tabKey), [
-		sourceCards,
-		tabKey,
-		hiddenIds
-	]);
+	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)), [sourceCards, hiddenIds]);
 	cardsRef.current = cards;
 	const diag = {
 		nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
@@ -185368,17 +185364,30 @@ function needsVisualCapture(rect) {
 			const tag = (el.tagName || "").toLowerCase();
 			const cls = typeof el.className === "string" ? el.className.split(" ")[0] : "";
 			debug.push(`${tag}${cls ? `.${cls}` : ""}`);
-			if (tag === "canvas" || tag === "svg" || tag === "iframe") return {
+			const w = el.clientWidth || 0;
+			const h = el.clientHeight || 0;
+			if (tag === "canvas" && w >= 200 && h >= 100) return {
 				visual: true,
-				debug: debug.slice(0, 8).join(" > ")
+				debug: `canvas ${w}x${h}`
 			};
-			if (typeof el.querySelector === "function" && el.querySelector("canvas, svg, iframe")) return {
+			if (tag === "svg" && w >= 240 && h >= 120) return {
 				visual: true,
-				debug: `容器含视觉元素 ${debug.slice(0, 6).join(" > ")}`
+				debug: `svg ${w}x${h}`
 			};
-			if (el.closest?.(".aura-chart, .aura-graph, .aura-html-card")) return {
+			if (tag === "iframe" && w >= 200 && h >= 120) return {
 				visual: true,
-				debug: `命中视觉容器 ${debug.slice(0, 6).join(" > ")}`
+				debug: `iframe ${w}x${h}`
+			};
+			if (typeof el.querySelector === "function") {
+				const big = el.querySelector("canvas");
+				if (big && (big.clientWidth || 0) >= 200 && (big.clientHeight || 0) >= 100) return {
+					visual: true,
+					debug: `容器含大 canvas ${big.clientWidth}x${big.clientHeight}`
+				};
+			}
+			if (el.closest?.(".aura-chart, .aura-graph")) return {
+				visual: true,
+				debug: `命中图表容器 ${debug.slice(0, 6).join(" > ")}`
 			};
 		}
 	}
@@ -185746,9 +185755,6 @@ function apply(ctx) {
 		id: "dsh-aura"
 	}, AuraTurnTail));
 	try {
-		const registeredTabs = /* @__PURE__ */ new Map();
-		const kindOf = (tabKey) => tabKey === "main" ? "aura-panel" : `aura-panel:${tabKey}`;
-		const idOf = (tabKey) => tabKey === "main" ? "dsh-aura-panel" : `dsh-aura-panel:${tabKey}`;
 		const makeSend = (props) => (t) => {
 			const sid = props?.sessionId;
 			if (!sid) return Promise.reject(/* @__PURE__ */ new Error("aura: 面板缺少 sessionId"));
@@ -185811,73 +185817,37 @@ function apply(ctx) {
 			__auraSend: makeSend(props),
 			__auraSubscribeEvents: subscribeEvents
 		}, `${props?.sessionId}:${tabKey}`);
-		const pendingTabs = /* @__PURE__ */ new Map();
-		/** 登记一个 tab（幂等）；返回其 kind */
-		const ensureTab = (rawTabKey, rawTitle) => {
-			const tabKey = typeof rawTabKey === "string" && rawTabKey.trim() ? rawTabKey.trim() : "main";
-			if (!registeredTabs.has(tabKey) && !pendingTabs.has(tabKey)) pendingTabs.set(tabKey, typeof rawTitle === "string" && rawTitle.trim() ? rawTitle.trim() : void 0);
-			return kindOf(tabKey);
-		};
-		/** 在 effect 内真正注册 tab 类型与 body（幂等） */
-		const registerTab = (tabKey) => {
-			if (registeredTabs.has(tabKey)) return;
-			const kind = kindOf(tabKey);
-			const id = idOf(tabKey);
-			const title = pendingTabs.get(tabKey);
-			try {
-				const disposeTab = ctx.sidebarRightTabs.register({
-					id,
-					kind,
-					priority: "extension",
-					multiple: false,
-					keepMounted: true,
-					title: () => title ?? (tabKey === "main" ? "Aura 面板" : tabKey)
-				});
-				const disposeInject = ctx.slots.inject("sidebar.right.pane.tab", () => ctx.slots.register({
-					name: "sidebar.right.pane.tab",
-					key: id
-				}, makePanelBody(tabKey)));
-				registeredTabs.set(tabKey, () => {
-					try {
-						disposeInject?.();
-					} catch {}
-					try {
-						disposeTab?.();
-					} catch {}
-				});
-			} catch (err) {
-				console.error("[aura-panel] tab 注册失败:", tabKey, err?.message ?? err);
-			}
-		};
-		ensureTab("main");
-		ctx.effect(() => {
-			const flush = () => {
-				for (const key of [...pendingTabs.keys()]) {
-					registerTab(key);
-					pendingTabs.delete(key);
-				}
-			};
-			flush();
-			const timer = setInterval(flush, 300);
-			return () => clearInterval(timer);
-		});
+		try {
+			const disposeTab = ctx.sidebarRightTabs.register({
+				id: "dsh-aura-panel",
+				kind: "aura-panel",
+				priority: "extension",
+				multiple: false,
+				keepMounted: true,
+				title: () => "Aura 面板"
+			});
+			const disposeInject = ctx.slots.inject("sidebar.right.pane.tab", () => ctx.slots.register({
+				name: "sidebar.right.pane.tab",
+				key: "dsh-aura-panel"
+			}, makePanelBody("main")));
+			ctx.effect(() => () => {
+				try {
+					disposeInject?.();
+				} catch {}
+				try {
+					disposeTab?.();
+				} catch {}
+			});
+		} catch (err) {
+			console.error("[aura-panel] tab 注册失败:", err?.message ?? err);
+		}
 		ctx.effect(() => {
 			const signal = createPanelSignal({
 				sessions: ctx.sessions,
 				sidebarRight: ctx.sidebarRight,
 				config: {
-					tabKind: kindOf("main"),
+					tabKind: "aura-panel",
 					restoreOnHistory: true
-				},
-				resolveTargets: (event) => {
-					let card = null;
-					try {
-						card = JSON.parse(event?.data?.arguments ?? "{}")?.card ?? null;
-					} catch {
-						card = null;
-					}
-					const tabKey = card?.tab ?? "main";
-					return [ensureTab(tabKey, card?.tabTitle)];
 				}
 			});
 			const stop = signal.start();
@@ -185891,10 +185861,6 @@ function apply(ctx) {
 				try {
 					delete window.__auraProbe;
 				} catch {}
-				for (const dispose of registeredTabs.values()) try {
-					dispose?.();
-				} catch {}
-				registeredTabs.clear();
 			};
 		});
 		try {
