@@ -225,10 +225,12 @@ export default function GlobalSelector({ send, getSessionId }) {
 
   const onPointerDown = useCallback((e) => {
     if (e.button !== 0) return;
+    // 菜单/命中已出现 → 不再开始新圈选（否则点空白会把圈选框清掉）
+    if (hits) return;
     e.preventDefault();
     startRef.current = { x: e.clientX, y: e.clientY };
     setRect({ left: e.clientX, top: e.clientY, width: 0, height: 0 });
-  }, []);
+  }, [hits]);
 
   const onPointerMove = useCallback((e) => {
     if (!startRef.current) return;

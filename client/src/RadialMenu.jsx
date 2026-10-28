@@ -163,7 +163,7 @@ export default function RadialMenu({ position, options, onSelect, onCustom, onCa
           return (
             <g key={opt.label}>
               <path
-                d={sectorPath(cx, cy, centerRadius + 4, outerRadius, a, b)}
+                d={sectorPath(cx, cy, centerRadius + 10, outerRadius, a, b)}
                 className={`aura-radial-sector${active(i) ? ' is-active' : ''}`}
               />
               {opt.icon ? (

@@ -182509,7 +182509,7 @@ function RadialMenu({ position, options, onSelect, onCustom, onCancel, config })
 					const labelPos = polar(cx, cy, (outerRadius + centerRadius) / 2 + 6, mid);
 					return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", { children: [
 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("path", {
-							d: sectorPath(cx, cy, centerRadius + 4, outerRadius, a, b),
+							d: sectorPath(cx, cy, centerRadius + 10, outerRadius, a, b),
 							className: `aura-radial-sector${active(i) ? " is-active" : ""}`
 						}),
 						opt.icon ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
@@ -185565,6 +185565,7 @@ function GlobalSelector({ send, getSessionId }) {
 	}, [active, reset]);
 	const onPointerDown = (0, react$1.useCallback)((e) => {
 		if (e.button !== 0) return;
+		if (hits) return;
 		e.preventDefault();
 		startRef.current = {
 			x: e.clientX,
@@ -185576,7 +185577,7 @@ function GlobalSelector({ send, getSessionId }) {
 			width: 0,
 			height: 0
 		});
-	}, []);
+	}, [hits]);
 	const onPointerMove = (0, react$1.useCallback)((e) => {
 		if (!startRef.current) return;
 		const s = startRef.current;
