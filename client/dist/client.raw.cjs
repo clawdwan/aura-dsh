@@ -183766,7 +183766,7 @@ function collectHits(adapters, sel) {
 			];
 			const seen = /* @__PURE__ */ new Set();
 			for (const [x, y] of points) {
-				const el = document.elementFromPoint(x, y);
+				const el = (typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(x, y) : [document.elementFromPoint(x, y)]).find((node) => node && !node.closest?.(".aura-global-select"));
 				if (!el || seen.has(el)) continue;
 				seen.add(el);
 				const described = generic.describe(el);

@@ -134,7 +134,12 @@ export function collectHits(adapters, sel) {
       ];
       const seen = new Set();
       for (const [x, y] of points) {
-        const el = document.elementFromPoint(x, y);
+        // elementsFromPoint 返回「从上到下」的所有层；跳过圈选层自身（覆盖全屏，
+        // 否则命中的永远是圈选提示 div）
+        const stack = typeof document.elementsFromPoint === 'function'
+          ? document.elementsFromPoint(x, y)
+          : [document.elementFromPoint(x, y)];
+        const el = stack.find((node) => node && !node.closest?.('.aura-global-select'));
         if (!el || seen.has(el)) continue;
         seen.add(el);
         const described = generic.describe(el);
