@@ -57,11 +57,17 @@ function needsVisualCapture(rect) {
       if (tag === 'iframe' && w >= 200 && h >= 120) {
         return { visual: true, debug: `iframe ${w}x${h}` };
       }
-      // 容器内的大尺寸 canvas（卡片里图表）
+      // 容器内的大尺寸 canvas（卡片里图表）——必须与圈选区真正相交，
+      // 否则 body/对话流这类大容器会把「页面别处的图表」误判进来（导致对话流也触发慢截图）
       if (typeof el.querySelector === 'function') {
         const big = el.querySelector('canvas');
         if (big && (big.clientWidth || 0) >= 200 && (big.clientHeight || 0) >= 100) {
-          return { visual: true, debug: `容器含大 canvas ${big.clientWidth}x${big.clientHeight}` };
+          const r = big.getBoundingClientRect();
+          const intersects = rect.left < r.right && rect.right > r.left
+            && rect.top < r.bottom && rect.bottom > r.top;
+          if (intersects) {
+            return { visual: true, debug: `区域内有 canvas ${big.clientWidth}x${big.clientHeight}` };
+          }
         }
       }
       if (el.closest?.('.aura-chart, .aura-graph')) {
@@ -302,6 +308,24 @@ export default function GlobalSelector({ send, getSessionId }) {
       const ctx = buildContext({ hits, rect: sel, question: q, hasImage: Boolean(image) });
       const res = await send?.(ctx, image);
       if (res?.ok === false) throw new Error(res?.error?.message ?? '发送失败');
+      // 推送成功后把对话流滚到最底部：新消息渲染需要时间，
+      // 立即滚一次 + 延迟再滚一次（兜底），保证能看到刚推出的 prompt
+      const scrollToBottom = () => {
+        try {
+          // 首选：直接把对话流滚动容器拉到底（最可靠，不受末节点类型影响）
+          const scroller = document.querySelector('[data-conversation-scroll]');
+          if (scroller) {
+            scroller.scrollTop = scroller.scrollHeight;
+            return;
+          }
+          // 兜底：最后节点 scrollIntoView
+          const nodes = [...document.querySelectorAll('[data-chat-flow-kind]')];
+          nodes[nodes.length - 1]?.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
+        } catch { /* ignore */ }
+      };
+      scrollToBottom();
+      setTimeout(scrollToBottom, 500);
+      setTimeout(scrollToBottom, 1200);
       reset();
     } catch (err) {
       console.error('[aura-global-select] 发送失败:', err?.message ?? err);
@@ -349,7 +373,12 @@ export default function GlobalSelector({ send, getSessionId }) {
       {hits && (hits.length === 0 || customMode) ? (
         <div
           className="aura-global-select-popover"
-          style={{ left: Math.min(rect.left, 240), top: Math.min(rect.top + rect.height + 10, window.innerHeight - 180) }}
+          style={{
+            // 弹窗定位：跟随圈选位置，clamp 在视口内（不要限制 left ≤ 240，
+            // 否则在右侧面板圈选时输入框会被拉到页面左边）
+            left: Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - 372)),
+            top: Math.min(Math.max(8, rect.top + rect.height + 10), Math.max(8, window.innerHeight - 200)),
+          }}
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="aura-global-select-title">

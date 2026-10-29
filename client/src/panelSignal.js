@@ -103,7 +103,21 @@ export function createPanelSignal({
   };
   const open = typeof openTargets === 'function' ? openTargets : defaultOpen;
 
-  const trigger = (event, sessionId) => {
+  /**
+ * 右侧栏是否已展开。
+ * DSH 的右侧栏在关闭时只是把 dock 用 transform 移出视口（列宽仍在），
+ * 所以用语义属性判断：面板打开时根节点带 data-sidebar-right-open。
+ * 判断失败时保守返回 true（视为已展开）→ 不强制打开，避免"强行弹出"。
+ */
+function isRightbarOpen() {
+  try {
+    return Boolean(document.querySelector('[data-sidebar-right-open]'));
+  } catch {
+    return true;
+  }
+}
+
+const trigger = (event, sessionId) => {
     let targets;
     try {
       targets = resolve(event);
@@ -112,10 +126,16 @@ export function createPanelSignal({
       return;
     }
     if (!Array.isArray(targets) || targets.length === 0) return;
+    // 侧边栏已打开（任一 pane 可见）→ 不动：不展开、也不切换用户当前 tab
+    if (isRightbarOpen()) return;
+    // 侧边栏关闭：直接 openTab（tab 记录可能已存在，仍需激活它以展开右侧栏，
+    // 因此不能走 defaultOpen 的 isTargetOpen 跳过逻辑）
     try {
-      open(targets, sessionId);
+      for (const kind of [...new Set(targets.filter((t) => typeof t === 'string' && t))]) {
+        sidebarRight?.openTab?.(kind);
+      }
     } catch (err) {
-      fail(err, 'openTargets');
+      fail(err, 'openTab');
     }
   };
 

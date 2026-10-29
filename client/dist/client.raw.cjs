@@ -182065,7 +182065,8 @@ ${html}
 (function () {
   function report() {
     try {
-      var h = Math.ceil(document.documentElement.scrollHeight);
+      // 用 body 的内容高度：documentElement 默认 100% 会被 iframe 自身高度污染（正反馈空白）
+      var h = Math.ceil((document.body || document.documentElement).scrollHeight);
       parent.postMessage({ __auraHtmlHeight: true, height: h }, '*');
     } catch (e) { /* ignore */ }
   }
@@ -183704,7 +183705,27 @@ function AuraPanel(props) {
 		if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
 		return allCards;
 	}, [eventCards, allCards]);
-	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)), [sourceCards, hiddenIds]);
+	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)).sort((a, b) => (b?.updatedAt ?? 0) - (a?.updatedAt ?? 0)), [sourceCards, hiddenIds]);
+	const lastLatestIdRef = react$1.default.useRef(null);
+	react$1.default.useEffect(() => {
+		if (!cards.length) return;
+		const latest = cards.reduce((a, b) => (b?.updatedAt ?? 0) > (a?.updatedAt ?? 0) ? b : a, cards[0]);
+		if (!latest?.id || latest.id === lastLatestIdRef.current) return;
+		lastLatestIdRef.current = latest.id;
+		const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame(() => {
+			const scrollPanelToTop = () => {
+				const panel = document.querySelector(".aura-panel");
+				if (panel) panel.scrollTop = 0;
+				else document.querySelector(`[data-aura-card-id="${latest.id}"]`)?.scrollIntoView?.({ block: "start" });
+			};
+			scrollPanelToTop();
+			setTimeout(scrollPanelToTop, 300);
+			setTimeout(scrollPanelToTop, 900);
+		}) : null;
+		return () => {
+			if (raf) cancelAnimationFrame(raf);
+		};
+	}, [cards]);
 	cardsRef.current = cards;
 	const diag = {
 		nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,
@@ -183872,23 +183893,6 @@ const DEFAULT_SIGNAL_CONFIG = {
 };
 /** 会话 retain 的来源标记（DSH 允许 controllerOperation / gateway） */
 const RETAIN_SOURCE = "controllerOperation";
-/** 判断某个 tab 记录是否是我们关心的 kind（兼容 kind/type/id 字段差异） */
-function tabMatches(record, kind) {
-	if (!record) return false;
-	const value = record.kind ?? record.type ?? record.id;
-	if (typeof value !== "string") return false;
-	return value === kind || value.includes(kind);
-}
-/** 该会话当前是否已打开某个目标 tab */
-function isTargetOpen(sidebarRight, sessionId, kind) {
-	try {
-		const tabs = sidebarRight?.tabsIn?.(sessionId) ?? [];
-		return Array.isArray(tabs) && tabs.some((t) => tabMatches(t, kind));
-	} catch (err) {
-		console.error("[aura-signal] tabsIn 失败:", err?.message ?? err);
-		return false;
-	}
-}
 /** 从事件窗口里找 aura_panel 的 tool/call */
 function hasPanelCall(entries) {
 	if (!Array.isArray(entries)) return false;
@@ -183926,18 +183930,19 @@ function createPanelSignal({ sessions, sidebarRight, config, resolveTargets, ope
 	let unsubscribe = null;
 	const defaultResolve = () => [cfg.tabKind];
 	const resolve = typeof resolveTargets === "function" ? resolveTargets : defaultResolve;
-	const defaultOpen = (targets, sessionId) => {
-		const unique = [...new Set((targets ?? []).filter((t) => typeof t === "string" && t))];
-		for (const kind of unique) {
-			if (isTargetOpen(sidebarRight, sessionId, kind)) continue;
-			try {
-				sidebarRight?.openTab?.(kind);
-			} catch (err) {
-				fail(err, `openTab(${kind})`);
-			}
+	/**
+	* 右侧栏是否已展开。
+	* DSH 的右侧栏在关闭时只是把 dock 用 transform 移出视口（列宽仍在），
+	* 所以用语义属性判断：面板打开时根节点带 data-sidebar-right-open。
+	* 判断失败时保守返回 true（视为已展开）→ 不强制打开，避免"强行弹出"。
+	*/
+	function isRightbarOpen() {
+		try {
+			return Boolean(document.querySelector("[data-sidebar-right-open]"));
+		} catch {
+			return true;
 		}
-	};
-	const open = typeof openTargets === "function" ? openTargets : defaultOpen;
+	}
 	const trigger = (event, sessionId) => {
 		let targets;
 		try {
@@ -183947,10 +183952,11 @@ function createPanelSignal({ sessions, sidebarRight, config, resolveTargets, ope
 			return;
 		}
 		if (!Array.isArray(targets) || targets.length === 0) return;
+		if (isRightbarOpen()) return;
 		try {
-			open(targets, sessionId);
+			for (const kind of [...new Set(targets.filter((t) => typeof t === "string" && t))]) sidebarRight?.openTab?.(kind);
 		} catch (err) {
-			fail(err, "openTargets");
+			fail(err, "openTab");
 		}
 	};
 	const detach = () => {
@@ -185715,10 +185721,13 @@ function needsVisualCapture(rect) {
 			};
 			if (typeof el.querySelector === "function") {
 				const big = el.querySelector("canvas");
-				if (big && (big.clientWidth || 0) >= 200 && (big.clientHeight || 0) >= 100) return {
-					visual: true,
-					debug: `容器含大 canvas ${big.clientWidth}x${big.clientHeight}`
-				};
+				if (big && (big.clientWidth || 0) >= 200 && (big.clientHeight || 0) >= 100) {
+					const r = big.getBoundingClientRect();
+					if (rect.left < r.right && rect.right > r.left && rect.top < r.bottom && rect.bottom > r.top) return {
+						visual: true,
+						debug: `区域内有 canvas ${big.clientWidth}x${big.clientHeight}`
+					};
+				}
 			}
 			if (el.closest?.(".aura-chart, .aura-graph")) return {
 				visual: true,
@@ -185955,6 +185964,23 @@ function GlobalSelector({ send, getSessionId }) {
 			});
 			const res = await send?.(ctx, image);
 			if (res?.ok === false) throw new Error(res?.error?.message ?? "发送失败");
+			const scrollToBottom = () => {
+				try {
+					const scroller = document.querySelector("[data-conversation-scroll]");
+					if (scroller) {
+						scroller.scrollTop = scroller.scrollHeight;
+						return;
+					}
+					const nodes = [...document.querySelectorAll("[data-chat-flow-kind]")];
+					nodes[nodes.length - 1]?.scrollIntoView?.({
+						behavior: "smooth",
+						block: "end"
+					});
+				} catch {}
+			};
+			scrollToBottom();
+			setTimeout(scrollToBottom, 500);
+			setTimeout(scrollToBottom, 1200);
 			reset();
 		} catch (err) {
 			console.error("[aura-global-select] 发送失败:", err?.message ?? err);
@@ -186000,8 +186026,8 @@ function GlobalSelector({ send, getSessionId }) {
 			hits && (hits.length === 0 || customMode) ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: "aura-global-select-popover",
 				style: {
-					left: Math.min(rect.left, 240),
-					top: Math.min(rect.top + rect.height + 10, window.innerHeight - 180)
+					left: Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - 372)),
+					top: Math.min(Math.max(8, rect.top + rect.height + 10), Math.max(8, window.innerHeight - 200))
 				},
 				onPointerDown: (e) => e.stopPropagation(),
 				children: [

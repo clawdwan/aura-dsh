@@ -378,10 +378,38 @@ export default function AuraPanel(props) {
     return allCards;
   }, [eventCards, allCards]);
   // 单 main 面板：展示所有未隐藏的卡片（忽略 card.tab；多 tab 后续再做）
+  // 排序：新 → 旧（updatedAt 降序，最新卡片在顶部；后续可扩展为可配置）
   const cards = useMemo(
-    () => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)),
+    () => sourceCards
+      .filter((c) => !c?.dismissed && !hiddenIds.has(c?.id))
+      .sort((a, b) => (b?.updatedAt ?? 0) - (a?.updatedAt ?? 0)),
     [sourceCards, hiddenIds],
   );
+
+  // 新卡片出现时滚动到它（多个卡片时定位到最新推送的那张）
+  const lastLatestIdRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!cards.length) return;
+    const latest = cards.reduce((a, b) => ((b?.updatedAt ?? 0) > (a?.updatedAt ?? 0) ? b : a), cards[0]);
+    if (!latest?.id || latest.id === lastLatestIdRef.current) return;
+    lastLatestIdRef.current = latest.id;
+    // 等一帧让卡片渲染完成（高度确定）再滚：
+    // 新卡追加在列表末尾，直接滚到面板底部即可让它完整进入视口
+    const raf = typeof requestAnimationFrame === 'function'
+      ? requestAnimationFrame(() => {
+        // 逆序展示（最新在顶部）→ 新卡定位到面板顶部
+        const scrollPanelToTop = () => {
+          const panel = document.querySelector('.aura-panel');
+          if (panel) panel.scrollTop = 0;
+          else document.querySelector(`[data-aura-card-id="${latest.id}"]`)?.scrollIntoView?.({ block: 'start' });
+        };
+        scrollPanelToTop();
+        setTimeout(scrollPanelToTop, 300);
+        setTimeout(scrollPanelToTop, 900);
+      })
+      : null;
+    return () => { if (raf) cancelAnimationFrame(raf); };
+  }, [cards]);
   cardsRef.current = cards;
 
   const diag = {

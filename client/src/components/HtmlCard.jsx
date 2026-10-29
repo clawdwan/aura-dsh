@@ -287,7 +287,8 @@ ${html}
 (function () {
   function report() {
     try {
-      var h = Math.ceil(document.documentElement.scrollHeight);
+      // 用 body 的内容高度：documentElement 默认 100% 会被 iframe 自身高度污染（正反馈空白）
+      var h = Math.ceil((document.body || document.documentElement).scrollHeight);
       parent.postMessage({ __auraHtmlHeight: true, height: h }, '*');
     } catch (e) { /* ignore */ }
   }
