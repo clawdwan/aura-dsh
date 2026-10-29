@@ -1,5 +1,7 @@
 # Aura
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 > **Beyond the Chat Box.**
 >
 > An interaction layer for human–agent collaboration on DeepSeek Harness.

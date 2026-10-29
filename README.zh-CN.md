@@ -1,5 +1,7 @@
 # Aura
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 > **Beyond the Chat Box.**
 >
 > 一个面向 DeepSeek Harness 的人机协作交互层。
