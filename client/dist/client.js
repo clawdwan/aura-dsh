@@ -185437,13 +185437,13 @@ function createGenericDomAdapter() {
 	return {
 		id: "generic-dom",
 		selector: null,
-		describe(el) {
+		describe(el, sel) {
 			if (!el || el === document.body || el === document.documentElement) return null;
-			const raw = (el.textContent || "").replace(/\s+/g, " ").trim();
-			if (!raw) return null;
+			const lines = extractLines(sel, el);
+			if (!lines.length) return null;
 			return {
 				label: (el.tagName || "unknown").toLowerCase(),
-				text: raw.length > 150 ? `${raw.slice(0, 150)}…` : raw
+				lines
 			};
 		}
 	};
@@ -185511,6 +185511,7 @@ function extractLines(sel, root, maxLines = 10) {
 	const squeeze = (t) => (t || "").replace(/\s+/g, " ").trim();
 	const seen = /* @__PURE__ */ new Set();
 	const used = [];
+	const isProcessEl = (el) => el?.closest?.("[data-step-process-content], [data-chat-flow-kind=\"turn-process\"], [data-turn-process-answer]");
 	for (const { q, kind } of [
 		{
 			q: "tr",
@@ -185544,6 +185545,7 @@ function extractLines(sel, root, maxLines = 10) {
 			els = [];
 		}
 		for (const el of els) {
+			if (isProcessEl(el)) continue;
 			const r = el.getBoundingClientRect();
 			if (r.width < 4 || r.height < 4 || !inSel(r)) continue;
 			if (used.some((u) => contains(u, r))) continue;

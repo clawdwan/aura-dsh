@@ -102,14 +102,14 @@ export function createGenericDomAdapter() {
   return {
     id: 'generic-dom',
     selector: null,
-    describe(el) {
+    describe(el, sel) {
       if (!el || el === document.body || el === document.documentElement) return null;
-      // 通用 DOM 拿不到消息边界：压缩空白 + 只取首段 + 截断，避免把多轮内容拼在一起
-      const raw = (el.textContent || '').replace(/\s+/g, ' ').trim();
-      if (!raw) return null;
+      // 只取「圈选范围内」的文本（extractLines 会按 sel 过滤）；
+      // 不能用整个容器的 textContent——大容器（如 turn 节点）会把圈选外的工具过程也带上
+      const lines = extractLines(sel, el);
+      if (!lines.length) return null;
       const tag = (el.tagName || 'unknown').toLowerCase();
-      const firstChunk = raw.length > 150 ? `${raw.slice(0, 150)}…` : raw;
-      return { label: tag, text: firstChunk };
+      return { label: tag, lines };
     },
   };
 }
@@ -186,6 +186,9 @@ export function extractLines(sel, root, maxLines = 10) {
   const used = []; // 已被语义元素覆盖的矩形（避免单元格/子元素重复）
 
   // 1) 语义元素优先：表格行 → 列表项 → 代码块 → 段落 → 标题 → 引用
+  // 工具调用/思考过程区域（不是内容）→ 提取时跳过
+  const isProcessEl = (el) => el?.closest?.('[data-step-process-content], [data-chat-flow-kind="turn-process"], [data-turn-process-answer]');
+
   const SEMANTIC = [
     { q: 'tr', kind: 'row' },
     { q: 'li', kind: 'item' },
@@ -198,6 +201,7 @@ export function extractLines(sel, root, maxLines = 10) {
     let els = [];
     try { els = [...scope.querySelectorAll(q)]; } catch { els = []; }
     for (const el of els) {
+      if (isProcessEl(el)) continue; // 跳过工具调用/思考过程区域
       const r = el.getBoundingClientRect();
       if (r.width < 4 || r.height < 4 || !inSel(r)) continue;
       if (used.some((u) => contains(u, r))) continue;
