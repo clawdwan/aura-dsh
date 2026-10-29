@@ -417,6 +417,12 @@ export default function AuraPanel(props) {
   React.useEffect(() => {
     const onPending = (e) => {
       const detail = e?.detail ?? null;
+      // 只响应本会话的 pending（避免别的会话推卡时本面板也弹骨架）
+      const mySid = props?.sessionId ?? null;
+      if (detail?.sessionId && mySid && detail.sessionId !== mySid) {
+        console.log('[aura-panel] 忽略其他会话 pending:', detail.sessionId, '≠', mySid);
+        return;
+      }
       // 面板可能刚被打开（有展开动画）：等它可见后再落骨架，否则飞入动画看不见
       let tries = 0;
       const showWhenVisible = () => {

@@ -183792,6 +183792,11 @@ function AuraPanel(props) {
 	react$1.default.useEffect(() => {
 		const onPending = (e) => {
 			const detail = e?.detail ?? null;
+			const mySid = props?.sessionId ?? null;
+			if (detail?.sessionId && mySid && detail.sessionId !== mySid) {
+				console.log("[aura-panel] 忽略其他会话 pending:", detail.sessionId, "≠", mySid);
+				return;
+			}
 			let tries = 0;
 			const showWhenVisible = () => {
 				const open = Boolean(document.querySelector("[data-sidebar-right-open]"));
@@ -186408,7 +186413,9 @@ function apply(ctx) {
 		try {
 			window.__auraSessionId = () => {
 				try {
-					return ctx.sidebarRight?.mounted?.getSnapshot?.() ?? null;
+					const sid = ctx.sidebarRight?.mounted?.getSnapshot?.() ?? null;
+					console.log("[aura-select] __auraSessionId =", sid);
+					return sid;
 				} catch {
 					return null;
 				}
