@@ -1,6 +1,6 @@
 # Aura — 产品愿景
 
-> ## Beyond the Chat Box.
+> # Beyond the Chat Box.
 >
 > **一个面向人机协作的 Agent 交互层。**
 >
