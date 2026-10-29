@@ -413,6 +413,7 @@ export default function AuraPanel(props) {
 
   // 卡片生成中的骨架占位（用户点发送后立即出现，卡片到达后消失）
   const [pendingEnter, setPendingEnter] = React.useState(null); // { x, y, width, height }
+  const pendingSinceRef = React.useRef(0);
   React.useEffect(() => {
     const onPending = (e) => {
       const detail = e?.detail ?? null;

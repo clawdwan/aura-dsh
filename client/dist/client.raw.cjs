@@ -183782,6 +183782,7 @@ function AuraPanel(props) {
 	}, [sourceCards, hiddenIds]);
 	const [flashCardId, setFlashCardId] = react$1.default.useState(null);
 	const [pendingEnter, setPendingEnter] = react$1.default.useState(null);
+	const pendingSinceRef = react$1.default.useRef(0);
 	react$1.default.useEffect(() => {
 		const onPending = (e) => {
 			const detail = e?.detail ?? null;
