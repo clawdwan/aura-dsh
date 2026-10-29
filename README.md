@@ -1,212 +1,257 @@
-# dsh-aura
+# Aura
 
-**让 AI 的回答不再只有文字——用图表、表格、看板把信息"画"出来。**
+> **Beyond the Chat Box.**
+>
+> An interaction layer for human–agent collaboration on DeepSeek Harness.
+>
+> **Less typing. More doing.**
 
-`dsh-aura` 是 [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) 的展示层插件。它给 agent 提供**两个展示空间**，按内容性质分工：
+Aura explores a more direct way for humans to work with AI agents — one that goes beyond typing prompts and reading text replies.
 
-| 空间 | 工具 | 特性 | 适合 |
-|---|---|---|---|
-| **对话流**（内嵌） | `aura_render` | 紧随消息、随对话滚动 | 一次性解释、讨论中的示意、回答里配一张图 |
-| **会话右侧面板** | `aura_panel` | 常驻、可反复更新、可带按钮 | 行情监控、任务看板、持续指标、调研报告 |
+Select content to express your intent. Let agents respond with structured, visual, and rich content. Turn useful parts of a conversation into reusable work artifacts.
 
-```
-💬 用户: 分析一下这几家公司，并把关键指标放到面板上
-🤖 agent: [aura_panel 推指标卡] + [回复里 aura_render 一张对比表]
-📊 右侧面板常驻指标卡（可随新数据刷新）｜对话流里是一次性对比表
-```
+## Why Aura?
 
-## 为什么用
+AI agents can reason, research, and generate content. Yet the way we interact with them is still largely built around text boxes and chat messages.
 
-- **两个空间分工**：叙事型结论进对话流，状态型数据进面板——讨论过程与结果沉淀互不干扰
-- **Agent 自动触发**：不需要用户指定组件，agent 依据内容选择最合适的呈现方式
-- **对话流常驻**：组件渲染在 Turn 尾部（`conversation.chat.turnTail`），**不随工具调用折叠**，刷新可回看
-- **面板可交互**：卡片可带按钮，点击把指令发回会话，形成「操作 → 处理 → 更新」闭环
-- **统一视觉**：Play 风格（实心块、双层文字、语义色条）；HTML 富文档也走同一套 Token，跟随明暗主题
-- **多入口兼容**：飞书/DSH GUI 同一会话——飞书看文字摘要，GUI 看完整视觉组件
+This creates unnecessary friction:
 
-## 支持的组件（10 种）
+- **Expressing intent takes effort.** Users often have to describe the context before asking what they actually want to know.
+- **Text is not always the best interface.** Complex information can be easier to understand through a chart, a structured card, or a rich document.
+- **Useful results get buried.** Valuable insights disappear into long conversation histories, leaving users to organize and preserve them manually.
 
-| 场景 | 组件 | 视觉 |
-|---|---|---|
-| 关键指标（涨跌/数值） | `metric_card` | 指标卡片（金额类数字滚动 + 千分位） |
-| 多维度对比 | `comparison_table` | 数据表格 |
-| 流程/步骤/阶段 | `step_bar` | 步骤条 |
-| 多维判断/风险 | `insight_cards` | 洞察卡片（左侧语义色条） |
-| 信息/新闻列表 | `article_list` | 条目列表 |
-| 走势/趋势/时序 | `trend_chart` | 折线/柱状/面积图（ECharts） |
-| 层级/思维导图 | `data_tree` | 树状图 |
-| 事件时间线 | `timeline` | 时间线（垂直/水平） |
-| 关系/依赖/架构 | `graph` | 节点 + 连线（React Flow，可缩放拖拽） |
-| 调研报告/长文档/富排版 | `html` | 沙箱 iframe 渲染任意 HTML（预设类 + Token，跟随主题、高度自适应） |
+Aura explores a different approach: make interaction more contextual, make results more expressive, and let users decide what is worth keeping.
 
-## 快速开始
+## Core Experiences
 
-### 版本要求
+### 1. Interact with Context
 
-| 依赖 | 要求 |
-|---|---|
-| DeepSeek Harness (DSH) | `>=0.1.2-rc.1 <0.3.0`（实测兼容 0.1.2 ~ 0.2.0-rc.2） |
-| Node.js | ≥ 22（dsh 要求） |
+Select a piece of content and invoke a radial menu to tell the agent what to do with it.
 
-> **DSH 0.2.0 起**：工具调用会归入 Turn 的「工作过程」并在完成后折叠。Aura 组件渲染在
-> **Turn 尾部**（属 `TURN_PROCESS_INDEPENDENT_KINDS` 白名单），不随过程折叠、常驻可见。
+Instead of copying text into a new prompt, Aura combines the selected content with your chosen intent to construct a contextual request.
 
-> 所有 `@deepseek-ai/*` 均为 **peerDependencies**（宿主提供）。经 `dsh plugin add` 装入
-> profile 后从宿主共享层解析，与宿主版本天然一致；`node_modules/` 不进发布物。
+Available actions include:
 
-### 安装
+- **Interpret** — Understand the meaning, reasoning, or implications of selected content.
+- **Challenge** — Question assumptions and examine potential weaknesses.
+- **Suggest Actions** — Explore possible next steps.
+- **Check Sources** — Examine the evidence and sources behind a claim.
+- **Curate & Push** — Organize useful conversation content into a reusable artifact.
+
+The goal is simple: express intent directly where it arises, without repeatedly reconstructing the context.
+
+### 2. See What Matters
+
+Not every answer should be a wall of text.
+
+Aura enables agents to present information through structured visual components and rich content, making complex results easier to scan, compare, and understand.
+
+Supported component types include:
+
+- Metric cards
+- Comparison tables
+- Step indicators
+- Insight cards
+- Lists
+- Trend charts
+- Tree diagrams
+- Timelines
+- Relationship graphs
+- Rich HTML documents
+
+The goal is not to decorate AI responses. It is to give information a form that better fits its purpose.
+
+### 3. Keep What's Useful
+
+A useful conversation should be able to produce something more durable than another chat message.
+
+With **Curate & Push**, an agent can organize relevant conversation content into cards or rich HTML documents and send them to Aura's sidebar workspace.
+
+Aura currently provides **a single main tab** for managing pushed content.
+
+Depending on the supported card lifecycle operations, you can:
+
+- **Keep important content.** Pin selected cards so they remain available.
+- **Let temporary content go.** Temporary cards can be hidden as the conversation grows.
+- **Remove unwanted content.** Dismiss cards you no longer need.
+- **Take content elsewhere.** Export card content to Markdown for reuse in other tools.
+
+Markdown export includes card content such as text, supported basic styling, and chart data. It is designed to preserve reusable content, not necessarily reproduce every visual detail of the original HTML.
+
+## How It Works
+
+Aura connects user intent, agent capabilities, and the presentation of results.
+
+1. **Select** — Identify the content you want to work with.
+2. **Choose an action** — Express your intent through the radial menu.
+3. **Process** — Aura combines the selected content and chosen intent into a contextual request for the agent.
+4. **Present** — The agent responds through text, visual components, or rich documents.
+5. **Curate** — Push useful results into the sidebar, manage their lifecycle, and export them when needed.
+
+This is a conceptual model rather than a mandatory workflow. Individual capabilities can be used whenever they are useful.
+
+## Example Use Cases
+
+### Research and Analysis
+
+Select a claim in an agent-generated report, challenge its assumptions, or check the evidence behind it. Push useful findings into cards for later reference.
+
+### Reading and Learning
+
+Select an unfamiliar concept and ask the agent to interpret it in context. Turn a long explanation into a structured visual summary.
+
+### Turning Conversations into Work Artifacts
+
+After exploring a topic through conversation, ask the agent to organize the important conclusions into a card or rich document. Keep it in the sidebar or export it as Markdown.
+
+These are examples of possible workflows, not guarantees that every task is fully automated.
+
+## Getting Started
+
+Aura runs within DeepSeek Harness (DSH) and relies on its host environment and agent capabilities.
+
+### Prerequisites
+
+- A compatible DeepSeek Harness installation.
+- A supported environment for loading and running DSH plugins.
+
+### Installation
+
+### Installation
+
+**Version requirements**
+
+| Dependency | Requirement |
+| --- | --- |
+| DeepSeek Harness | `>=0.2.0 <0.3.0`（0.2.0 recommended; older versions degrade selection/sidebar behavior） |
+| Node.js | ≥ 22 |
 
 ```bash
-# 本地开发 / 从源码
-dsh plugin --profile web add /path/to/aura-dsh
-
-# 从 GitHub（钉版本更稳）
+# From GitHub (pinned version recommended)
 dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.9
+
+# From source
+dsh plugin --profile web add /path/to/aura-dsh
 ```
 
-重启 dsh web 后生效。安装前可运行自检确认与宿主兼容：
+Restart `dsh web` after installation. Run `npm run check` first to verify host compatibility.
+
+### Quick Start
+
+Once Aura is installed:
+
+1. Open a conversation in DeepSeek Harness.
+2. Select a piece of content and open the radial menu.
+3. Choose an available contextual action.
+4. Ask the agent to organize useful content and push it to the sidebar.
+5. Manage or export the resulting cards as needed.
+
+### Quick Start
+
+Once Aura is installed:
+
+1. Open a conversation in DeepSeek Harness.
+2. Press `⌘⌥S` (macOS) / `Ctrl+Alt+S` (Windows) to enter selection mode, then drag to select content.
+3. The radial menu appears with five actions: **Interpret / Challenge / Suggest Actions / Check Sources / Curate & Push** (center circle = cancel).
+4. Choose an action; Aura builds a contextual request and sends it to the agent.
+5. "Curate & Push" sends cards to the sidebar, which auto-opens when closed (a skeleton card is shown while the agent generates).
+
+## For Developers
+
+Aura is an interaction and presentation layer built for DeepSeek Harness. It extends the existing agent experience rather than replacing the underlying agent runtime.
+
+Its capabilities span three areas:
+
+| Area | Responsibility |
+| --- | --- |
+| Contextual interaction | Connect selected content and user intent to agent requests. |
+| Rich presentation | Render structured components and rich HTML content. |
+| Sidebar workspace | Organize pushed cards, manage their lifecycle, and export reusable content. |
+
+### Rendering Components
+
+Aura supports a collection of structured visual components for agent-generated content.
+
+### Rendering Components
+
+Aura supports 10 structured components: `metric_card`, `comparison_table`, `step_bar`, `insight_cards`, `article_list`, `trend_chart`, `graph`, `data_tree`, `timeline`, `html`.
+
+See [docs/COMPONENTS.md](docs/COMPONENTS.md) for data schemas and usage rules.
+
+### Sidebar and Card Lifecycle
+
+The sidebar provides a single main tab for organizing and managing pushed cards and rich documents.
+
+### Sidebar and Card Lifecycle
+
+- **Single main tab**; each conversation has its own panel state (isolated by session).
+- Up to **20 non-pinned cards**; the oldest is evicted first when over the limit.
+- **Pin (⚑)**: user action to keep a card permanently — pin state is set only by the user, never by the agent.
+- **Dismiss (×)**: silently hidden (localStorage, per session); host data is retained.
+- Pushed cards are persisted to `~/.dsh/aura-panels/<sessionId>.json`.
+
+### Markdown Export
+
+- Export a single card (↧ on the card) or all cards (button at the top).
+- Conversion: structured components → Markdown tables/lists; HTML cards → HTML-to-Markdown (headings/tables/lists preserved, suitable for tools like Feishu docs).
+- Limitation: HTML card styling is not fully reproduced; iframe content is not captured in screenshots.
+
+### Development and Extension
+
+```
+client/   # browser half: panel, radial menu, selection adapters, components
+host/     # host half: aura_render / aura_panel tools, panel store
+scripts/  # build & wrap scripts
+```
 
 ```bash
-node check-tool.mjs   # dsh-tools 解析源/版本 + schema 编译 + execute 冒烟
+npm run bundle        # build the client bundle
+npm run check         # host compatibility check
+npm run test:registry # registry schema test
 ```
 
-### 使用
+Aura is installed as a DSH plugin bundle (see `cordis.patch.yml`); `@deepseek-ai/*` are peerDependencies provided by the host.
 
-安装后 agent 自动获得两个工具，**无需配置**，自然表达即可：
+For implementation details, refer to the source code and the relevant technical documentation.
 
-- 「用表格对比这几家公司」→ 对话流里出现对比表
-- 「把这周的走势画出来」→ 折线图
-- 「盯着这几个指标，放面板上随时更新」→ 右侧面板常驻卡片
-- 「整理一份调研报告」→ 面板里的 HTML 富文档 / 多个组件卡
+## Product Vision
 
-## 对话流组件（`aura_render`）
+Aura starts as a DeepSeek Harness plugin, but the question it explores is broader:
 
-```json
-{
-  "text": "一句话总结（2-3 句，不复述组件数据）",
-  "components": [
-    { "type": "trend_chart", "title": "近 7 日走势", "data": { "chart_type": "line", "series": [] } }
-  ]
-}
-```
+**What should human–agent interaction look like when it is no longer limited to a chat box?**
 
-- 单次最多 3 个组件（超出截断）
-- 组件渲染在 Turn 尾部，**不随工作过程折叠**
+We believe the future of agent interaction should make it easier to express intent, understand results, and work with agents through contextual actions and richer interfaces.
 
-## 侧边面板（`aura_panel`，0.2.0+）
+Cross-task, cross-application, desktop-level, and operating-system-level interaction are potential directions for future exploration — not capabilities Aura currently claims to provide.
 
-把卡片推送到**会话右侧面板**（常驻、可反复更新）：
+Read [VISION.md](VISION.md) for the full product vision and design principles.
 
-```json
-{ "action": "upsert", "card": { "id": "market", "type": "metric_card", "title": "行情", "data": {} } }
-```
+## Current Scope
 
-| action | 说明 |
-|---|---|
-| `upsert` | 新增或覆盖同 id 卡片 |
-| `remove` | 移除单张（`{ id }`） |
-| `clear` | 清空面板 |
+Aura is currently a plugin for DeepSeek Harness.
 
-**能力清单**
+It is not an independent agent runtime, a complete knowledge-management system, or an operating-system-level agent platform. Its current capabilities depend on the host environment and the underlying agent.
 
-- **卡片按钮**（`actions`）：点击后指令回到当前会话，agent 处理后更新面板
-- **骨架屏**：`pending: true` 或不给 `data` → 面板先显示骨架，随后逐个 `upsert` 填充
-- **实时更新**：面板订阅会话事件，同 id 的 upsert 会立即刷新（无需刷新页面）
-- **自动打开**：事件驱动——agent 推送卡片时自动打开面板；历史回放不会反复弹
-- **出场动画**（尊重系统「减少动态效果」）：流程图节点逐个落下 + 连线生长、折线笔刷画出、
-  列表/表格子项错峰；数字滚动仅用于金额类（`kind: "amount"`），年份/计数/比率/指数保持静止
-- **多 tab**：卡片可带 `tab`（频道键，缺省 `main`）与 `tabTitle`；同一会话可把
-  行情/调研/任务分到不同 tab，各自独立展示与过滤
-- **持久化**：面板状态落盘 `~/.dsh/aura-panels/<sessionId>.json`，刷新/重启后卡片仍在
-- **生命周期标记**：`persist: true` 常驻（跨刷新/重启保留）、`dismissed: true` 隐藏；
-  普通卡最多 20 张，超出淘汰最早的（常驻卡不占名额）
-- **圈选提问**：
-  · **面板内**：顶部「🔍 圈选提问」→ 圈选面板卡片（精确到行/单元格，含卡片数据）
-  · **全局**：按 **`⌘⌥S`**（macOS）/ `Ctrl+Alt+S`（Windows，可在 DSH「设置 → 快捷键」自定义）
-    → 覆盖全屏的圈选层，**可圈选页面任意区域**（对话流 / 面板 / 其他侧边栏插件）
-  松开后弹出**径向菜单**（解释这段 / 为什么这样 / 有什么问题 / 怎么改进，鼠标方向选中，
-  中心圆自定义）；上下文只给「精确锚点」（行级文本 + turn 号 / 卡片 id），不重复完整消息。
-  `Esc` 退出
+We aim to prioritize improvements that reduce interaction friction and make agent outputs more useful in real work.
 
-### HTML 卡（`type: "html"`）
+## Contributing
 
-用于结构化组件表达不了的场景（调研报告、长文档、自由布局）：
+Contributions, feedback, and ideas are welcome.
 
-```json
-{ "id": "report", "type": "html", "title": "调研速览", "data": { "html": "<div class='a-h1'>标题</div>" } }
-```
+If you are interested in contextual interaction, rich agent interfaces, or new ways for humans and agents to collaborate, explore the project and share your thoughts.
 
-- **安全**：`sandbox="allow-scripts"`（不含 `allow-same-origin`），与宿主页面隔离
-- **预设结构类**（推荐，颜色/字号/圆角由插件统一）：
-  `a-card` `a-kpi` `a-h1` `a-h2` `a-table` `a-chip` `a-note` `a-warn` `a-ok` `a-bad` `a-quote` `a-list` `a-muted` `a-accent` `a-dim`
-  及其语义变体 `a-chip--ok/--bad/--warn/--muted`、`a-text-ok/bad/warn/accent`（行内/表格内）
-- **主题 Token**：`var(--aura-text | --aura-text-2 | --aura-surface | --aura-border | --aura-accent | --aura-radius | --aura-gap)`
-  —— 换风格只需改 Token 层，结构类不用动
-- **上下文自适应**：语义类写在 `b/span/td` 等行内位置时自动降级为文字色，不会撑高行高
-- **高度自适应**：忽略 `data.height`，按内容撑开（长内容交给外层面板滚动）
-- **约定**：HTML 属性用**单引号**（`class='a-h1'`），避免 JSON 双引号转义失败；单卡 ≤ 6000 字符
+### Contributing
 
-## 技术概览（面向开发者）
+Contributions, feedback, and ideas are welcome — open an issue or a pull request on [GitHub](https://github.com/clawdwan/aura-dsh).
 
-`dsh-aura` 是标准 DSH 静态插件包：
+## License
 
-- **host 半**（`host/`）：注册两个工具——`aura_render`（对话流）与 `aura_panel`（面板 + 卡片存储）
-- **browser 半**（`client/`）：工具结果渲染器（antd v6 + ECharts + React Flow）、右侧面板 tab、
-  圈选层、面板信号层（`panelSignal.js`，订阅会话事件驱动面板打开）
+## License
 
-构建产物（`client/dist/`）随仓库提供，安装即用，无需本地构建。
+MIT © clawdwan. See [LICENSE](LICENSE).
 
-### 组件 data 契约
+---
 
-每个组件接收 `{ title, data }`：
+**Aura — Beyond the Chat Box.**
 
-| 组件 | data 结构 |
-|---|---|
-| metric_card | `{ metrics: [{label, value, change?, size?, kind?}] }`（`kind: amount` 触发千分位+滚动） |
-| comparison_table | `{ headers: string[], rows: string[][] }` |
-| step_bar | `{ steps: [{label, description?, badge?}] }` |
-| insight_cards | `{ cards: [{title, rating, body, level?}] }` |
-| article_list | `{ articles: [{title, summary?, url?, source?}] }` |
-| trend_chart | `{ chart_type: 'line'\|'bar'\|'area', series: [{name, data:[{x,y}]}], unit? }` |
-| data_tree | `{ root: {label, value?, children} }` |
-| timeline | `{ events: [{time, title, description?, color?}], orientation? }` |
-| graph | `{ direction?: 'TB'\|'LR', nodes: [{id, label, tag?, kind?}], edges: [{source, target, label?}] }` |
-| html | `{ html: string }`（使用预设类，见下节） |
-
-## 开发
-
-```bash
-npm install          # 安装依赖
-npm run bundle       # 构建 client 半（tsdown → client/dist/client.js）
-node check-tool.mjs  # 安装前自检（避免启动崩溃）
-npm run watch        # 开发热重建
-```
-
-**分支约定**：日常开发在 `panel` 分支；发版时打 tag 并 `--no-ff` 合并到 `main`。
-
-## 版本记录
-
-| 版本 | 主题 |
-|---|---|
-| 0.2.0 | 侧边交互面板（`aura_panel` + 按钮闭环） |
-| 0.3.0 | `graph` 组件 + Play 风视觉 + 骨架屏 + 出场动画（移除 mermaid，体积 16.2MB→1.4MB） |
-| 0.4.0 | `html` 卡片 + 圈选提问 + 洞察卡视觉重做 + 数字语义（`kind`） |
-| 0.5.0 | HTML 设计系统（Token + 预设结构类）+ 事件驱动面板打开 + 面板稳定性修复 |
-| 0.6.0 | 面板多 tab + 圈选快捷键（⌘⌥S）+ 径向菜单 + 来源 turn 追溯修复 |
-| 0.7.0 | 圈选精确命中 + 上下文精确与完整 + 面板持久化 + persist/dismissed 标记 |
-| 0.8.0 | 全局圈选（⌘⌥S 任意区域）+ 适配器协议 + 行级精确（表格行/代码块/段落）+ 简洁上下文 |
-| 0.8.1 | 径向菜单 5 个通用操作（图标分色）+ 卡片折叠/静默关闭 + 抖动修复 |
-| 0.8.2 | 视觉类圈选自动截图（canvas 直出 + DOM 兜底，随提问以图片发送） |
-| 0.8.3 | 面板回退单一 main tab + 截图尺寸阈值 + 工具参数 JSON 约束强化 |
-| 0.8.4 | 径向菜单 6 扇区 + 中心取消 + 视觉/动画打磨 |
-| 0.8.5 | Markdown 导出 + 侧边栏文件/文档适配器 + 命中判定收紧 |
-| 0.8.6 | 截图误判/滚动定位/侧边栏展开/卡片逆序/iframe 高度/输入框定位修复 |
-| 0.8.7 | 骨架卡占位 + 卡片飞入动画 + 新卡内框线闪烁 |
-| 0.8.8 | 卡片 ⚑ 手动常驻 + 骨架卡会话隔离 + 默认普通卡 |
-| 0.8.9 | 圈选命中简化（相交即命中）+ 5 个 prompt 调整 + 「解读」 |
-
-详细变更见 [CHANGELOG.md](./CHANGELOG.md)。
-
-## 许可
-
-Apache-2.0
+*Less typing. More doing.*
