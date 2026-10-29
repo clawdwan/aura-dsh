@@ -412,6 +412,10 @@ export default function AuraPanel(props) {
       showWhenVisible();
     };
     window.addEventListener('aura:card-pending', onPending);
+    // 兜底：侧边栏刚打开时事件可能早于本组件挂载，挂载后读一次全局变量
+    try {
+      if (window.__auraPendingCard) onPending({ detail: window.__auraPendingCard });
+    } catch { /* ignore */ }
     return () => window.removeEventListener('aura:card-pending', onPending);
   }, []);
 
@@ -423,6 +427,7 @@ export default function AuraPanel(props) {
     if (!latest?.id || latest.id === lastLatestIdRef.current) return;
     lastLatestIdRef.current = latest.id;
     setPendingEnter(null);
+    try { delete window.__auraPendingCard; } catch { /* ignore */ }
     // 新卡到达：闪烁高亮 1.5s
     setFlashCardId(latest.id);
     const timer = setTimeout(() => setFlashCardId(null), 1500);

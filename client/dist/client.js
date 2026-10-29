@@ -183793,6 +183793,9 @@ function AuraPanel(props) {
 			showWhenVisible();
 		};
 		window.addEventListener("aura:card-pending", onPending);
+		try {
+			if (window.__auraPendingCard) onPending({ detail: window.__auraPendingCard });
+		} catch {}
 		return () => window.removeEventListener("aura:card-pending", onPending);
 	}, []);
 	const lastLatestIdRef = react$1.default.useRef(null);
@@ -183802,6 +183805,9 @@ function AuraPanel(props) {
 		if (!latest?.id || latest.id === lastLatestIdRef.current) return;
 		lastLatestIdRef.current = latest.id;
 		setPendingEnter(null);
+		try {
+			delete window.__auraPendingCard;
+		} catch {}
 		setFlashCardId(latest.id);
 		setTimeout(() => setFlashCardId(null), 1500);
 		const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame(() => {
@@ -186089,13 +186095,17 @@ function GlobalSelector({ send, getSessionId }) {
 			});
 			const res = await send?.(ctx, image);
 			if (res?.ok === false) throw new Error(res?.error?.message ?? "发送失败");
+			const pendingDetail = {
+				x: sel.left,
+				y: sel.top,
+				width: sel.right - sel.left,
+				height: sel.bottom - sel.top
+			};
 			try {
-				window.dispatchEvent(new CustomEvent("aura:card-pending", { detail: {
-					x: sel.left,
-					y: sel.top,
-					width: sel.right - sel.left,
-					height: sel.bottom - sel.top
-				} }));
+				window.__auraPendingCard = pendingDetail;
+			} catch {}
+			try {
+				window.dispatchEvent(new CustomEvent("aura:card-pending", { detail: pendingDetail }));
 			} catch {}
 			const scrollToBottom = () => {
 				try {
