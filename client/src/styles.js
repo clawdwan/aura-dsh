@@ -1495,8 +1495,16 @@ svg.react-flow__connectionline {
 /* ── 骨架卡（卡片生成中占位）── */
 .aura-panel-card--pending {
   position: relative;
-  /* 与真实卡一致：无边框、无背景（真实卡 .aura-panel-card 也没有） */
-  animation: aura-card-enter-leftdown 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+  /* 框线/圆角由 .aura-card 提供（与真实卡一致） */
+  animation: aura-card-enter-leftdown 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.aura-panel-card.is-new {
+  animation: aura-card-flash 1.5s ease-out;
+}
+@keyframes aura-card-flash {
+  0% { box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary, #4176e6); }
+  70% { box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary, #4176e6); }
+  100% { box-shadow: 0 0 0 2px transparent; }
 }
 @keyframes aura-card-enter-leftdown {
   from {

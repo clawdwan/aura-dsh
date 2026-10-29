@@ -1535,8 +1535,16 @@ svg.react-flow__connectionline {
 /* ── 骨架卡（卡片生成中占位）── */
 .aura-panel-card--pending {
   position: relative;
-  /* 与真实卡一致：无边框、无背景（真实卡 .aura-panel-card 也没有） */
-  animation: aura-card-enter-leftdown 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+  /* 框线/圆角由 .aura-card 提供（与真实卡一致） */
+  animation: aura-card-enter-leftdown 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.aura-panel-card.is-new {
+  animation: aura-card-flash 1.5s ease-out;
+}
+@keyframes aura-card-flash {
+  0% { box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary, #4176e6); }
+  70% { box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary, #4176e6); }
+  100% { box-shadow: 0 0 0 2px transparent; }
 }
 @keyframes aura-card-enter-leftdown {
   from {
@@ -183750,6 +183758,7 @@ function AuraPanel(props) {
 		return allCards;
 	}, [eventCards, allCards]);
 	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)).sort((a, b) => (b?.updatedAt ?? 0) - (a?.updatedAt ?? 0)), [sourceCards, hiddenIds]);
+	const [flashCardId, setFlashCardId] = react$1.default.useState(null);
 	const [pendingEnter, setPendingEnter] = react$1.default.useState(null);
 	react$1.default.useEffect(() => {
 		const onPending = (e) => setPendingEnter(e?.detail ?? null);
@@ -183763,6 +183772,8 @@ function AuraPanel(props) {
 		if (!latest?.id || latest.id === lastLatestIdRef.current) return;
 		lastLatestIdRef.current = latest.id;
 		setPendingEnter(null);
+		setFlashCardId(latest.id);
+		setTimeout(() => setFlashCardId(null), 1500);
 		const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame(() => {
 			const scrollPanelToTop = () => {
 				const panel = document.querySelector(".aura-panel");
@@ -183845,7 +183856,7 @@ function AuraPanel(props) {
 				})
 			}),
 			pendingEnter ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-				className: "aura-panel-card aura-panel-card--pending",
+				className: "aura-panel-card aura-card aura-panel-card--pending",
 				style: {
 					"--aura-enter-x": `${pendingEnter.x ?? 0}px`,
 					"--aura-enter-y": `${pendingEnter.y ?? 0}px`
@@ -183877,7 +183888,7 @@ function AuraPanel(props) {
 			cards.map((card) => {
 				const actions = Array.isArray(card.actions) ? card.actions : [];
 				return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
-					className: "aura-panel-card",
+					className: `aura-panel-card${flashCardId === card.id ? " is-new" : ""}`,
 					"data-aura-card-id": card.id,
 					"data-aura-card-title": card.title ?? card.id,
 					children: [

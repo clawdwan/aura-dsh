@@ -386,6 +386,9 @@ export default function AuraPanel(props) {
     [sourceCards, hiddenIds],
   );
 
+  // 新到达的卡片（加 is-new 做闪烁高亮，1.5s 后移除）
+  const [flashCardId, setFlashCardId] = React.useState(null);
+
   // 卡片生成中的骨架占位（用户点发送后立即出现，卡片到达后消失）
   const [pendingEnter, setPendingEnter] = React.useState(null); // { x, y, width, height }
   React.useEffect(() => {
@@ -402,6 +405,9 @@ export default function AuraPanel(props) {
     if (!latest?.id || latest.id === lastLatestIdRef.current) return;
     lastLatestIdRef.current = latest.id;
     setPendingEnter(null);
+    // 新卡到达：闪烁高亮 1.5s
+    setFlashCardId(latest.id);
+    const timer = setTimeout(() => setFlashCardId(null), 1500);
     // 等一帧让卡片渲染完成（高度确定）再滚：
     // 新卡追加在列表末尾，直接滚到面板底部即可让它完整进入视口
     const raf = typeof requestAnimationFrame === 'function'
@@ -466,7 +472,7 @@ export default function AuraPanel(props) {
       </div>
       {pendingEnter ? (
         <div
-          className="aura-panel-card aura-panel-card--pending"
+          className="aura-panel-card aura-card aura-panel-card--pending"
           style={{
             // 骨架卡从圈选位置飞入（相对面板的偏移量用 CSS 变量传给动画）
             '--aura-enter-x': `${(pendingEnter.x ?? 0)}px`,
@@ -488,7 +494,7 @@ export default function AuraPanel(props) {
         return (
           <section
             key={card.id}
-            className="aura-panel-card"
+            className={`aura-panel-card${flashCardId === card.id ? ' is-new' : ''}`}
             data-aura-card-id={card.id}
             data-aura-card-title={card.title ?? card.id}
           >
