@@ -185733,7 +185733,7 @@ function collectHits(adapters, sel) {
 const RADIAL_OPTIONS = [
 	{
 		label: "给出操作",
-		prompt: "基于圈选内容，给出可直接执行的操作（命令/步骤/代码），并说明预期结果。",
+		prompt: "请基于圈选内容给出可执行的步骤：每一步的操作、预期效果，以及如何验证。如果圈选内容本身不是可执行类（概念/观点/风险等），请说明这一点，并给出可选的后续动作。",
 		color: "var(--dsw-static-deepseek-500, #4176e6)",
 		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
 			fill: "none",
@@ -185746,7 +185746,7 @@ const RADIAL_OPTIONS = [
 	},
 	{
 		label: "整理并推送",
-		prompt: "请提炼圈选内容的要点，并**结合最近几轮对话的上下文**，整理成合适的卡片推送到右侧面板（按内容选择便签/指标/表格/洞察/HTML 报告等形态）。",
+		prompt: "请先理解圈选内容并梳理上下文，然后把信息整理清楚，选择清晰易理解的呈现形式（卡片）推送到右侧面板。重点是组织得好读、有结构，而不是简单照搬。",
 		color: "var(--dsw-alias-state-success-primary, #1f9d55)",
 		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
 			fill: "none",
@@ -185759,7 +185759,7 @@ const RADIAL_OPTIONS = [
 	},
 	{
 		label: "解释这段",
-		prompt: "请解释圈选的这部分内容（它是什么、含义、作用）。",
+		prompt: "请解释圈选的这部分内容：1) 先说它是什么（核心概念/含义/作用）；2) 如果有实质信息（数据/结论/决策/风险/代码等），按最适合该内容的维度展开（如数据说来源/口径/构成，风险说依据/影响/对策，概念说原理/边界/例子），不要套固定模板；3) 结合最近几轮对话的上下文。内容简单则简答，内容复杂则展开（细节优先）。",
 		color: "var(--dsw-alias-label-secondary, #646a73)",
 		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("g", {
 			fill: "none",
@@ -185772,7 +185772,7 @@ const RADIAL_OPTIONS = [
 	},
 	{
 		label: "质疑",
-		prompt: "请对圈选的这部分内容提出质疑：有哪些问题、反例或不确定之处？",
+		prompt: "用户对圈选的这段内容有疑问（觉得可能不对/可疑）。请站在用户视角帮用户分析：1) 用户的疑虑可能成立在哪里；2) 这段内容中哪些说法/数据/结论值得推敲；3) 如何验证（需要什么出处、反例或数据）。不要泛泛地\"提出质疑\"，聚焦用户的疑虑点。",
 		color: "var(--dsw-alias-state-warning-primary, #d7771c)",
 		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
 			fill: "none",
@@ -185799,7 +185799,7 @@ const RADIAL_OPTIONS = [
 	},
 	{
 		label: "查来源",
-		prompt: "请核查圈选内容的来源与依据：出自哪里、是否准确、有无可验证的出处。",
+		prompt: "请核查圈选内容的来源与依据：出自哪里、是否准确、有无可验证的出处。如果找不到明确来源，请直接说明找不到，不要编造出处；并给出可以进一步验证的方法。",
 		color: "var(--dsw-alias-state-info-primary, #6b4fd8)",
 		icon: /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("g", {
 			fill: "none",
