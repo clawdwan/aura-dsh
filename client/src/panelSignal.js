@@ -128,10 +128,14 @@ const trigger = (event, sessionId) => {
     if (!Array.isArray(targets) || targets.length === 0) return;
     // 侧边栏已打开（任一 pane 可见）→ 不动：不展开、也不切换用户当前 tab
     if (isRightbarOpen()) return;
+    // 侧边栏关闭：直接 openTab（tab 记录可能已存在，仍需激活它以展开右侧栏，
+    // 因此不能走 defaultOpen 的 isTargetOpen 跳过逻辑）
     try {
-      open(targets, sessionId);
+      for (const kind of [...new Set(targets.filter((t) => typeof t === 'string' && t))]) {
+        sidebarRight?.openTab?.(kind);
+      }
     } catch (err) {
-      fail(err, 'openTargets');
+      fail(err, 'openTab');
     }
   };
 

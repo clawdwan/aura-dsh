@@ -183872,23 +183872,6 @@ const DEFAULT_SIGNAL_CONFIG = {
 };
 /** 会话 retain 的来源标记（DSH 允许 controllerOperation / gateway） */
 const RETAIN_SOURCE = "controllerOperation";
-/** 判断某个 tab 记录是否是我们关心的 kind（兼容 kind/type/id 字段差异） */
-function tabMatches(record, kind) {
-	if (!record) return false;
-	const value = record.kind ?? record.type ?? record.id;
-	if (typeof value !== "string") return false;
-	return value === kind || value.includes(kind);
-}
-/** 该会话当前是否已打开某个目标 tab */
-function isTargetOpen(sidebarRight, sessionId, kind) {
-	try {
-		const tabs = sidebarRight?.tabsIn?.(sessionId) ?? [];
-		return Array.isArray(tabs) && tabs.some((t) => tabMatches(t, kind));
-	} catch (err) {
-		console.error("[aura-signal] tabsIn 失败:", err?.message ?? err);
-		return false;
-	}
-}
 /** 从事件窗口里找 aura_panel 的 tool/call */
 function hasPanelCall(entries) {
 	if (!Array.isArray(entries)) return false;
@@ -183926,18 +183909,6 @@ function createPanelSignal({ sessions, sidebarRight, config, resolveTargets, ope
 	let unsubscribe = null;
 	const defaultResolve = () => [cfg.tabKind];
 	const resolve = typeof resolveTargets === "function" ? resolveTargets : defaultResolve;
-	const defaultOpen = (targets, sessionId) => {
-		const unique = [...new Set((targets ?? []).filter((t) => typeof t === "string" && t))];
-		for (const kind of unique) {
-			if (isTargetOpen(sidebarRight, sessionId, kind)) continue;
-			try {
-				sidebarRight?.openTab?.(kind);
-			} catch (err) {
-				fail(err, `openTab(${kind})`);
-			}
-		}
-	};
-	const open = typeof openTargets === "function" ? openTargets : defaultOpen;
 	/**
 	* 右侧栏是否已展开。
 	* DSH 的右侧栏在关闭时只是把 dock 用 transform 移出视口（列宽仍在），
@@ -183962,9 +183933,9 @@ function createPanelSignal({ sessions, sidebarRight, config, resolveTargets, ope
 		if (!Array.isArray(targets) || targets.length === 0) return;
 		if (isRightbarOpen()) return;
 		try {
-			open(targets, sessionId);
+			for (const kind of [...new Set(targets.filter((t) => typeof t === "string" && t))]) sidebarRight?.openTab?.(kind);
 		} catch (err) {
-			fail(err, "openTargets");
+			fail(err, "openTab");
 		}
 	};
 	const detach = () => {
