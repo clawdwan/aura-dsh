@@ -103,9 +103,10 @@ export function createGenericDomAdapter() {
     id: 'generic-dom',
     selector: null,
     describe(el, sel) {
-      if (!el || el === document.body || el === document.documentElement) return null;
-      // 只取「圈选范围内」的文本（extractLines 会按 sel 过滤）；
-      // 不能用整个容器的 textContent——大容器（如 turn 节点）会把圈选外的工具过程也带上
+      if (!el) return null;
+      // 只取「圈选范围内」的文本（extractLines 按 sel 过滤）。
+      // 允许 body：小范围圈选时 turn 节点可能到不了 15% 重叠，需要 body 兜底，
+      // extractLines 只提取框内文本，不会把整页带上。
       const lines = extractLines(sel, el);
       if (!lines.length) return null;
       const tag = (el.tagName || 'unknown').toLowerCase();

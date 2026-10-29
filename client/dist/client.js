@@ -185438,7 +185438,7 @@ function createGenericDomAdapter() {
 		id: "generic-dom",
 		selector: null,
 		describe(el, sel) {
-			if (!el || el === document.body || el === document.documentElement) return null;
+			if (!el) return null;
 			const lines = extractLines(sel, el);
 			if (!lines.length) return null;
 			return {
