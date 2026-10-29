@@ -221,6 +221,15 @@ export default function AuraPanel(props) {
     if (!res?.ok) throw new Error(res?.error?.message ?? '发送失败');
   }, [__auraSend]);
 
+  /** 设为常驻卡：发一条简短指令给 agent（client 无法直接改 host 状态） */
+  const handlePinCard = React.useCallback((card) => {
+    if (!card?.id) return;
+    if (typeof __auraSend === 'function') {
+      __auraSend(`[面板操作] 把卡片「${card.id}」设为 persist=true（常驻，不参与淘汰），不要解释，直接调用 aura_panel 完成。`)
+        .catch((err) => console.warn('[aura-panel] 常驻设置失败:', err?.message ?? err));
+    }
+  }, [__auraSend]);
+
   /** 导出单张卡片为 .md */
   const handleExportCard = React.useCallback((card) => {
     if (!card) return;
@@ -355,10 +364,12 @@ export default function AuraPanel(props) {
       try {
         const win = sub?.get?.() ?? null;
         const found = extractCardsFromEvents(win);
-        setEventInfo({
+        const info = {
           entries: Array.isArray(win?.entries) ? win.entries.length : 0,
           cards: Array.isArray(found) ? found.length : 0,
-        });
+        };
+        setEventInfo(info);
+        console.log('[aura-panel] 事件窗口:', info);
         if (Array.isArray(found) && found.length > 0) setEventCards(found);
       } catch { /* ignore */ }
     };
@@ -524,6 +535,16 @@ export default function AuraPanel(props) {
             <div className="aura-panel-card-head">
               {card.title ? <h4 className="aura-panel-card-title">{card.title}</h4> : <span />}
               <div className="aura-panel-card-actions">
+                {card.persist ? null : (
+                  <button
+                    type="button"
+                    className="aura-panel-card-action"
+                    title="设为常驻卡（不参与 20 张上限淘汰）"
+                    onClick={() => handlePinCard(card)}
+                  >
+                    📌
+                  </button>
+                )}
                 <button
                   type="button"
                   className="aura-panel-card-action"
