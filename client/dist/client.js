@@ -1541,15 +1541,14 @@ svg.react-flow__connectionline {
 /* ── 骨架卡（卡片生成中占位）── */
 .aura-panel-card--pending {
   position: relative;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(128,128,128,0.16));
-  background: var(--dsw-alias-bg-l1, #fff);
-  animation: aura-card-enter-leftdown 0.28s ease-out;
+  /* 与真实卡一致：无边框、无背景（真实卡 .aura-panel-card 也没有） */
+  animation: aura-card-enter-leftdown 0.36s cubic-bezier(0.22, 1, 0.36, 1);
 }
 @keyframes aura-card-enter-leftdown {
   from {
     opacity: 0;
-    /* 从圈选位置方向飞入（负 X 表示来自左侧对话区，正 Y 表示来自下方） */
-    transform: translate(var(--aura-enter-x, -48px), var(--aura-enter-y, 32px)) scale(0.98);
+    /* 固定小位移（从圈选方向轻微滑入）：位移太大会一瞬间掠过、反而看不清 */
+    transform: translate(-40px, 26px) scale(0.97);
   }
   to {
     opacity: 1;
