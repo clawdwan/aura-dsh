@@ -21,7 +21,11 @@ export const panelParameters = {
   action: {
     type: 'string',
     required: true,
-    description: "操作类型：'upsert'（新增/更新卡片）、'remove'（移除单张）、'clear'（清空面板）",
+    description: "操作类型：'upsert'（新增/更新卡片，固定普通卡）、'remove'（移除单张）、'clear'（清空面板）、'pin'（用户点 ⚑ 时把卡片设为常驻）",
+  },
+  cardId: {
+    type: 'string',
+    description: "action='pin' 时必填：要设为常驻的卡片 id",
   },
   card: {
     type: 'object',
@@ -32,7 +36,7 @@ export const panelParameters = {
       + "内容能用结构化组件表达时优先用 comparison_table/insight_cards/metric_card，html 仅用于长文档/富排版。"
       + "pending=true 或省略 data 时，面板显示骨架屏占位（适合多卡片任务：先推结构再填数据）。"
       + "type 与 data 契约同 aura_render；actions[].prompt 是点击按钮后注入会话的指令文本。"
-      + "persist=true 表示常驻卡片（不参与 20 张上限淘汰、跨刷新/重启保留）；dismissed=true 表示隐藏（不渲染、数据保留）；"
+      + "注意：persist（常驻）只能由用户通过卡片 ⚑ 按钮设置（action='pin'），agent 推卡一律为普通卡、传 persist 会被忽略；dismissed=true 表示隐藏（不渲染、数据保留）；"
       + "tab 是面板内频道键（如 'market'/'research'，缺省 'main'），tabTitle 是该频道显示名；"
       + "同一会话可在多个 tab 里分别组织内容。"
       + "action='remove' 时只需 { id }。",
@@ -52,7 +56,7 @@ export const panelOutputSchema = {
 };
 
 /** 校验并规整卡片（未知 type 降级为文字说明，避免渲染端崩溃）。 */
-function normalizeCard(raw) {
+function normalizeCard(raw, persistOverride = false) {
   if (!raw || typeof raw !== 'object') return null;
   const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : null;
   if (!id) return null;
@@ -81,7 +85,9 @@ function normalizeCard(raw) {
     ...(actions ? { actions } : {}),
     ...(raw.collapsed === true ? { collapsed: true } : {}),
     ...(raw.pending === true ? { pending: true } : {}),
-    ...(raw.persist === true ? { persist: true } : {}),
+    // 注意：persist 只能由用户通过 ⚑（action='pin'）设置，
+    // agent 的 upsert 一律忽略 persist → 固定普通卡
+    ...(persistOverride === true ? { persist: true } : {}),
     ...(raw.dismissed === true ? { dismissed: true } : {}),
     ...(safeType !== type ? { downgradedFrom: type } : {}),
   };
@@ -117,8 +123,23 @@ export function createPanelExecute(store) {
       return { text: note || `已移除卡片 ${cardId}`, sessionId, action, cards };
     }
 
-    // action === 'upsert'
-    const card = normalizeCard(args?.card);
+    // action === 'pin'（用户点 ⚑：把已有卡片设为常驻）
+    if (action === 'pin') {
+      const cardId = typeof args?.cardId === 'string' ? args.cardId.trim() : null;
+      if (!cardId) {
+        return { text: `${note}（cardId 缺失，未执行）`, sessionId, action, cards: store.visible ? store.visible(sessionId) : store.list(sessionId) };
+      }
+      const existing = store.list ? store.list(sessionId).find((c) => c.id === cardId) : null;
+      if (!existing) {
+        return { text: `${note}（卡片 ${cardId} 不存在）`, sessionId, action, cards: store.visible ? store.visible(sessionId) : store.list(sessionId) };
+      }
+      store.upsert(sessionId, normalizeCard({ ...existing, persist: true }, true));
+      const cards = store.visible ? store.visible(sessionId) : store.list(sessionId);
+      return { text: `${note}（已设为常驻：${cardId}）`, sessionId, action, cards };
+    }
+
+    // action === 'upsert'（agent 推卡：固定普通卡，忽略 persist）
+    const card = normalizeCard(args?.card, false);
     if (!card) {
       return { text: `${note}（card.id 缺失，未执行）`, sessionId, action, cards: store.visible ? store.visible(sessionId) : store.list(sessionId) };
     }
