@@ -183939,15 +183939,14 @@ function createPanelSignal({ sessions, sidebarRight, config, resolveTargets, ope
 	};
 	const open = typeof openTargets === "function" ? openTargets : defaultOpen;
 	/**
-	* 右侧栏是否已展开（DOM 判断）。
-	* dockkit 的列容器：[data-dockkit-column] 从左到右排列，最后一个即右侧栏。
-	* 判断失败时保守返回 true（视为已展开）→ 不强制打开，避免再次出现"强行弹出"。
+	* 右侧栏是否已展开。
+	* DSH 的右侧栏在关闭时只是把 dock 用 transform 移出视口（列宽仍在），
+	* 所以用语义属性判断：面板打开时根节点带 data-sidebar-right-open。
+	* 判断失败时保守返回 true（视为已展开）→ 不强制打开，避免"强行弹出"。
 	*/
 	function isRightbarOpen() {
 		try {
-			const cols = [...document.querySelectorAll("[data-dockkit-column]")];
-			if (!cols.length) return true;
-			return cols[cols.length - 1].getBoundingClientRect().width > 60;
+			return Boolean(document.querySelector("[data-sidebar-right-open]"));
 		} catch {
 			return true;
 		}
