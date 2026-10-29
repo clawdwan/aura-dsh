@@ -203,7 +203,6 @@ export function extractLines(sel, root, maxLines = 10) {
     let els = [];
     try { els = [...scope.querySelectorAll(q)]; } catch { els = []; }
     for (const el of els) {
-      if (isProcessEl(el)) continue; // 跳过工具调用/思考过程区域
       const r = el.getBoundingClientRect();
       if (r.width < 4 || r.height < 4 || !inSel(r)) continue;
       if (used.some((u) => contains(u, r))) continue;
@@ -215,7 +214,10 @@ export function extractLines(sel, root, maxLines = 10) {
       } else {
         text = squeeze(el.textContent).slice(0, 300);
       }
-      if (text.length < 4 || seen.has(text)) continue;
+      // 只过滤「工具状态摘要」（"已访问网页/已搜索/已调用工具/用时…"这类短文本），
+      // 不整段过滤过程区域——里面也包含工具返回的内容（用户可能想圈）
+      const isStatusLine = text.length < 80 && /已访问|已搜索|已调用|已下载|用时|已完成|思考中|运行中/.test(text);
+      if (text.length < 4 || isStatusLine || seen.has(text)) continue;
       seen.add(text);
       lines.push(text);
       used.push(r);

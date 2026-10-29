@@ -185505,7 +185505,6 @@ function extractLines(sel, root, maxLines = 10) {
 	const squeeze = (t) => (t || "").replace(/\s+/g, " ").trim();
 	const seen = /* @__PURE__ */ new Set();
 	const used = [];
-	const isProcessEl = (el) => el?.closest?.("[data-step-process-content], [data-chat-flow-kind=\"turn-process\"], [data-turn-process-answer]");
 	for (const { q, kind } of [
 		{
 			q: "tr",
@@ -185539,7 +185538,6 @@ function extractLines(sel, root, maxLines = 10) {
 			els = [];
 		}
 		for (const el of els) {
-			if (isProcessEl(el)) continue;
 			const r = el.getBoundingClientRect();
 			if (r.width < 4 || r.height < 4 || !inSel(r)) continue;
 			if (used.some((u) => contains(u, r))) continue;
@@ -185547,7 +185545,8 @@ function extractLines(sel, root, maxLines = 10) {
 			if (kind === "row") text = [...el.querySelectorAll("td,th")].map((c) => squeeze(c.textContent)).filter(Boolean).join(" / ");
 			else if (kind === "code") text = `代码块：${squeeze(el.textContent).slice(0, 300)}`;
 			else text = squeeze(el.textContent).slice(0, 300);
-			if (text.length < 4 || seen.has(text)) continue;
+			const isStatusLine = text.length < 80 && /已访问|已搜索|已调用|已下载|用时|已完成|思考中|运行中/.test(text);
+			if (text.length < 4 || isStatusLine || seen.has(text)) continue;
 			seen.add(text);
 			lines.push(text);
 			used.push(r);
