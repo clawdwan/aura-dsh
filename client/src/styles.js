@@ -1491,6 +1491,51 @@ svg.react-flow__connectionline {
   margin-bottom: 8px;
 }
 
+
+/* ── 骨架卡（卡片生成中占位）── */
+.aura-panel-card--pending {
+  position: relative;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(128,128,128,0.16));
+  background: var(--dsw-alias-bg-l1, #fff);
+  animation: aura-card-enter-leftdown 0.28s ease-out;
+}
+@keyframes aura-card-enter-leftdown {
+  from {
+    opacity: 0;
+    /* 从圈选位置方向飞入（负 X 表示来自左侧对话区，正 Y 表示来自下方） */
+    transform: translate(var(--aura-enter-x, -48px), var(--aura-enter-y, 32px)) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+.aura-pending-title {
+  color: var(--dsw-alias-label-tertiary, #999);
+  font-size: 12px;
+}
+.aura-pending-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 0 2px;
+}
+.aura-pending-bar {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    var(--dsw-alias-bg-l2, rgba(128,128,128,0.10)) 25%,
+    var(--dsw-alias-bg-l3, rgba(128,128,128,0.18)) 50%,
+    var(--dsw-alias-bg-l2, rgba(128,128,128,0.10)) 75%);
+  background-size: 200% 100%;
+  animation: aura-pending-pulse 1.2s ease-in-out infinite;
+}
+@keyframes aura-pending-pulse {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
 /* 卡片标题行（标题 + 操作按钮） */
 .aura-panel-card-head {
   display: flex;

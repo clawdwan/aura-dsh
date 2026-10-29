@@ -308,6 +308,12 @@ export default function GlobalSelector({ send, getSessionId }) {
       const ctx = buildContext({ hits, rect: sel, question: q, hasImage: Boolean(image) });
       const res = await send?.(ctx, image);
       if (res?.ok === false) throw new Error(res?.error?.message ?? '发送失败');
+      // 通知面板：卡片生成中（骨架卡从圈选位置飞入）
+      try {
+        window.dispatchEvent(new CustomEvent('aura:card-pending', {
+          detail: { x: sel.left, y: sel.top, width: sel.right - sel.left, height: sel.bottom - sel.top },
+        }));
+      } catch { /* ignore */ }
       // 推送成功后把对话流滚到最底部：新消息渲染需要时间，
       // 立即滚一次 + 延迟再滚一次（兜底），保证能看到刚推出的 prompt
       const scrollToBottom = () => {
