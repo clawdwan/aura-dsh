@@ -185964,12 +185964,24 @@ function GlobalSelector({ send, getSessionId }) {
 			});
 			const res = await send?.(ctx, image);
 			if (res?.ok === false) throw new Error(res?.error?.message ?? "发送失败");
-			try {
-				[...[...document.querySelectorAll("[data-chat-flow-kind]")]].reverse().find((n) => String(n.getAttribute("data-chat-flow-kind") ?? "").includes("user"))?.scrollIntoView?.({
-					behavior: "smooth",
-					block: "center"
-				});
-			} catch {}
+			const scrollToBottom = () => {
+				try {
+					const nodes = [...document.querySelectorAll("[data-chat-flow-kind]")];
+					const last = nodes[nodes.length - 1];
+					if (last?.scrollIntoView) {
+						last.scrollIntoView({
+							behavior: "smooth",
+							block: "end"
+						});
+						return;
+					}
+					const scroller = document.querySelector("[data-chat-flow]")?.parentElement;
+					if (scroller) scroller.scrollTop = scroller.scrollHeight;
+				} catch {}
+			};
+			scrollToBottom();
+			setTimeout(scrollToBottom, 500);
+			setTimeout(scrollToBottom, 1200);
 			reset();
 		} catch (err) {
 			console.error("[aura-global-select] 发送失败:", err?.message ?? err);

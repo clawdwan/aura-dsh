@@ -308,13 +308,24 @@ export default function GlobalSelector({ send, getSessionId }) {
       const ctx = buildContext({ hits, rect: sel, question: q, hasImage: Boolean(image) });
       const res = await send?.(ctx, image);
       if (res?.ok === false) throw new Error(res?.error?.message ?? '发送失败');
-      // 推送成功后，把对话流定位到最后一条 user message（用户能看到刚发出的提问）
-      try {
-        const nodes = [...document.querySelectorAll('[data-chat-flow-kind]')];
-        const userNode = [...nodes].reverse().find((n) =>
-          String(n.getAttribute('data-chat-flow-kind') ?? '').includes('user'));
-        userNode?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-      } catch { /* ignore */ }
+      // 推送成功后把对话流滚到最底部：新消息渲染需要时间，
+      // 立即滚一次 + 延迟再滚一次（兜底），保证能看到刚推出的 prompt
+      const scrollToBottom = () => {
+        try {
+          const nodes = [...document.querySelectorAll('[data-chat-flow-kind]')];
+          const last = nodes[nodes.length - 1];
+          if (last?.scrollIntoView) {
+            last.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            return;
+          }
+          // 兜底：找滚动容器直接到底
+          const scroller = document.querySelector('[data-chat-flow]')?.parentElement;
+          if (scroller) scroller.scrollTop = scroller.scrollHeight;
+        } catch { /* ignore */ }
+      };
+      scrollToBottom();
+      setTimeout(scrollToBottom, 500);
+      setTimeout(scrollToBottom, 1200);
       reset();
     } catch (err) {
       console.error('[aura-global-select] 发送失败:', err?.message ?? err);
