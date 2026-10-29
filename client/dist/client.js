@@ -1537,6 +1537,61 @@ svg.react-flow__connectionline {
   margin-bottom: 8px;
 }
 
+
+/* ── 骨架卡（卡片生成中占位）── */
+.aura-panel-card--pending {
+  position: relative;
+  /* 框线/圆角由 .aura-card 提供（与真实卡一致） */
+  animation: aura-card-enter-leftdown 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* 新卡闪烁：作用在卡片内部的框线（.aura-html-card / .aura-card 的 border），
+   而不是外层 section 的 box-shadow */
+.aura-panel-card.is-new .aura-html-card,
+.aura-panel-card.is-new .aura-card {
+  animation: aura-card-inner-flash 1.5s ease-out;
+}
+@keyframes aura-card-inner-flash {
+  0% { border-color: var(--dsw-alias-state-business-primary, #4176e6); }
+  70% { border-color: var(--dsw-alias-state-business-primary, #4176e6); }
+  100% { border-color: rgba(128, 128, 128, 0.25); }
+}
+@keyframes aura-card-enter-leftdown {
+  from {
+    opacity: 0;
+    /* 固定小位移（从圈选方向轻微滑入）：位移太大会一瞬间掠过、反而看不清 */
+    transform: translate(-40px, 26px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+.aura-pending-title {
+  color: var(--dsw-alias-label-tertiary, #999);
+  font-size: 12px;
+}
+.aura-pending-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 0 2px;
+}
+.aura-pending-bar {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    var(--dsw-alias-bg-l2, rgba(128,128,128,0.10)) 25%,
+    var(--dsw-alias-bg-l3, rgba(128,128,128,0.18)) 50%,
+    var(--dsw-alias-bg-l2, rgba(128,128,128,0.10)) 75%);
+  background-size: 200% 100%;
+  animation: aura-pending-pulse 1.2s ease-in-out infinite;
+}
+@keyframes aura-pending-pulse {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
 /* 卡片标题行（标题 + 操作按钮） */
 .aura-panel-card-head {
   display: flex;
@@ -183712,12 +183767,22 @@ function AuraPanel(props) {
 		return allCards;
 	}, [eventCards, allCards]);
 	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)).sort((a, b) => (b?.updatedAt ?? 0) - (a?.updatedAt ?? 0)), [sourceCards, hiddenIds]);
+	const [flashCardId, setFlashCardId] = react$1.default.useState(null);
+	const [pendingEnter, setPendingEnter] = react$1.default.useState(null);
+	react$1.default.useEffect(() => {
+		const onPending = (e) => setPendingEnter(e?.detail ?? null);
+		window.addEventListener("aura:card-pending", onPending);
+		return () => window.removeEventListener("aura:card-pending", onPending);
+	}, []);
 	const lastLatestIdRef = react$1.default.useRef(null);
 	react$1.default.useEffect(() => {
 		if (!cards.length) return;
 		const latest = cards.reduce((a, b) => (b?.updatedAt ?? 0) > (a?.updatedAt ?? 0) ? b : a, cards[0]);
 		if (!latest?.id || latest.id === lastLatestIdRef.current) return;
 		lastLatestIdRef.current = latest.id;
+		setPendingEnter(null);
+		setFlashCardId(latest.id);
+		setTimeout(() => setFlashCardId(null), 1500);
 		const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame(() => {
 			const scrollPanelToTop = () => {
 				const panel = document.querySelector(".aura-panel");
@@ -183799,10 +183864,40 @@ function AuraPanel(props) {
 					children: "⬇ 全部导出"
 				})
 			}),
+			pendingEnter ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+				className: "aura-panel-card aura-card aura-panel-card--pending",
+				style: {
+					"--aura-enter-x": `${pendingEnter.x ?? 0}px`,
+					"--aura-enter-y": `${pendingEnter.y ?? 0}px`
+				},
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+					className: "aura-panel-card-head",
+					children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+						className: "aura-panel-card-title aura-pending-title",
+						children: "AI 正在生成卡片…"
+					})
+				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+					className: "aura-pending-skeleton",
+					children: [
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "aura-pending-bar",
+							style: { width: "72%" }
+						}),
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "aura-pending-bar",
+							style: { width: "88%" }
+						}),
+						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+							className: "aura-pending-bar",
+							style: { width: "54%" }
+						})
+					]
+				})]
+			}) : null,
 			cards.map((card) => {
 				const actions = Array.isArray(card.actions) ? card.actions : [];
 				return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("section", {
-					className: "aura-panel-card",
+					className: `aura-panel-card${flashCardId === card.id ? " is-new" : ""}`,
 					"data-aura-card-id": card.id,
 					"data-aura-card-title": card.title ?? card.id,
 					children: [
@@ -185970,6 +186065,14 @@ function GlobalSelector({ send, getSessionId }) {
 			});
 			const res = await send?.(ctx, image);
 			if (res?.ok === false) throw new Error(res?.error?.message ?? "发送失败");
+			try {
+				window.dispatchEvent(new CustomEvent("aura:card-pending", { detail: {
+					x: sel.left,
+					y: sel.top,
+					width: sel.right - sel.left,
+					height: sel.bottom - sel.top
+				} }));
+			} catch {}
 			const scrollToBottom = () => {
 				try {
 					const scroller = document.querySelector("[data-conversation-scroll]");
