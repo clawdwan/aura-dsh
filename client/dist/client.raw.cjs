@@ -183938,6 +183938,20 @@ function createPanelSignal({ sessions, sidebarRight, config, resolveTargets, ope
 		}
 	};
 	const open = typeof openTargets === "function" ? openTargets : defaultOpen;
+	/**
+	* 右侧栏是否已展开（DOM 判断）。
+	* dockkit 的列容器：[data-dockkit-column] 从左到右排列，最后一个即右侧栏。
+	* 判断失败时保守返回 true（视为已展开）→ 不强制打开，避免再次出现"强行弹出"。
+	*/
+	function isRightbarOpen() {
+		try {
+			const cols = [...document.querySelectorAll("[data-dockkit-column]")];
+			if (!cols.length) return true;
+			return cols[cols.length - 1].getBoundingClientRect().width > 60;
+		} catch {
+			return true;
+		}
+	}
 	const trigger = (event, sessionId) => {
 		let targets;
 		try {
@@ -183947,6 +183961,7 @@ function createPanelSignal({ sessions, sidebarRight, config, resolveTargets, ope
 			return;
 		}
 		if (!Array.isArray(targets) || targets.length === 0) return;
+		if (isRightbarOpen()) return;
 		try {
 			open(targets, sessionId);
 		} catch (err) {
