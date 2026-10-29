@@ -183733,6 +183733,9 @@ function AuraPanel(props) {
 	const [eventCards, setEventCards] = react$1.default.useState(null);
 	const [eventInfo, setEventInfo] = react$1.default.useState(null);
 	react$1.default.useEffect(() => {
+		console.log("[aura-panel] AuraPanel 挂载, props.sessionId =", props?.sessionId);
+	}, [props?.sessionId]);
+	react$1.default.useEffect(() => {
 		if (typeof __auraSubscribeEvents !== "function") return void 0;
 		const sid = props?.sessionId;
 		if (!sid) return void 0;
@@ -183806,8 +183809,8 @@ function AuraPanel(props) {
 			const p = window.__auraPendingCard;
 			const sid = props?.sessionId ?? null;
 			const fresh = p && typeof p.ts === "number" && Date.now() - p.ts < 1e4;
-			const sameSession = p && (!p.sessionId || !sid || p.sessionId === sid);
-			if (fresh && sameSession) onPending({ detail: p });
+			console.log("[aura-panel] 挂载兜底: pendingSession=", p?.sessionId, "mySession=", sid, "fresh=", fresh);
+			if (fresh) onPending({ detail: p });
 			else if (p) delete window.__auraPendingCard;
 		} catch {}
 		return () => window.removeEventListener("aura:card-pending", onPending);
