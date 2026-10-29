@@ -183948,7 +183948,7 @@ function AuraPanel(props) {
 										className: "aura-panel-card-action",
 										title: "设为常驻卡（不参与 20 张上限淘汰）",
 										onClick: () => handlePinCard(card),
-										children: "📌"
+										children: "⚑"
 									}),
 									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 										type: "button",

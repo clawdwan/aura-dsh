@@ -542,7 +542,7 @@ export default function AuraPanel(props) {
                     title="设为常驻卡（不参与 20 张上限淘汰）"
                     onClick={() => handlePinCard(card)}
                   >
-                    📌
+                    ⚑
                   </button>
                 )}
                 <button
