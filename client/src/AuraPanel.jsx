@@ -420,8 +420,10 @@ export default function AuraPanel(props) {
   React.useEffect(() => {
     const onPending = (e) => {
       const detail = e?.detail ?? null;
-      // 注意：不用 sessionId 比对（mounted 与面板会话可能不一致，会误杀本会话），
-      // 跨会话残留靠 ts 时效过滤（挂载兜底处只接受 10s 内的 pending）
+      // 按会话过滤：全局事件会广播给所有 AuraPanel 实例（每个会话一个），
+      // 只有 detail.sessionId === 本实例 props.sessionId 才响应
+      const mySid = props?.sessionId ?? null;
+      if (detail?.sessionId && mySid && detail.sessionId !== mySid) return;
       // 面板可能刚被打开（有展开动画）：等它可见后再落骨架，否则飞入动画看不见
       let tries = 0;
       const showWhenVisible = () => {
@@ -445,9 +447,8 @@ export default function AuraPanel(props) {
       const p = window.__auraPendingCard;
       const sid = props?.sessionId ?? null;
       const fresh = p && typeof p.ts === 'number' && (Date.now() - p.ts) < 10000;
-      console.log('[aura-panel] 挂载兜底: pendingSession=', p?.sessionId, 'mySession=', sid, 'fresh=', fresh);
-      // 只按时效判断（sessionId 比对可能因 mounted 与面板会话不一致而误杀）
-      if (fresh) onPending({ detail: p });
+      const sameSession = p && (!p.sessionId || !sid || p.sessionId === sid);
+      if (fresh && sameSession) onPending({ detail: p });
       else if (p) delete window.__auraPendingCard;
     } catch { /* ignore */ }
     return () => window.removeEventListener('aura:card-pending', onPending);
