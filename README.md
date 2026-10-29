@@ -1,256 +1,260 @@
 # Aura
 
-[English](README.md) | [中文](README.zh-CN.md)
+[English](README.en.md) | [中文](README.md)
+
+![DSH](https://img.shields.io/badge/DSH-0.2.0%2B-blue)
+![License](https://img.shields.io/github/license/clawdwan/aura-dsh)
+![Stars](https://img.shields.io/github/stars/clawdwan/aura-dsh)
 
 > **Beyond the Chat Box.**
 >
-> An interaction layer for human–agent collaboration on DeepSeek Harness.
+> 一个面向 DeepSeek Harness 的人机协作交互层。
 >
 > **Less typing. More doing.**
 
-Aura explores a more direct way for humans to work with AI agents — one that goes beyond typing prompts and reading text replies.
+Aura 希望探索一种更直接的人与 Agent 协作方式——不再局限于输入提示词、阅读文字回复。
 
-Select content to express your intent. Let agents respond with structured, visual, and rich content. Turn useful parts of a conversation into reusable work artifacts.
+圈选内容，直接表达意图；让 Agent 用结构化、可视化或富文档的形式呈现结果；把对话中真正有价值的信息沉淀为可复用的工作成果。
 
-## Why Aura?
+## 为什么需要 Aura？
 
-AI agents can reason, research, and generate content. Yet the way we interact with them is still largely built around text boxes and chat messages.
+AI Agent 已经能够进行推理、研究和内容生成，但我们与它们交互的方式，仍然主要围绕输入框和聊天消息展开。
 
-This creates unnecessary friction:
+这带来了一些不必要的摩擦：
 
-- **Expressing intent takes effort.** Users often have to describe the context before asking what they actually want to know.
-- **Text is not always the best interface.** Complex information can be easier to understand through a chart, a structured card, or a rich document.
-- **Useful results get buried.** Valuable insights disappear into long conversation histories, leaving users to organize and preserve them manually.
+- **表达意图需要额外成本。** 用户往往需要先描述上下文，再提出真正想解决的问题。
+- **文字不总是最合适的呈现方式。** 复杂信息可能更适合用图表、结构化卡片或富文档表达。
+- **有价值的结果容易被淹没。** 重要结论散落在漫长的对话历史中，用户还需要手动整理和保存。
 
-Aura explores a different approach: make interaction more contextual, make results more expressive, and let users decide what is worth keeping.
+Aura 希望探索另一种方式：让交互更贴近上下文，让结果拥有更合适的表达形式，并由用户决定什么值得保留。
 
-## Core Experiences
+## 核心体验
 
-### 1. Interact with Context
+### 1. 围绕上下文展开交互
 
-Select a piece of content and invoke a radial menu to tell the agent what to do with it.
+圈选一段内容，通过环形菜单告诉 Agent 接下来要做什么。
 
-Instead of copying text into a new prompt, Aura combines the selected content with your chosen intent to construct a contextual request.
+Aura 将用户选中的内容与所选择的意图结合，构造相应的上下文请求，而不必让用户把原文重新复制到提示词中。
 
-Available actions include:
+当前设计包含以下动作：
 
-- **Interpret** — Understand the meaning, reasoning, or implications of selected content.
-- **Challenge** — Question assumptions and examine potential weaknesses.
-- **Suggest Actions** — Explore possible next steps.
-- **Check Sources** — Examine the evidence and sources behind a claim.
-- **Curate & Push** — Organize useful conversation content into a reusable artifact.
+- **解读**：理解选中内容的含义、推理过程或潜在影响。
+- **质疑**：审视观点的前提，发现可能存在的漏洞。
+- **给出操作**：探索可以采取的下一步行动。
+- **检查来源**：检查论点背后的证据和信息来源。
+- **整理推送**：把对话中有价值的内容整理为可复用的成果。
 
-The goal is simple: express intent directly where it arises, without repeatedly reconstructing the context.
+目标很简单：在意图产生的地方直接表达意图，减少反复重建上下文的成本。
 
-### 2. See What Matters
+### 2. 让重要信息更容易理解
 
-Not every answer should be a wall of text.
+不是每个回答都应该是一大段文字。
 
-Aura enables agents to present information through structured visual components and rich content, making complex results easier to scan, compare, and understand.
+Aura 支持 Agent 通过结构化可视化组件和富内容呈现信息，让复杂结果更容易浏览、比较和理解。
 
-Supported component types include:
+组件类型包括：
 
-- Metric cards
-- Comparison tables
-- Step indicators
-- Insight cards
-- Lists
-- Trend charts
-- Tree diagrams
-- Timelines
-- Relationship graphs
-- Rich HTML documents
+- 指标卡片
+- 对比表格
+- 步骤条
+- 洞察卡片
+- 列表
+- 趋势图
+- 树状图
+- 时间线
+- 关系图
+- HTML 富文档
 
-The goal is not to decorate AI responses. It is to give information a form that better fits its purpose.
+我们追求的不是给 AI 回复添加装饰，而是让信息拥有更适合其用途的表达形式。
 
-### 3. Keep What's Useful
+### 3. 沉淀有价值的成果
 
-A useful conversation should be able to produce something more durable than another chat message.
+一次有价值的对话，应该能够产出比聊天消息更持久的成果。
 
-With **Curate & Push**, an agent can organize relevant conversation content into cards or rich HTML documents and send them to Aura's sidebar workspace.
+通过**整理推送**，Agent 可以把对话中的相关内容整理成卡片或 HTML 富文档，并推送到 Aura 的侧边栏空间。
 
-Aura currently provides **a single main tab** for managing pushed content.
+Aura 当前提供**单一主 Tab**，用于集中管理推送的内容。
 
-Depending on the supported card lifecycle operations, you can:
+根据具体内容的生命周期操作，用户可以：
 
-- **Keep important content.** Pin selected cards so they remain available.
-- **Let temporary content go.** Temporary cards can be hidden as the conversation grows.
-- **Remove unwanted content.** Dismiss cards you no longer need.
-- **Take content elsewhere.** Export card content to Markdown for reuse in other tools.
+- **保留重要内容**：将重要卡片设为常驻，方便后续查看。
+- **管理临时内容**：随着对话增长，临时卡片可以按既定规则隐藏。
+- **清理不再需要的内容**：关闭或移除不需要的卡片。
+- **导出并继续使用**：将卡片内容导出为 Markdown，带到其他工具中继续使用。
 
-Markdown export includes card content such as text, supported basic styling, and chart data. It is designed to preserve reusable content, not necessarily reproduce every visual detail of the original HTML.
+Markdown 导出包含卡片中的文字、支持的基础样式和图表数据。它的目标是保留可复用的内容，而不是保证完整复现原始 HTML 的全部视觉效果。
 
-## How It Works
+## 工作方式
 
-Aura connects user intent, agent capabilities, and the presentation of results.
+Aura 将用户意图、Agent 能力与结果呈现连接起来。
 
-1. **Select** — Identify the content you want to work with.
-2. **Choose an action** — Express your intent through the radial menu.
-3. **Process** — Aura combines the selected content and chosen intent into a contextual request for the agent.
-4. **Present** — The agent responds through text, visual components, or rich documents.
-5. **Curate** — Push useful results into the sidebar, manage their lifecycle, and export them when needed.
+1. **圈选内容**：找到想要处理的信息。
+2. **选择动作**：通过环形菜单表达意图。
+3. **执行任务**：Aura 将选中内容与用户意图组合成上下文请求，交给 Agent。
+4. **呈现结果**：Agent 以文字、可视化组件或富文档等形式响应。
+5. **整理复用**：将有价值的结果推送到侧边栏，管理其生命周期，并在需要时导出。
 
-This is a conceptual model rather than a mandatory workflow. Individual capabilities can be used whenever they are useful.
+这是一种概念性的交互模型，不要求每次使用都经过全部步骤。用户可以根据实际任务单独使用其中的能力。
 
-## Example Use Cases
+## 使用场景
 
-### Research and Analysis
+### 研究与分析
 
-Select a claim in an agent-generated report, challenge its assumptions, or check the evidence behind it. Push useful findings into cards for later reference.
+圈选 Agent 生成的报告中的某个观点，进一步质疑其假设，或检查背后的证据。把有价值的发现推送为卡片，方便后续查看。
 
-### Reading and Learning
+### 阅读与学习
 
-Select an unfamiliar concept and ask the agent to interpret it in context. Turn a long explanation into a structured visual summary.
+圈选不熟悉的概念，让 Agent 结合上下文进行解读；也可以把较长的解释整理为结构化的可视化摘要。
 
-### Turning Conversations into Work Artifacts
+### 将对话转化为工作成果
 
-After exploring a topic through conversation, ask the agent to organize the important conclusions into a card or rich document. Keep it in the sidebar or export it as Markdown.
+围绕一个主题完成探索后，让 Agent 将重要结论整理成卡片或富文档，保留在侧边栏中，或导出为 Markdown。
 
-These are examples of possible workflows, not guarantees that every task is fully automated.
+以上是可能的使用方式，不代表所有任务都已实现全自动化。
 
-## Getting Started
+## 开始使用
 
-Aura runs within DeepSeek Harness (DSH) and relies on its host environment and agent capabilities.
+Aura 运行在 DeepSeek Harness（DSH）中，依赖宿主环境及其 Agent 能力。
 
-### Prerequisites
+### 环境要求
 
-- A compatible DeepSeek Harness installation.
-- A supported environment for loading and running DSH plugins.
+- 已安装兼容版本的 DeepSeek Harness。
+- 当前环境支持加载和运行 DSH 插件。
 
-### Installation
+### 安装
 
-### Installation
+### 安装
 
-**Version requirements**
+**版本要求**
 
-| Dependency | Requirement |
+| 依赖 | 要求 |
 | --- | --- |
-| DeepSeek Harness | `>=0.2.0 <0.3.0`（0.2.0 recommended; older versions degrade selection/sidebar behavior） |
+| DeepSeek Harness | `>=0.2.0 <0.3.0`（推荐 0.2.0；更低版本会降级圈选/侧边栏行为） |
 | Node.js | ≥ 22 |
 
 ```bash
-# From GitHub (pinned version recommended)
+# 从 GitHub（钉版本更稳）
 dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.9
 
-# From source
+# 从源码
 dsh plugin --profile web add /path/to/aura-dsh
 ```
 
-Restart `dsh web` after installation. Run `npm run check` first to verify host compatibility.
+重启 `dsh web` 后生效。安装前可运行 `npm run check` 自检与宿主兼容性。
 
-### Quick Start
+### 快速上手
 
-Once Aura is installed:
+安装 Aura 后：
 
-1. Open a conversation in DeepSeek Harness.
-2. Select a piece of content and open the radial menu.
-3. Choose an available contextual action.
-4. Ask the agent to organize useful content and push it to the sidebar.
-5. Manage or export the resulting cards as needed.
+1. 在 DeepSeek Harness 中打开一个对话。
+2. 圈选一段内容，打开环形菜单。
+3. 选择可用的上下文动作。
+4. 让 Agent 整理有价值的内容并推送到侧边栏。
+5. 根据需要管理卡片或导出内容。
 
-### Quick Start
+### 快速上手
 
-Once Aura is installed:
+安装 Aura 后：
 
-1. Open a conversation in DeepSeek Harness.
-2. Press `⌘⌥S` (macOS) / `Ctrl+Alt+S` (Windows) to enter selection mode, then drag to select content.
-3. The radial menu appears with five actions: **Interpret / Challenge / Suggest Actions / Check Sources / Curate & Push** (center circle = cancel).
-4. Choose an action; Aura builds a contextual request and sends it to the agent.
-5. "Curate & Push" sends cards to the sidebar, which auto-opens when closed (a skeleton card is shown while the agent generates).
+1. 在 DeepSeek Harness 中打开一个对话。
+2. 按 `⌘⌥S`（macOS）/ `Ctrl+Alt+S`（Windows）进入圈选模式，拖动选中内容。
+3. 环形菜单出现，包含五个动作：**解读 / 质疑 / 给出操作 / 检查来源 / 整理推送**（中心圆 = 取消）。
+4. 选择动作后，Aura 构造上下文请求并交给 Agent。
+5. 「整理推送」会把卡片推送到侧边栏；侧边栏关闭时会自动展开（生成期间显示骨架卡）。
 
-## For Developers
+## 开发者文档
 
-Aura is an interaction and presentation layer built for DeepSeek Harness. It extends the existing agent experience rather than replacing the underlying agent runtime.
+Aura 是构建在 DeepSeek Harness 之上的交互与呈现层。它增强现有的 Agent 使用体验，而不是替代底层 Agent 运行时。
 
-Its capabilities span three areas:
+当前能力主要包括三个方面：
 
-| Area | Responsibility |
+| 模块 | 作用 |
 | --- | --- |
-| Contextual interaction | Connect selected content and user intent to agent requests. |
-| Rich presentation | Render structured components and rich HTML content. |
-| Sidebar workspace | Organize pushed cards, manage their lifecycle, and export reusable content. |
+| 上下文交互 | 将用户圈选的内容与意图转换为 Agent 请求。 |
+| 富内容呈现 | 渲染结构化组件和 HTML 富内容。 |
+| 侧边栏工作空间 | 集中管理推送的卡片，管理内容生命周期，并导出可复用成果。 |
 
-### Rendering Components
+### 可视化组件
 
-Aura supports a collection of structured visual components for agent-generated content.
+Aura 支持一组用于呈现 Agent 生成内容的结构化可视化组件。
 
-### Rendering Components
+### 可视化组件
 
-Aura supports 10 structured components: `metric_card`, `comparison_table`, `step_bar`, `insight_cards`, `article_list`, `trend_chart`, `graph`, `data_tree`, `timeline`, `html`.
+Aura 支持 10 种结构化组件：`metric_card`、`comparison_table`、`step_bar`、`insight_cards`、`article_list`、`trend_chart`、`graph`、`data_tree`、`timeline`、`html`。
 
-See [docs/COMPONENTS.md](docs/COMPONENTS.md) for data schemas and usage rules.
+数据结构与使用规则见 [docs/COMPONENTS.md](docs/COMPONENTS.md)。
 
-### Sidebar and Card Lifecycle
+### 侧边栏与卡片生命周期
 
-The sidebar provides a single main tab for organizing and managing pushed cards and rich documents.
+侧边栏使用单一主 Tab，集中管理推送的卡片和富文档。
 
-### Sidebar and Card Lifecycle
+### 侧边栏与卡片生命周期
 
-- **Single main tab**; each conversation has its own panel state (isolated by session).
-- Up to **20 non-pinned cards**; the oldest is evicted first when over the limit.
-- **Pin (⚑)**: user action to keep a card permanently — pin state is set only by the user, never by the agent.
-- **Dismiss (×)**: silently hidden (localStorage, per session); host data is retained.
-- Pushed cards are persisted to `~/.dsh/aura-panels/<sessionId>.json`.
+- **单一主 Tab**；每个会话有独立的面板状态（按会话隔离）。
+- 非常驻卡片上限 **20 张**，超出时淘汰最早的一张。
+- **常驻（⚑）**：用户手动操作，设为常驻后不参与淘汰——常驻状态只能由用户设置，Agent 不能设置。
+- **关闭（×）**：静默隐藏（localStorage，按会话）；宿主数据保留。
+- 推送的卡片持久化到 `~/.dsh/aura-panels/<sessionId>.json`。
 
-### Markdown Export
+### Markdown 导出
 
-- Export a single card (↧ on the card) or all cards (button at the top).
-- Conversion: structured components → Markdown tables/lists; HTML cards → HTML-to-Markdown (headings/tables/lists preserved, suitable for tools like Feishu docs).
-- Limitation: HTML card styling is not fully reproduced; iframe content is not captured in screenshots.
+- 支持导出单张卡片（卡片上的 ↧）或全部卡片（顶部按钮）。
+- 转换规则：结构化组件 → Markdown 表格/列表；HTML 卡 → HTML 转 Markdown（保留标题/表格/列表结构，适合飞书等工具）。
+- 限制：HTML 卡的样式不会完全复现；iframe 内容不会出现在截图中。
 
-### Development and Extension
+### 开发与扩展
 
 ```
-client/   # browser half: panel, radial menu, selection adapters, components
-host/     # host half: aura_render / aura_panel tools, panel store
-scripts/  # build & wrap scripts
+client/   # 浏览器侧：面板、环形菜单、圈选适配器、组件
+host/     # 宿主侧：aura_render / aura_panel 工具、面板存储
+scripts/  # 构建与包装脚本
 ```
 
 ```bash
-npm run bundle        # build the client bundle
-npm run check         # host compatibility check
-npm run test:registry # registry schema test
+npm run bundle        # 构建 client 产物
+npm run check         # 宿主兼容自检
+npm run test:registry # 组件 registry schema 测试
 ```
 
-Aura is installed as a DSH plugin bundle (see `cordis.patch.yml`); `@deepseek-ai/*` are peerDependencies provided by the host.
+Aura 以 DSH 插件 bundle 形式安装（见 `cordis.patch.yml`）；`@deepseek-ai/*` 为宿主提供的 peerDependencies。
 
-For implementation details, refer to the source code and the relevant technical documentation.
+具体实现请以源代码和对应技术文档为准。
 
-## Product Vision
+## 产品愿景
 
-Aura starts as a DeepSeek Harness plugin, but the question it explores is broader:
+Aura 从一个 DeepSeek Harness 插件出发，但它探索的问题更广泛：
 
-**What should human–agent interaction look like when it is no longer limited to a chat box?**
+**当人与 Agent 的交互不再局限于聊天框时，协作应该是什么样子？**
 
-We believe the future of agent interaction should make it easier to express intent, understand results, and work with agents through contextual actions and richer interfaces.
+我们希望未来的人机交互能够更直接地表达意图、更有效地理解结果，并通过上下文动作和丰富的界面与 Agent 协作。
 
-Cross-task, cross-application, desktop-level, and operating-system-level interaction are potential directions for future exploration — not capabilities Aura currently claims to provide.
+跨任务、跨应用、桌面级乃至操作系统级的交互，都可能成为未来的探索方向，但它们不是 Aura 当前已经具备的能力。
 
-Read [VISION.md](VISION.md) for the full product vision and design principles.
+完整的产品理念与设计原则请参阅 [VISION.md](VISION.md)。
 
-## Current Scope
+## 当前能力边界
 
-Aura is currently a plugin for DeepSeek Harness.
+Aura 当前是一个运行于 DeepSeek Harness 的插件。
 
-It is not an independent agent runtime, a complete knowledge-management system, or an operating-system-level agent platform. Its current capabilities depend on the host environment and the underlying agent.
+它不是独立的 Agent 运行时、完整的知识管理系统，也不是操作系统级的 Agent 平台。当前能力依赖宿主环境及底层 Agent 所提供的功能。
 
-We aim to prioritize improvements that reduce interaction friction and make agent outputs more useful in real work.
+我们会优先探索那些能够减少交互摩擦、让 Agent 输出在真实工作中更有用的改进。
 
-## Contributing
+## 参与贡献
 
-Contributions, feedback, and ideas are welcome.
+欢迎对项目提出建议、反馈和贡献。
 
-If you are interested in contextual interaction, rich agent interfaces, or new ways for humans and agents to collaborate, explore the project and share your thoughts.
+如果你关注上下文交互、丰富的 Agent 界面，或人与 Agent 协作方式的演进，欢迎了解项目并分享想法。
 
-### Contributing
+### 参与贡献
 
-Contributions, feedback, and ideas are welcome — open an issue or a pull request on [GitHub](https://github.com/clawdwan/aura-dsh).
+欢迎反馈、建议与贡献——可以在 [GitHub](https://github.com/clawdwan/aura-dsh) 提 Issue 或 Pull Request。
 
-## License
+## 许可证
 
-## License
+## 许可证
 
-MIT © clawdwan. See [LICENSE](LICENSE).
+MIT © clawdwan。详见 [LICENSE](LICENSE)。
 
 ---
 
