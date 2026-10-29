@@ -1498,13 +1498,16 @@ svg.react-flow__connectionline {
   /* 框线/圆角由 .aura-card 提供（与真实卡一致） */
   animation: aura-card-enter-leftdown 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.aura-panel-card.is-new {
-  animation: aura-card-flash 1.5s ease-out;
+/* 新卡闪烁：作用在卡片内部的框线（.aura-html-card / .aura-card 的 border），
+   而不是外层 section 的 box-shadow */
+.aura-panel-card.is-new .aura-html-card,
+.aura-panel-card.is-new .aura-card {
+  animation: aura-card-inner-flash 1.5s ease-out;
 }
-@keyframes aura-card-flash {
-  0% { box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary, #4176e6); }
-  70% { box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary, #4176e6); }
-  100% { box-shadow: 0 0 0 2px transparent; }
+@keyframes aura-card-inner-flash {
+  0% { border-color: var(--dsw-alias-state-business-primary, #4176e6); }
+  70% { border-color: var(--dsw-alias-state-business-primary, #4176e6); }
+  100% { border-color: rgba(128, 128, 128, 0.25); }
 }
 @keyframes aura-card-enter-leftdown {
   from {
