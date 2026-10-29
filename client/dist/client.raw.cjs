@@ -182065,7 +182065,8 @@ ${html}
 (function () {
   function report() {
     try {
-      var h = Math.ceil(document.documentElement.scrollHeight);
+      // 用 body 的内容高度：documentElement 默认 100% 会被 iframe 自身高度污染（正反馈空白）
+      var h = Math.ceil((document.body || document.documentElement).scrollHeight);
       parent.postMessage({ __auraHtmlHeight: true, height: h }, '*');
     } catch (e) { /* ignore */ }
   }
@@ -186025,8 +186026,8 @@ function GlobalSelector({ send, getSessionId }) {
 			hits && (hits.length === 0 || customMode) ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: "aura-global-select-popover",
 				style: {
-					left: Math.min(rect.left, 240),
-					top: Math.min(rect.top + rect.height + 10, window.innerHeight - 180)
+					left: Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - 372)),
+					top: Math.min(Math.max(8, rect.top + rect.height + 10), Math.max(8, window.innerHeight - 200))
 				},
 				onPointerDown: (e) => e.stopPropagation(),
 				children: [

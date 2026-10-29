@@ -373,7 +373,12 @@ export default function GlobalSelector({ send, getSessionId }) {
       {hits && (hits.length === 0 || customMode) ? (
         <div
           className="aura-global-select-popover"
-          style={{ left: Math.min(rect.left, 240), top: Math.min(rect.top + rect.height + 10, window.innerHeight - 180) }}
+          style={{
+            // 弹窗定位：跟随圈选位置，clamp 在视口内（不要限制 left ≤ 240，
+            // 否则在右侧面板圈选时输入框会被拉到页面左边）
+            left: Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - 372)),
+            top: Math.min(Math.max(8, rect.top + rect.height + 10), Math.max(8, window.innerHeight - 200)),
+          }}
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="aura-global-select-title">
