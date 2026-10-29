@@ -369,7 +369,11 @@ export default function AuraPanel(props) {
           cards: Array.isArray(found) ? found.length : 0,
         };
         setEventInfo(info);
-        console.log('[aura-panel] 事件窗口:', info);
+        // 只在卡片数量变化时打印（事件流每次变化都会 refresh，全打会刷屏）
+        if (info.cards !== lastCardsCountRef.current) {
+          lastCardsCountRef.current = info.cards;
+          console.log('[aura-panel] 卡片数变化:', info);
+        }
         if (Array.isArray(found) && found.length > 0) setEventCards(found);
       } catch { /* ignore */ }
     };
