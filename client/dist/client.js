@@ -183766,11 +183766,32 @@ function AuraPanel(props) {
 		if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
 		return allCards;
 	}, [eventCards, allCards]);
-	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)).sort((a, b) => (b?.updatedAt ?? 0) - (a?.updatedAt ?? 0)), [sourceCards, hiddenIds]);
+	const cards = (0, react$1.useMemo)(() => {
+		const sorted = [...sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id))].sort((a, b) => (a?.updatedAt ?? 0) - (b?.updatedAt ?? 0));
+		const groups = [];
+		for (const c of sorted) {
+			const last = groups[groups.length - 1];
+			if (last && (c?.updatedAt ?? 0) - (last[0]?.updatedAt ?? 0) < 600) last.push(c);
+			else groups.push([c]);
+		}
+		return groups.reverse().flat();
+	}, [sourceCards, hiddenIds]);
 	const [flashCardId, setFlashCardId] = react$1.default.useState(null);
 	const [pendingEnter, setPendingEnter] = react$1.default.useState(null);
 	react$1.default.useEffect(() => {
-		const onPending = (e) => setPendingEnter(e?.detail ?? null);
+		const onPending = (e) => {
+			const detail = e?.detail ?? null;
+			let tries = 0;
+			const showWhenVisible = () => {
+				if (Boolean(document.querySelector("[data-sidebar-right-open]")) || tries >= 20) {
+					setPendingEnter(detail);
+					return;
+				}
+				tries += 1;
+				setTimeout(showWhenVisible, 80);
+			};
+			showWhenVisible();
+		};
 		window.addEventListener("aura:card-pending", onPending);
 		return () => window.removeEventListener("aura:card-pending", onPending);
 	}, []);
@@ -186043,6 +186064,9 @@ function GlobalSelector({ send, getSessionId }) {
 				right: rect.left + rect.width,
 				bottom: rect.top + rect.height
 			};
+			if (/整理成合适的卡片/.test(q) && typeof window.__auraOpenPanel === "function") try {
+				window.__auraOpenPanel();
+			} catch {}
 			let image = null;
 			if (needsVisualCapture(sel).visual) try {
 				const shot = await captureSelection(sel);
@@ -186338,6 +186362,13 @@ function apply(ctx) {
 				} catch {}
 			};
 		});
+		try {
+			window.__auraOpenPanel = () => {
+				try {
+					ctx.sidebarRight?.openTab?.("aura-panel");
+				} catch {}
+			};
+		} catch {}
 		try {
 			const disposeShortcut = ctx.shortcuts.register({
 				id: "aura-selection",

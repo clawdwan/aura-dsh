@@ -378,13 +378,20 @@ export default function AuraPanel(props) {
     return allCards;
   }, [eventCards, allCards]);
   // 单 main 面板：展示所有未隐藏的卡片（忽略 card.tab；多 tab 后续再做）
-  // 排序：新 → 旧（updatedAt 降序，最新卡片在顶部；后续可扩展为可配置）
-  const cards = useMemo(
-    () => sourceCards
-      .filter((c) => !c?.dismissed && !hiddenIds.has(c?.id))
-      .sort((a, b) => (b?.updatedAt ?? 0) - (a?.updatedAt ?? 0)),
-    [sourceCards, hiddenIds],
-  );
+  // 排序：批次间新→旧（最新批次在顶部），**同一次推送的批次内保持正序**（1→2→3 可读）
+  const cards = useMemo(() => {
+    const list = sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id));
+    // 先按时间升序，再把"时间相近（<600ms）"的卡片归为同一批
+    const sorted = [...list].sort((a, b) => (a?.updatedAt ?? 0) - (b?.updatedAt ?? 0));
+    const groups = [];
+    for (const c of sorted) {
+      const last = groups[groups.length - 1];
+      if (last && ((c?.updatedAt ?? 0) - (last[0]?.updatedAt ?? 0)) < 600) last.push(c);
+      else groups.push([c]);
+    }
+    // 批次倒序（新批在顶），批内保持升序
+    return groups.reverse().flat();
+  }, [sourceCards, hiddenIds]);
 
   // 新到达的卡片（加 is-new 做闪烁高亮，1.5s 后移除）
   const [flashCardId, setFlashCardId] = React.useState(null);
@@ -392,7 +399,18 @@ export default function AuraPanel(props) {
   // 卡片生成中的骨架占位（用户点发送后立即出现，卡片到达后消失）
   const [pendingEnter, setPendingEnter] = React.useState(null); // { x, y, width, height }
   React.useEffect(() => {
-    const onPending = (e) => setPendingEnter(e?.detail ?? null);
+    const onPending = (e) => {
+      const detail = e?.detail ?? null;
+      // 面板可能刚被打开（有展开动画）：等它可见后再落骨架，否则飞入动画看不见
+      let tries = 0;
+      const showWhenVisible = () => {
+        const open = Boolean(document.querySelector('[data-sidebar-right-open]'));
+        if (open || tries >= 20) { setPendingEnter(detail); return; }
+        tries += 1;
+        setTimeout(showWhenVisible, 80);
+      };
+      showWhenVisible();
+    };
     window.addEventListener('aura:card-pending', onPending);
     return () => window.removeEventListener('aura:card-pending', onPending);
   }, []);

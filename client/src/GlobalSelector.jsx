@@ -289,6 +289,11 @@ export default function GlobalSelector({ send, getSessionId }) {
         left: rect.left, top: rect.top,
         right: rect.left + rect.width, bottom: rect.top + rect.height,
       };
+      // 「整理并推送」会往面板推卡：先打开侧边栏，让后续骨架卡/飞入动画可见
+      const isPanelPush = /整理成合适的卡片/.test(q);
+      if (isPanelPush && typeof window.__auraOpenPanel === 'function') {
+        try { window.__auraOpenPanel(); } catch { /* ignore */ }
+      }
       // 视觉类内容（图表/图形/iframe）额外截一张图，作为视觉补充
       let image = null;
       const visualCheck = needsVisualCapture(sel);
