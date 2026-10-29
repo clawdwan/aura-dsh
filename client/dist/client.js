@@ -185503,7 +185503,7 @@ function extractLines(sel, root, maxLines = 10) {
 		if (area < selArea * 1.5) {
 			const cx = (r.left + r.right) / 2;
 			const cy = (r.top + r.bottom) / 2;
-			return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
+			return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom || overlap / area >= .4;
 		}
 		return overlap / area >= .15;
 	};
@@ -185640,7 +185640,7 @@ function collectHits(adapters, sel) {
 		if (area < selArea * 1.5) {
 			const cx = (r.left + r.right) / 2;
 			const cy = (r.top + r.bottom) / 2;
-			return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
+			return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom || overlap / area >= .4;
 		}
 		return overlap / area >= .15;
 	};

@@ -174,9 +174,11 @@ export function extractLines(sel, root, maxLines = 10) {
     const overlap = Math.max(0, ow) * Math.max(0, oh);
     if (overlap <= 0) return false;
     if (area < selArea * 1.5) {
+      // 小元素：中心点落在框内，或框覆盖它 ≥40%（只圈部分文字时也能命中）
       const cx = (r.left + r.right) / 2;
       const cy = (r.top + r.bottom) / 2;
-      return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
+      const centerIn = cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
+      return centerIn || overlap / area >= 0.4;
     }
     return overlap / area >= 0.15;
   };
@@ -301,9 +303,11 @@ export function collectHits(adapters, sel) {
     const overlap = Math.max(0, ow) * Math.max(0, oh);
     if (overlap <= 0) return false;
     if (area < selArea * 1.5) {
+      // 小元素：中心点落在框内，或框覆盖它 ≥40%（只圈部分文字时也能命中）
       const cx = (r.left + r.right) / 2;
       const cy = (r.top + r.bottom) / 2;
-      return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
+      const centerIn = cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
+      return centerIn || overlap / area >= 0.4;
     }
     return overlap / area >= 0.15;
   };
