@@ -57,11 +57,17 @@ function needsVisualCapture(rect) {
       if (tag === 'iframe' && w >= 200 && h >= 120) {
         return { visual: true, debug: `iframe ${w}x${h}` };
       }
-      // 容器内的大尺寸 canvas（卡片里图表）
+      // 容器内的大尺寸 canvas（卡片里图表）——必须与圈选区真正相交，
+      // 否则 body/对话流这类大容器会把「页面别处的图表」误判进来（导致对话流也触发慢截图）
       if (typeof el.querySelector === 'function') {
         const big = el.querySelector('canvas');
         if (big && (big.clientWidth || 0) >= 200 && (big.clientHeight || 0) >= 100) {
-          return { visual: true, debug: `容器含大 canvas ${big.clientWidth}x${big.clientHeight}` };
+          const r = big.getBoundingClientRect();
+          const intersects = rect.left < r.right && rect.right > r.left
+            && rect.top < r.bottom && rect.bottom > r.top;
+          if (intersects) {
+            return { visual: true, debug: `区域内有 canvas ${big.clientWidth}x${big.clientHeight}` };
+          }
         }
       }
       if (el.closest?.('.aura-chart, .aura-graph')) {
@@ -302,6 +308,13 @@ export default function GlobalSelector({ send, getSessionId }) {
       const ctx = buildContext({ hits, rect: sel, question: q, hasImage: Boolean(image) });
       const res = await send?.(ctx, image);
       if (res?.ok === false) throw new Error(res?.error?.message ?? '发送失败');
+      // 推送成功后，把对话流定位到最后一条 user message（用户能看到刚发出的提问）
+      try {
+        const nodes = [...document.querySelectorAll('[data-chat-flow-kind]')];
+        const userNode = [...nodes].reverse().find((n) =>
+          String(n.getAttribute('data-chat-flow-kind') ?? '').includes('user'));
+        userNode?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      } catch { /* ignore */ }
       reset();
     } catch (err) {
       console.error('[aura-global-select] 发送失败:', err?.message ?? err);

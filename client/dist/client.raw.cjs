@@ -185715,10 +185715,13 @@ function needsVisualCapture(rect) {
 			};
 			if (typeof el.querySelector === "function") {
 				const big = el.querySelector("canvas");
-				if (big && (big.clientWidth || 0) >= 200 && (big.clientHeight || 0) >= 100) return {
-					visual: true,
-					debug: `容器含大 canvas ${big.clientWidth}x${big.clientHeight}`
-				};
+				if (big && (big.clientWidth || 0) >= 200 && (big.clientHeight || 0) >= 100) {
+					const r = big.getBoundingClientRect();
+					if (rect.left < r.right && rect.right > r.left && rect.top < r.bottom && rect.bottom > r.top) return {
+						visual: true,
+						debug: `区域内有 canvas ${big.clientWidth}x${big.clientHeight}`
+					};
+				}
 			}
 			if (el.closest?.(".aura-chart, .aura-graph")) return {
 				visual: true,
@@ -185955,6 +185958,12 @@ function GlobalSelector({ send, getSessionId }) {
 			});
 			const res = await send?.(ctx, image);
 			if (res?.ok === false) throw new Error(res?.error?.message ?? "发送失败");
+			try {
+				[...[...document.querySelectorAll("[data-chat-flow-kind]")]].reverse().find((n) => String(n.getAttribute("data-chat-flow-kind") ?? "").includes("user"))?.scrollIntoView?.({
+					behavior: "smooth",
+					block: "center"
+				});
+			} catch {}
 			reset();
 		} catch (err) {
 			console.error("[aura-global-select] 发送失败:", err?.message ?? err);
