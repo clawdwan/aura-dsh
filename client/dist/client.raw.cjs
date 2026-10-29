@@ -183786,11 +183786,6 @@ function AuraPanel(props) {
 	react$1.default.useEffect(() => {
 		const onPending = (e) => {
 			const detail = e?.detail ?? null;
-			const mySid = props?.sessionId ?? null;
-			if (detail?.sessionId && mySid && detail.sessionId !== mySid) {
-				console.log("[aura-panel] 忽略其他会话 pending:", detail.sessionId, "≠", mySid);
-				return;
-			}
 			let tries = 0;
 			const showWhenVisible = () => {
 				const open = Boolean(document.querySelector("[data-sidebar-right-open]"));
