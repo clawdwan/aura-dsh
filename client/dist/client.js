@@ -183710,7 +183710,7 @@ function AuraPanel(props) {
 		if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
 		return allCards;
 	}, [eventCards, allCards]);
-	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)), [sourceCards, hiddenIds]);
+	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)).sort((a, b) => (b?.updatedAt ?? 0) - (a?.updatedAt ?? 0)), [sourceCards, hiddenIds]);
 	const lastLatestIdRef = react$1.default.useRef(null);
 	react$1.default.useEffect(() => {
 		if (!cards.length) return;
@@ -183718,14 +183718,14 @@ function AuraPanel(props) {
 		if (!latest?.id || latest.id === lastLatestIdRef.current) return;
 		lastLatestIdRef.current = latest.id;
 		const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame(() => {
-			const scrollPanelToEnd = () => {
+			const scrollPanelToTop = () => {
 				const panel = document.querySelector(".aura-panel");
-				if (panel) panel.scrollTop = panel.scrollHeight;
-				else document.querySelector(`[data-aura-card-id="${latest.id}"]`)?.scrollIntoView?.({ block: "end" });
+				if (panel) panel.scrollTop = 0;
+				else document.querySelector(`[data-aura-card-id="${latest.id}"]`)?.scrollIntoView?.({ block: "start" });
 			};
-			scrollPanelToEnd();
-			setTimeout(scrollPanelToEnd, 300);
-			setTimeout(scrollPanelToEnd, 900);
+			scrollPanelToTop();
+			setTimeout(scrollPanelToTop, 300);
+			setTimeout(scrollPanelToTop, 900);
 		}) : null;
 		return () => {
 			if (raf) cancelAnimationFrame(raf);
