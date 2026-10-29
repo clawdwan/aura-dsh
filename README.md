@@ -1,4 +1,4 @@
-# Aura — An Interaction Plugin for DeepSeek Harness
+# Aura — 面向 DeepSeek Harness 的人机协作交互插件
 
 [English](README.en.md) | [中文](README.md)
 
