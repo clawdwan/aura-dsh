@@ -316,7 +316,12 @@ export default function GlobalSelector({ send, getSessionId }) {
       // 通知面板：卡片生成中（骨架卡从圈选位置飞入）
       // 注意：侧边栏刚打开时 AuraPanel 可能还没挂载 → 事件会丢，
       // 因此同时写全局变量，AuraPanel 挂载时兜底读取。
-      const pendingDetail = { x: sel.left, y: sel.top, width: sel.right - sel.left, height: sel.bottom - sel.top };
+      const pendingDetail = {
+        x: sel.left, y: sel.top,
+        width: sel.right - sel.left, height: sel.bottom - sel.top,
+        sessionId: typeof window.__auraSessionId === 'function' ? window.__auraSessionId() : null,
+        ts: Date.now(),
+      };
       try { window.__auraPendingCard = pendingDetail; } catch { /* ignore */ }
       console.log('[aura-select] 广播 pending:', pendingDetail, 'isPanelPush=', isPanelPush);
       try {

@@ -145,6 +145,9 @@ export function apply(ctx) {
 
     // 供 GlobalSelector 使用：点「整理并推送」时先打开侧边栏（让骨架/动画可见）
     try {
+      window.__auraSessionId = () => {
+        try { return ctx.sidebarRight?.mounted?.getSnapshot?.() ?? null; } catch { return null; }
+      };
       window.__auraOpenPanel = () => {
         try { ctx.sidebarRight?.openTab?.('aura-panel'); } catch { /* ignore */ }
       };

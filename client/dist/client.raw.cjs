@@ -183801,7 +183801,12 @@ function AuraPanel(props) {
 		};
 		window.addEventListener("aura:card-pending", onPending);
 		try {
-			if (window.__auraPendingCard) onPending({ detail: window.__auraPendingCard });
+			const p = window.__auraPendingCard;
+			const sid = props?.sessionId ?? null;
+			const fresh = p && typeof p.ts === "number" && Date.now() - p.ts < 1e4;
+			const sameSession = p && (!p.sessionId || !sid || p.sessionId === sid);
+			if (fresh && sameSession) onPending({ detail: p });
+			else if (p) delete window.__auraPendingCard;
 		} catch {}
 		return () => window.removeEventListener("aura:card-pending", onPending);
 	}, []);
@@ -186114,7 +186119,9 @@ function GlobalSelector({ send, getSessionId }) {
 				x: sel.left,
 				y: sel.top,
 				width: sel.right - sel.left,
-				height: sel.bottom - sel.top
+				height: sel.bottom - sel.top,
+				sessionId: typeof window.__auraSessionId === "function" ? window.__auraSessionId() : null,
+				ts: Date.now()
 			};
 			try {
 				window.__auraPendingCard = pendingDetail;
@@ -186389,6 +186396,13 @@ function apply(ctx) {
 			};
 		});
 		try {
+			window.__auraSessionId = () => {
+				try {
+					return ctx.sidebarRight?.mounted?.getSnapshot?.() ?? null;
+				} catch {
+					return null;
+				}
+			};
 			window.__auraOpenPanel = () => {
 				try {
 					ctx.sidebarRight?.openTab?.("aura-panel");

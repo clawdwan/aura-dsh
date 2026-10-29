@@ -429,8 +429,14 @@ export default function AuraPanel(props) {
     };
     window.addEventListener('aura:card-pending', onPending);
     // 兜底：侧边栏刚打开时事件可能早于本组件挂载，挂载后读一次全局变量
+    // 只接受「本会话 + 10s 内」的 pending（避免切会话时看到别的会话的残留骨架）
     try {
-      if (window.__auraPendingCard) onPending({ detail: window.__auraPendingCard });
+      const p = window.__auraPendingCard;
+      const sid = props?.sessionId ?? null;
+      const fresh = p && typeof p.ts === 'number' && (Date.now() - p.ts) < 10000;
+      const sameSession = p && (!p.sessionId || !sid || p.sessionId === sid);
+      if (fresh && sameSession) onPending({ detail: p });
+      else if (p) delete window.__auraPendingCard;
     } catch { /* ignore */ }
     return () => window.removeEventListener('aura:card-pending', onPending);
   }, []);
