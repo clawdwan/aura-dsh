@@ -102,14 +102,15 @@ export function createGenericDomAdapter() {
   return {
     id: 'generic-dom',
     selector: null,
-    describe(el) {
-      if (!el || el === document.body || el === document.documentElement) return null;
-      // 通用 DOM 拿不到消息边界：压缩空白 + 只取首段 + 截断，避免把多轮内容拼在一起
-      const raw = (el.textContent || '').replace(/\s+/g, ' ').trim();
-      if (!raw) return null;
+    describe(el, sel) {
+      if (!el) return null;
+      // 只取「圈选范围内」的文本（extractLines 按 sel 过滤）。
+      // 允许 body：小范围圈选时 turn 节点可能到不了 15% 重叠，需要 body 兜底，
+      // extractLines 只提取框内文本，不会把整页带上。
+      const lines = extractLines(sel, el);
+      if (!lines.length) return null;
       const tag = (el.tagName || 'unknown').toLowerCase();
-      const firstChunk = raw.length > 150 ? `${raw.slice(0, 150)}…` : raw;
-      return { label: tag, text: firstChunk };
+      return { label: tag, lines };
     },
   };
 }
@@ -163,29 +164,18 @@ export function extractLines(sel, root, maxLines = 10) {
   const scope = root ?? document.body;
   if (!scope) return lines;
 
-  const selArea = Math.max(1, (sel.right - sel.left) * (sel.bottom - sel.top));
-  // 命中判定：
-  // - 小元素（文件行/文本片段）：要求「中心点落在圈选区内」，避免相邻行边缘沾边被误收
-  // - 大元素（卡片/容器）：用重叠比例（圈选局部也要能命中）
-  const inSel = (r) => {
-    const area = Math.max(1, (r.right - r.left) * (r.bottom - r.top));
-    const ow = Math.min(sel.right, r.right) - Math.max(sel.left, r.left);
-    const oh = Math.min(sel.bottom, r.bottom) - Math.max(sel.top, r.top);
-    const overlap = Math.max(0, ow) * Math.max(0, oh);
-    if (overlap <= 0) return false;
-    if (area < selArea * 1.5) {
-      const cx = (r.left + r.right) / 2;
-      const cy = (r.top + r.bottom) / 2;
-      return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
-    }
-    return overlap / area >= 0.15;
-  };
+  // 命中判定：与圈选区「相交即命中」（内容是否相关交给后续提取与用户判断，
+  // 不再用 15%/40%/中心点等比例阈值——小范围圈选时那些阈值会让文字圈不中）
+  const inSel = (r) => sel.left < r.right && sel.right > r.left && sel.top < r.bottom && sel.bottom > r.top;
   const contains = (a, b) => a.left <= b.left + 1 && a.top <= b.top + 1 && a.right >= b.right - 1 && a.bottom >= b.bottom + 1;
   const squeeze = (t) => (t || '').replace(/\s+/g, ' ').trim();
   const seen = new Set();
   const used = []; // 已被语义元素覆盖的矩形（避免单元格/子元素重复）
 
   // 1) 语义元素优先：表格行 → 列表项 → 代码块 → 段落 → 标题 → 引用
+  // 工具调用/思考过程区域（不是内容）→ 提取时跳过
+  const isProcessEl = (el) => el?.closest?.('[data-step-process-content], [data-chat-flow-kind="turn-process"], [data-turn-process-answer]');
+
   const SEMANTIC = [
     { q: 'tr', kind: 'row' },
     { q: 'li', kind: 'item' },
@@ -209,6 +199,7 @@ export function extractLines(sel, root, maxLines = 10) {
       } else {
         text = squeeze(el.textContent).slice(0, 300);
       }
+      // 不做内容上的过滤：只有太短（<4）与重复才跳过；圈了什么就取什么
       if (text.length < 4 || seen.has(text)) continue;
       seen.add(text);
       lines.push(text);
@@ -286,23 +277,9 @@ export function collectHits(adapters, sel) {
   const hits = [];
   const covered = []; // 已被结构化命中的区域（避免通用适配器重复）
 
-  const selArea = Math.max(1, (sel.right - sel.left) * (sel.bottom - sel.top));
-  // 命中判定：
-  // - 小元素（文件行/文本片段）：要求「中心点落在圈选区内」，避免相邻行边缘沾边被误收
-  // - 大元素（卡片/容器）：用重叠比例（圈选局部也要能命中）
-  const inSel = (r) => {
-    const area = Math.max(1, (r.right - r.left) * (r.bottom - r.top));
-    const ow = Math.min(sel.right, r.right) - Math.max(sel.left, r.left);
-    const oh = Math.min(sel.bottom, r.bottom) - Math.max(sel.top, r.top);
-    const overlap = Math.max(0, ow) * Math.max(0, oh);
-    if (overlap <= 0) return false;
-    if (area < selArea * 1.5) {
-      const cx = (r.left + r.right) / 2;
-      const cy = (r.top + r.bottom) / 2;
-      return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom;
-    }
-    return overlap / area >= 0.15;
-  };
+  // 命中判定：与圈选区「相交即命中」（内容是否相关交给后续提取与用户判断，
+  // 不再用 15%/40%/中心点等比例阈值——小范围圈选时那些阈值会让文字圈不中）
+  const inSel = (r) => sel.left < r.right && sel.right > r.left && sel.top < r.bottom && sel.bottom > r.top;
   const rectOf = (el) => {
     const r = el.getBoundingClientRect();
     return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, area: r.width * r.height };
@@ -311,13 +288,23 @@ export function collectHits(adapters, sel) {
     && outer.right >= inner.right - 1 && outer.bottom >= inner.bottom + 1;
 
   for (const adapter of adapters) {
-    if (!adapter?.selector || typeof adapter.describe !== 'function') continue;
+    if (adapter?.selector === undefined || typeof adapter.describe !== 'function') continue;
+    // generic（body 兜底）只在"前面没有任何命中"时才用，避免与结构化适配器重复
+    if (adapter.id === 'generic-dom' && hits.length > 0) continue;
+    // selector: null 表示"通用兜底"（如 generic）→ 用 document.body 承接，避免整类被跳过
+    const selector = adapter.selector ?? 'body';
     let els = [];
-    try { els = [...document.querySelectorAll(adapter.selector)]; } catch { els = []; }
+    try { els = [...document.querySelectorAll(selector)]; } catch { els = []; }
     const candidates = [];
     for (const el of els) {
       const rect = rectOf(el);
-      if (rect.area < 16 || !inSel(rect)) continue;
+      if (rect.area < 16) continue;
+      // body/html 这类超大容器：小框圈选时不可能达到 15% 重叠，改为"相交即可"
+      const isHuge = el === document.body || el === document.documentElement;
+      const hit = isHuge
+        ? (sel.left < rect.right && sel.right > rect.left && sel.top < rect.bottom && sel.bottom > rect.top)
+        : inSel(rect);
+      if (!hit) continue;
       const described = adapter.describe(el, sel);
       if (!described) continue;
       candidates.push({ el, rect, described });

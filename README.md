@@ -61,7 +61,7 @@
 dsh plugin --profile web add /path/to/aura-dsh
 
 # 从 GitHub（钉版本更稳）
-dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.8
+dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.9
 ```
 
 重启 dsh web 后生效。安装前可运行自检确认与宿主兼容：
@@ -203,6 +203,7 @@ npm run watch        # 开发热重建
 | 0.8.6 | 截图误判/滚动定位/侧边栏展开/卡片逆序/iframe 高度/输入框定位修复 |
 | 0.8.7 | 骨架卡占位 + 卡片飞入动画 + 新卡内框线闪烁 |
 | 0.8.8 | 卡片 ⚑ 手动常驻 + 骨架卡会话隔离 + 默认普通卡 |
+| 0.8.9 | 圈选命中简化（相交即命中）+ 5 个 prompt 调整 + 「解读」 |
 
 详细变更见 [CHANGELOG.md](./CHANGELOG.md)。
 
