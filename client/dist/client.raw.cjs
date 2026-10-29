@@ -183705,6 +183705,22 @@ function AuraPanel(props) {
 		return allCards;
 	}, [eventCards, allCards]);
 	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)), [sourceCards, hiddenIds]);
+	const lastLatestIdRef = react$1.default.useRef(null);
+	react$1.default.useEffect(() => {
+		if (!cards.length) return;
+		const latest = cards.reduce((a, b) => (b?.updatedAt ?? 0) > (a?.updatedAt ?? 0) ? b : a, cards[0]);
+		if (!latest?.id || latest.id === lastLatestIdRef.current) return;
+		lastLatestIdRef.current = latest.id;
+		const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame(() => {
+			document.querySelector(`[data-aura-card-id="${latest.id}"]`)?.scrollIntoView?.({
+				behavior: "smooth",
+				block: "center"
+			});
+		}) : null;
+		return () => {
+			if (raf) cancelAnimationFrame(raf);
+		};
+	}, [cards]);
 	cardsRef.current = cards;
 	const diag = {
 		nodeCount: Number.isFinite(safeState.nodeCount) ? safeState.nodeCount : 0,

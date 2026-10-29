@@ -382,6 +382,23 @@ export default function AuraPanel(props) {
     () => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)),
     [sourceCards, hiddenIds],
   );
+
+  // 新卡片出现时滚动到它（多个卡片时定位到最新推送的那张）
+  const lastLatestIdRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!cards.length) return;
+    const latest = cards.reduce((a, b) => ((b?.updatedAt ?? 0) > (a?.updatedAt ?? 0) ? b : a), cards[0]);
+    if (!latest?.id || latest.id === lastLatestIdRef.current) return;
+    lastLatestIdRef.current = latest.id;
+    // 等一帧让卡片渲染完成再滚
+    const raf = typeof requestAnimationFrame === 'function'
+      ? requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-aura-card-id="${latest.id}"]`);
+        el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      })
+      : null;
+    return () => { if (raf) cancelAnimationFrame(raf); };
+  }, [cards]);
   cardsRef.current = cards;
 
   const diag = {
