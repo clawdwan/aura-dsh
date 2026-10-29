@@ -318,8 +318,8 @@ export default function GlobalSelector({ send, getSessionId }) {
             last.scrollIntoView({ behavior: 'smooth', block: 'end' });
             return;
           }
-          // 兜底：找滚动容器直接到底
-          const scroller = document.querySelector('[data-chat-flow]')?.parentElement;
+          // 兜底：对话流的真实滚动容器是 [data-conversation-scroll]
+          const scroller = document.querySelector('[data-conversation-scroll]');
           if (scroller) scroller.scrollTop = scroller.scrollHeight;
         } catch { /* ignore */ }
       };

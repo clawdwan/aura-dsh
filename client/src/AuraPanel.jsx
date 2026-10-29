@@ -394,13 +394,15 @@ export default function AuraPanel(props) {
     // 新卡追加在列表末尾，直接滚到面板底部即可让它完整进入视口
     const raf = typeof requestAnimationFrame === 'function'
       ? requestAnimationFrame(() => {
-        const el = document.querySelector(`[data-aura-card-id="${latest.id}"]`);
-        const panel = document.querySelector('.aura-panel');
-        if (panel) {
-          panel.scrollTo?.({ top: panel.scrollHeight, behavior: 'smooth' });
-        } else {
-          el?.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
-        }
+        const scrollPanelToEnd = () => {
+          const panel = document.querySelector('.aura-panel');
+          if (panel) panel.scrollTop = panel.scrollHeight;
+          else document.querySelector(`[data-aura-card-id="${latest.id}"]`)?.scrollIntoView?.({ block: 'end' });
+        };
+        scrollPanelToEnd();
+        // html 卡 iframe 高度异步变化 → 再补滚两次，确保底部内容完整露出
+        setTimeout(scrollPanelToEnd, 300);
+        setTimeout(scrollPanelToEnd, 900);
       })
       : null;
     return () => { if (raf) cancelAnimationFrame(raf); };

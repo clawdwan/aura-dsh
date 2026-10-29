@@ -183718,16 +183718,14 @@ function AuraPanel(props) {
 		if (!latest?.id || latest.id === lastLatestIdRef.current) return;
 		lastLatestIdRef.current = latest.id;
 		const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame(() => {
-			const el = document.querySelector(`[data-aura-card-id="${latest.id}"]`);
-			const panel = document.querySelector(".aura-panel");
-			if (panel) panel.scrollTo?.({
-				top: panel.scrollHeight,
-				behavior: "smooth"
-			});
-			else el?.scrollIntoView?.({
-				behavior: "smooth",
-				block: "end"
-			});
+			const scrollPanelToEnd = () => {
+				const panel = document.querySelector(".aura-panel");
+				if (panel) panel.scrollTop = panel.scrollHeight;
+				else document.querySelector(`[data-aura-card-id="${latest.id}"]`)?.scrollIntoView?.({ block: "end" });
+			};
+			scrollPanelToEnd();
+			setTimeout(scrollPanelToEnd, 300);
+			setTimeout(scrollPanelToEnd, 900);
 		}) : null;
 		return () => {
 			if (raf) cancelAnimationFrame(raf);
@@ -185982,7 +185980,7 @@ function GlobalSelector({ send, getSessionId }) {
 						});
 						return;
 					}
-					const scroller = document.querySelector("[data-chat-flow]")?.parentElement;
+					const scroller = document.querySelector("[data-conversation-scroll]");
 					if (scroller) scroller.scrollTop = scroller.scrollHeight;
 				} catch {}
 			};
