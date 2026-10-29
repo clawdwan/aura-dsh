@@ -183718,9 +183718,15 @@ function AuraPanel(props) {
 		if (!latest?.id || latest.id === lastLatestIdRef.current) return;
 		lastLatestIdRef.current = latest.id;
 		const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame(() => {
-			document.querySelector(`[data-aura-card-id="${latest.id}"]`)?.scrollIntoView?.({
+			const el = document.querySelector(`[data-aura-card-id="${latest.id}"]`);
+			const panel = document.querySelector(".aura-panel");
+			if (panel) panel.scrollTo?.({
+				top: panel.scrollHeight,
+				behavior: "smooth"
+			});
+			else el?.scrollIntoView?.({
 				behavior: "smooth",
-				block: "center"
+				block: "end"
 			});
 		}) : null;
 		return () => {

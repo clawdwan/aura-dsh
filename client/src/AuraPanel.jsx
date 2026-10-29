@@ -390,11 +390,17 @@ export default function AuraPanel(props) {
     const latest = cards.reduce((a, b) => ((b?.updatedAt ?? 0) > (a?.updatedAt ?? 0) ? b : a), cards[0]);
     if (!latest?.id || latest.id === lastLatestIdRef.current) return;
     lastLatestIdRef.current = latest.id;
-    // 等一帧让卡片渲染完成再滚
+    // 等一帧让卡片渲染完成（高度确定）再滚：
+    // 新卡追加在列表末尾，直接滚到面板底部即可让它完整进入视口
     const raf = typeof requestAnimationFrame === 'function'
       ? requestAnimationFrame(() => {
         const el = document.querySelector(`[data-aura-card-id="${latest.id}"]`);
-        el?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+        const panel = document.querySelector('.aura-panel');
+        if (panel) {
+          panel.scrollTo?.({ top: panel.scrollHeight, behavior: 'smooth' });
+        } else {
+          el?.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
+        }
       })
       : null;
     return () => { if (raf) cancelAnimationFrame(raf); };
