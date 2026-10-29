@@ -416,7 +416,8 @@ export default function AuraPanel(props) {
       let tries = 0;
       const showWhenVisible = () => {
         const open = Boolean(document.querySelector('[data-sidebar-right-open]'));
-        if (open || tries >= 20) { setPendingEnter(detail); return; }
+        console.log('[aura-panel] pending 收到，面板可见=', open, 'tries=', tries);
+        if (open || tries >= 20) { setPendingEnter(detail); console.log('[aura-panel] 骨架卡显示'); return; }
         tries += 1;
         setTimeout(showWhenVisible, 80);
       };

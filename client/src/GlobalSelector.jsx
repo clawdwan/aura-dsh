@@ -318,6 +318,7 @@ export default function GlobalSelector({ send, getSessionId }) {
       // 因此同时写全局变量，AuraPanel 挂载时兜底读取。
       const pendingDetail = { x: sel.left, y: sel.top, width: sel.right - sel.left, height: sel.bottom - sel.top };
       try { window.__auraPendingCard = pendingDetail; } catch { /* ignore */ }
+      console.log('[aura-select] 广播 pending:', pendingDetail, 'isPanelPush=', isPanelPush);
       try {
         window.dispatchEvent(new CustomEvent('aura:card-pending', { detail: pendingDetail }));
       } catch { /* ignore */ }

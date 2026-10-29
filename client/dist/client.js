@@ -183790,8 +183790,11 @@ function AuraPanel(props) {
 			const detail = e?.detail ?? null;
 			let tries = 0;
 			const showWhenVisible = () => {
-				if (Boolean(document.querySelector("[data-sidebar-right-open]")) || tries >= 20) {
+				const open = Boolean(document.querySelector("[data-sidebar-right-open]"));
+				console.log("[aura-panel] pending 收到，面板可见=", open, "tries=", tries);
+				if (open || tries >= 20) {
 					setPendingEnter(detail);
+					console.log("[aura-panel] 骨架卡显示");
 					return;
 				}
 				tries += 1;
@@ -186084,7 +186087,8 @@ function GlobalSelector({ send, getSessionId }) {
 				right: rect.left + rect.width,
 				bottom: rect.top + rect.height
 			};
-			if (/整理成合适的卡片/.test(q) && typeof window.__auraOpenPanel === "function") try {
+			const isPanelPush = /整理成合适的卡片/.test(q);
+			if (isPanelPush && typeof window.__auraOpenPanel === "function") try {
 				window.__auraOpenPanel();
 			} catch {}
 			let image = null;
@@ -186118,6 +186122,7 @@ function GlobalSelector({ send, getSessionId }) {
 			try {
 				window.__auraPendingCard = pendingDetail;
 			} catch {}
+			console.log("[aura-select] 广播 pending:", pendingDetail, "isPanelPush=", isPanelPush);
 			try {
 				window.dispatchEvent(new CustomEvent("aura:card-pending", { detail: pendingDetail }));
 			} catch {}
