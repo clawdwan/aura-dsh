@@ -221,6 +221,15 @@ export default function AuraPanel(props) {
     if (!res?.ok) throw new Error(res?.error?.message ?? '发送失败');
   }, [__auraSend]);
 
+  /** 设为常驻卡：发一条简短指令给 agent（client 无法直接改 host 状态） */
+  const handlePinCard = React.useCallback((card) => {
+    if (!card?.id) return;
+    if (typeof __auraSend === 'function') {
+      __auraSend(`[面板操作] 把卡片「${card.id}」设为 persist=true（常驻，不参与淘汰），不要解释，直接调用 aura_panel 完成。`)
+        .catch((err) => console.warn('[aura-panel] 常驻设置失败:', err?.message ?? err));
+    }
+  }, [__auraSend]);
+
   /** 导出单张卡片为 .md */
   const handleExportCard = React.useCallback((card) => {
     if (!card) return;
@@ -345,6 +354,9 @@ export default function AuraPanel(props) {
   const [eventCards, setEventCards] = React.useState(null);
   const [eventInfo, setEventInfo] = React.useState(null);
   React.useEffect(() => {
+    console.log('[aura-panel] AuraPanel 挂载, props.sessionId =', props?.sessionId);
+  }, [props?.sessionId]);
+  React.useEffect(() => {
     if (typeof __auraSubscribeEvents !== 'function') return undefined;
     const sid = props?.sessionId;
     if (!sid) return undefined;
@@ -355,10 +367,16 @@ export default function AuraPanel(props) {
       try {
         const win = sub?.get?.() ?? null;
         const found = extractCardsFromEvents(win);
-        setEventInfo({
+        const info = {
           entries: Array.isArray(win?.entries) ? win.entries.length : 0,
           cards: Array.isArray(found) ? found.length : 0,
-        });
+        };
+        setEventInfo(info);
+        // 只在卡片数量变化时打印（事件流每次变化都会 refresh，全打会刷屏）
+        if (info.cards !== lastCardsCountRef.current) {
+          lastCardsCountRef.current = info.cards;
+          console.log('[aura-panel] 卡片数变化:', info);
+        }
         if (Array.isArray(found) && found.length > 0) setEventCards(found);
       } catch { /* ignore */ }
     };
@@ -378,22 +396,61 @@ export default function AuraPanel(props) {
     return allCards;
   }, [eventCards, allCards]);
   // 单 main 面板：展示所有未隐藏的卡片（忽略 card.tab；多 tab 后续再做）
-  // 排序：新 → 旧（updatedAt 降序，最新卡片在顶部；后续可扩展为可配置）
-  const cards = useMemo(
-    () => sourceCards
-      .filter((c) => !c?.dismissed && !hiddenIds.has(c?.id))
-      .sort((a, b) => (b?.updatedAt ?? 0) - (a?.updatedAt ?? 0)),
-    [sourceCards, hiddenIds],
-  );
+  // 排序：批次间新→旧（最新批次在顶部），**同一次推送的批次内保持正序**（1→2→3 可读）
+  const cards = useMemo(() => {
+    const list = sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id));
+    // 先按时间升序，再把"时间相近（<600ms）"的卡片归为同一批
+    const sorted = [...list].sort((a, b) => (a?.updatedAt ?? 0) - (b?.updatedAt ?? 0));
+    const groups = [];
+    for (const c of sorted) {
+      const last = groups[groups.length - 1];
+      if (last && ((c?.updatedAt ?? 0) - (last[0]?.updatedAt ?? 0)) < 600) last.push(c);
+      else groups.push([c]);
+    }
+    // 批次倒序（新批在顶），批内保持升序
+    return groups.reverse().flat();
+  }, [sourceCards, hiddenIds]);
 
   // 新到达的卡片（加 is-new 做闪烁高亮，1.5s 后移除）
   const [flashCardId, setFlashCardId] = React.useState(null);
 
   // 卡片生成中的骨架占位（用户点发送后立即出现，卡片到达后消失）
   const [pendingEnter, setPendingEnter] = React.useState(null); // { x, y, width, height }
+  const pendingSinceRef = React.useRef(0);
   React.useEffect(() => {
-    const onPending = (e) => setPendingEnter(e?.detail ?? null);
+    const onPending = (e) => {
+      const detail = e?.detail ?? null;
+      // 按会话过滤：全局事件会广播给所有 AuraPanel 实例（每个会话一个），
+      // 只有 detail.sessionId === 本实例 props.sessionId 才响应
+      const mySid = props?.sessionId ?? null;
+      if (detail?.sessionId && mySid && detail.sessionId !== mySid) return;
+      // 面板可能刚被打开（有展开动画）：等它可见后再落骨架，否则飞入动画看不见
+      let tries = 0;
+      const showWhenVisible = () => {
+        const open = Boolean(document.querySelector('[data-sidebar-right-open]'));
+        console.log('[aura-panel] pending 收到，面板可见=', open, 'tries=', tries);
+        if (open || tries >= 20) {
+          pendingSinceRef.current = Date.now();
+          setPendingEnter(detail);
+          console.log('[aura-panel] 骨架卡显示');
+          return;
+        }
+        tries += 1;
+        setTimeout(showWhenVisible, 80);
+      };
+      showWhenVisible();
+    };
     window.addEventListener('aura:card-pending', onPending);
+    // 兜底：侧边栏刚打开时事件可能早于本组件挂载，挂载后读一次全局变量
+    // 只接受「本会话 + 10s 内」的 pending（避免切会话时看到别的会话的残留骨架）
+    try {
+      const p = window.__auraPendingCard;
+      const sid = props?.sessionId ?? null;
+      const fresh = p && typeof p.ts === 'number' && (Date.now() - p.ts) < 10000;
+      const sameSession = p && (!p.sessionId || !sid || p.sessionId === sid);
+      if (fresh && sameSession) onPending({ detail: p });
+      else if (p) delete window.__auraPendingCard;
+    } catch { /* ignore */ }
     return () => window.removeEventListener('aura:card-pending', onPending);
   }, []);
 
@@ -404,7 +461,14 @@ export default function AuraPanel(props) {
     const latest = cards.reduce((a, b) => ((b?.updatedAt ?? 0) > (a?.updatedAt ?? 0) ? b : a), cards[0]);
     if (!latest?.id || latest.id === lastLatestIdRef.current) return;
     lastLatestIdRef.current = latest.id;
-    setPendingEnter(null);
+    // 骨架卡至少展示 400ms（批量推卡时卡到达太快，否则骨架一闪而过看不见）
+    const elapsed = Date.now() - (pendingSinceRef.current || 0);
+    if (pendingSinceRef.current && elapsed < 400) {
+      setTimeout(() => setPendingEnter(null), 400 - elapsed);
+    } else {
+      setPendingEnter(null);
+    }
+    try { delete window.__auraPendingCard; } catch { /* ignore */ }
     // 新卡到达：闪烁高亮 1.5s
     setFlashCardId(latest.id);
     const timer = setTimeout(() => setFlashCardId(null), 1500);
@@ -501,6 +565,16 @@ export default function AuraPanel(props) {
             <div className="aura-panel-card-head">
               {card.title ? <h4 className="aura-panel-card-title">{card.title}</h4> : <span />}
               <div className="aura-panel-card-actions">
+                {card.persist ? null : (
+                  <button
+                    type="button"
+                    className="aura-panel-card-action"
+                    title="设为常驻卡（不参与 20 张上限淘汰）"
+                    onClick={() => handlePinCard(card)}
+                  >
+                    ⚑
+                  </button>
+                )}
                 <button
                   type="button"
                   className="aura-panel-card-action"

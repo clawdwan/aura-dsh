@@ -183613,6 +183613,11 @@ function AuraPanel(props) {
 		const res = await __auraSend(ctx);
 		if (!res?.ok) throw new Error(res?.error?.message ?? "发送失败");
 	}, [__auraSend]);
+	/** 设为常驻卡：发一条简短指令给 agent（client 无法直接改 host 状态） */
+	const handlePinCard = react$1.default.useCallback((card) => {
+		if (!card?.id) return;
+		if (typeof __auraSend === "function") __auraSend(`[面板操作] 把卡片「${card.id}」设为 persist=true（常驻，不参与淘汰），不要解释，直接调用 aura_panel 完成。`).catch((err) => console.warn("[aura-panel] 常驻设置失败:", err?.message ?? err));
+	}, [__auraSend]);
 	/** 导出单张卡片为 .md */
 	const handleExportCard = react$1.default.useCallback((card) => {
 		if (!card) return;
@@ -183728,6 +183733,9 @@ function AuraPanel(props) {
 	const [eventCards, setEventCards] = react$1.default.useState(null);
 	const [eventInfo, setEventInfo] = react$1.default.useState(null);
 	react$1.default.useEffect(() => {
+		console.log("[aura-panel] AuraPanel 挂载, props.sessionId =", props?.sessionId);
+	}, [props?.sessionId]);
+	react$1.default.useEffect(() => {
 		if (typeof __auraSubscribeEvents !== "function") return void 0;
 		const sid = props?.sessionId;
 		if (!sid) return void 0;
@@ -183738,10 +183746,15 @@ function AuraPanel(props) {
 			try {
 				const win = sub?.get?.() ?? null;
 				const found = extractCardsFromEvents(win);
-				setEventInfo({
+				const info = {
 					entries: Array.isArray(win?.entries) ? win.entries.length : 0,
 					cards: Array.isArray(found) ? found.length : 0
-				});
+				};
+				setEventInfo(info);
+				if (info.cards !== lastCardsCountRef.current) {
+					lastCardsCountRef.current = info.cards;
+					console.log("[aura-panel] 卡片数变化:", info);
+				}
 				if (Array.isArray(found) && found.length > 0) setEventCards(found);
 			} catch {}
 		};
@@ -183760,12 +183773,48 @@ function AuraPanel(props) {
 		if (Array.isArray(eventCards) && eventCards.length > 0) return eventCards;
 		return allCards;
 	}, [eventCards, allCards]);
-	const cards = (0, react$1.useMemo)(() => sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id)).sort((a, b) => (b?.updatedAt ?? 0) - (a?.updatedAt ?? 0)), [sourceCards, hiddenIds]);
+	const cards = (0, react$1.useMemo)(() => {
+		const sorted = [...sourceCards.filter((c) => !c?.dismissed && !hiddenIds.has(c?.id))].sort((a, b) => (a?.updatedAt ?? 0) - (b?.updatedAt ?? 0));
+		const groups = [];
+		for (const c of sorted) {
+			const last = groups[groups.length - 1];
+			if (last && (c?.updatedAt ?? 0) - (last[0]?.updatedAt ?? 0) < 600) last.push(c);
+			else groups.push([c]);
+		}
+		return groups.reverse().flat();
+	}, [sourceCards, hiddenIds]);
 	const [flashCardId, setFlashCardId] = react$1.default.useState(null);
 	const [pendingEnter, setPendingEnter] = react$1.default.useState(null);
+	const pendingSinceRef = react$1.default.useRef(0);
 	react$1.default.useEffect(() => {
-		const onPending = (e) => setPendingEnter(e?.detail ?? null);
+		const onPending = (e) => {
+			const detail = e?.detail ?? null;
+			const mySid = props?.sessionId ?? null;
+			if (detail?.sessionId && mySid && detail.sessionId !== mySid) return;
+			let tries = 0;
+			const showWhenVisible = () => {
+				const open = Boolean(document.querySelector("[data-sidebar-right-open]"));
+				console.log("[aura-panel] pending 收到，面板可见=", open, "tries=", tries);
+				if (open || tries >= 20) {
+					pendingSinceRef.current = Date.now();
+					setPendingEnter(detail);
+					console.log("[aura-panel] 骨架卡显示");
+					return;
+				}
+				tries += 1;
+				setTimeout(showWhenVisible, 80);
+			};
+			showWhenVisible();
+		};
 		window.addEventListener("aura:card-pending", onPending);
+		try {
+			const p = window.__auraPendingCard;
+			const sid = props?.sessionId ?? null;
+			const fresh = p && typeof p.ts === "number" && Date.now() - p.ts < 1e4;
+			const sameSession = p && (!p.sessionId || !sid || p.sessionId === sid);
+			if (fresh && sameSession) onPending({ detail: p });
+			else if (p) delete window.__auraPendingCard;
+		} catch {}
 		return () => window.removeEventListener("aura:card-pending", onPending);
 	}, []);
 	const lastLatestIdRef = react$1.default.useRef(null);
@@ -183774,7 +183823,12 @@ function AuraPanel(props) {
 		const latest = cards.reduce((a, b) => (b?.updatedAt ?? 0) > (a?.updatedAt ?? 0) ? b : a, cards[0]);
 		if (!latest?.id || latest.id === lastLatestIdRef.current) return;
 		lastLatestIdRef.current = latest.id;
-		setPendingEnter(null);
+		const elapsed = Date.now() - (pendingSinceRef.current || 0);
+		if (pendingSinceRef.current && elapsed < 400) setTimeout(() => setPendingEnter(null), 400 - elapsed);
+		else setPendingEnter(null);
+		try {
+			delete window.__auraPendingCard;
+		} catch {}
 		setFlashCardId(latest.id);
 		setTimeout(() => setFlashCardId(null), 1500);
 		const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame(() => {
@@ -183903,6 +183957,13 @@ function AuraPanel(props) {
 							}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 								className: "aura-panel-card-actions",
 								children: [
+									card.persist ? null : /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+										type: "button",
+										className: "aura-panel-card-action",
+										title: "设为常驻卡（不参与 20 张上限淘汰）",
+										onClick: () => handlePinCard(card),
+										children: "⚑"
+									}),
 									/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
 										type: "button",
 										className: "aura-panel-card-action",
@@ -186037,6 +186098,10 @@ function GlobalSelector({ send, getSessionId }) {
 				right: rect.left + rect.width,
 				bottom: rect.top + rect.height
 			};
+			const isPanelPush = /整理成合适的卡片/.test(q);
+			if (isPanelPush && typeof window.__auraOpenPanel === "function") try {
+				window.__auraOpenPanel();
+			} catch {}
 			let image = null;
 			if (needsVisualCapture(sel).visual) try {
 				const shot = await captureSelection(sel);
@@ -186059,13 +186124,20 @@ function GlobalSelector({ send, getSessionId }) {
 			});
 			const res = await send?.(ctx, image);
 			if (res?.ok === false) throw new Error(res?.error?.message ?? "发送失败");
+			const pendingDetail = {
+				x: sel.left,
+				y: sel.top,
+				width: sel.right - sel.left,
+				height: sel.bottom - sel.top,
+				sessionId: typeof window.__auraSessionId === "function" ? window.__auraSessionId() : null,
+				ts: Date.now()
+			};
 			try {
-				window.dispatchEvent(new CustomEvent("aura:card-pending", { detail: {
-					x: sel.left,
-					y: sel.top,
-					width: sel.right - sel.left,
-					height: sel.bottom - sel.top
-				} }));
+				window.__auraPendingCard = pendingDetail;
+			} catch {}
+			console.log("[aura-select] 广播 pending:", pendingDetail, "isPanelPush=", isPanelPush);
+			try {
+				window.dispatchEvent(new CustomEvent("aura:card-pending", { detail: pendingDetail }));
 			} catch {}
 			const scrollToBottom = () => {
 				try {
@@ -186332,6 +186404,22 @@ function apply(ctx) {
 				} catch {}
 			};
 		});
+		try {
+			window.__auraSessionId = () => {
+				try {
+					const sid = ctx.sidebarRight?.mounted?.getSnapshot?.() ?? null;
+					console.log("[aura-select] __auraSessionId =", sid);
+					return sid;
+				} catch {
+					return null;
+				}
+			};
+			window.__auraOpenPanel = () => {
+				try {
+					ctx.sidebarRight?.openTab?.("aura-panel");
+				} catch {}
+			};
+		} catch {}
 		try {
 			const disposeShortcut = ctx.shortcuts.register({
 				id: "aura-selection",

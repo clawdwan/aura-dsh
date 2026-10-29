@@ -143,6 +143,20 @@ export function apply(ctx) {
       };
     });
 
+    // 供 GlobalSelector 使用：点「整理并推送」时先打开侧边栏（让骨架/动画可见）
+    try {
+      window.__auraSessionId = () => {
+        try {
+          const sid = ctx.sidebarRight?.mounted?.getSnapshot?.() ?? null;
+          console.log('[aura-select] __auraSessionId =', sid);
+          return sid;
+        } catch { return null; }
+      };
+      window.__auraOpenPanel = () => {
+        try { ctx.sidebarRight?.openTab?.('aura-panel'); } catch { /* ignore */ }
+      };
+    } catch { /* ignore */ }
+
     // 快捷键：⌥S（Mac）/ Alt+S → 进入圈选提问
     // 由 DSH 快捷键系统注册，用户可在「设置 → 快捷键」里改键
     try {
