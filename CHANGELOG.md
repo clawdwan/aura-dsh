@@ -2,6 +2,32 @@
 
 本项目所有重要变更记录于此。版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.8.6] — 2026-10-29
+
+### 变更
+
+- **卡片改为逆序展示**：新 → 旧（`updatedAt` 降序，最新卡片在顶部）；
+  推卡后自动定位到顶部的卡片。后续可扩展为可配置（localStorage / 设置项）
+- **推卡后自动展开侧边栏**：仅在侧边栏关闭时展开并定位 Aura 面板；
+  已打开则不动（不切换用户当前 tab）
+
+### 修复
+
+- **对话流圈选触发慢截图**：视觉检测的容器 canvas 检查增加与圈选区的
+  rect 相交判断（大容器不再把页面别处图表误判为视觉类）
+- **对话流推送后未滚到底**：滚动容器改为 `[data-conversation-scroll]`，
+  首选 `scrollTop = scrollHeight`（`scrollIntoView` 降为兜底）
+- **侧边栏状态误判**：改用 `[data-sidebar-right-open]` 语义属性
+  （关闭时 DSH 只把 dock 用 transform 移出，列宽仍在）
+- **侧边栏关闭时推卡不展开**：`defaultOpen` 会因 `isTargetOpen` 跳过，
+  改为 trigger 确认关闭后直接 `openTab`
+- **html 卡下方巨大空白**：iframe 高度测量改用 `document.body.scrollHeight`
+  （`documentElement` 默认 100% 会被 iframe 自身高度污染成正反馈）
+- **自定义输入框跑到页面左侧**：定位的 `left` 不再限制 ≤240，
+  改为视口内 clamp（跟随圈选位置）
+- **命中范围过宽**：小元素（文件行/文本片段）须中心点落在圈选区内；
+  大元素（卡片/容器）用 15% 重叠比例
+
 ## [0.8.5] — 2026-10-19
 
 ### 新增
