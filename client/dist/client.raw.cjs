@@ -185487,20 +185487,7 @@ function extractLines(sel, root, maxLines = 10) {
 	if (!sel) return lines;
 	const scope = root ?? document.body;
 	if (!scope) return lines;
-	const selArea = Math.max(1, (sel.right - sel.left) * (sel.bottom - sel.top));
-	const inSel = (r) => {
-		const area = Math.max(1, (r.right - r.left) * (r.bottom - r.top));
-		const ow = Math.min(sel.right, r.right) - Math.max(sel.left, r.left);
-		const oh = Math.min(sel.bottom, r.bottom) - Math.max(sel.top, r.top);
-		const overlap = Math.max(0, ow) * Math.max(0, oh);
-		if (overlap <= 0) return false;
-		if (area < selArea * 1.5) {
-			const cx = (r.left + r.right) / 2;
-			const cy = (r.top + r.bottom) / 2;
-			return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom || overlap / area >= .4;
-		}
-		return overlap / area >= .15;
-	};
+	const inSel = (r) => sel.left < r.right && sel.right > r.left && sel.top < r.bottom && sel.bottom > r.top;
 	const contains = (a, b) => a.left <= b.left + 1 && a.top <= b.top + 1 && a.right >= b.right - 1 && a.bottom >= b.bottom + 1;
 	const squeeze = (t) => (t || "").replace(/\s+/g, " ").trim();
 	const seen = /* @__PURE__ */ new Set();
@@ -185545,8 +185532,7 @@ function extractLines(sel, root, maxLines = 10) {
 			if (kind === "row") text = [...el.querySelectorAll("td,th")].map((c) => squeeze(c.textContent)).filter(Boolean).join(" / ");
 			else if (kind === "code") text = `代码块：${squeeze(el.textContent).slice(0, 300)}`;
 			else text = squeeze(el.textContent).slice(0, 300);
-			const isStatusLine = text.length < 80 && /已访问|已搜索|已调用|已下载|用时|已完成|思考中|运行中/.test(text);
-			if (text.length < 4 || isStatusLine || seen.has(text)) continue;
+			if (text.length < 4 || seen.has(text)) continue;
 			seen.add(text);
 			lines.push(text);
 			used.push(r);
@@ -185623,20 +185609,7 @@ function extractLines(sel, root, maxLines = 10) {
 function collectHits(adapters, sel) {
 	const hits = [];
 	const covered = [];
-	const selArea = Math.max(1, (sel.right - sel.left) * (sel.bottom - sel.top));
-	const inSel = (r) => {
-		const area = Math.max(1, (r.right - r.left) * (r.bottom - r.top));
-		const ow = Math.min(sel.right, r.right) - Math.max(sel.left, r.left);
-		const oh = Math.min(sel.bottom, r.bottom) - Math.max(sel.top, r.top);
-		const overlap = Math.max(0, ow) * Math.max(0, oh);
-		if (overlap <= 0) return false;
-		if (area < selArea * 1.5) {
-			const cx = (r.left + r.right) / 2;
-			const cy = (r.top + r.bottom) / 2;
-			return cx >= sel.left && cx <= sel.right && cy >= sel.top && cy <= sel.bottom || overlap / area >= .4;
-		}
-		return overlap / area >= .15;
-	};
+	const inSel = (r) => sel.left < r.right && sel.right > r.left && sel.top < r.bottom && sel.bottom > r.top;
 	const rectOf = (el) => {
 		const r = el.getBoundingClientRect();
 		return {
@@ -185649,17 +185622,20 @@ function collectHits(adapters, sel) {
 	};
 	const contains = (outer, inner) => outer.left <= inner.left + 1 && outer.top <= inner.top + 1 && outer.right >= inner.right - 1 && outer.bottom >= inner.bottom + 1;
 	for (const adapter of adapters) {
-		if (!adapter?.selector || typeof adapter.describe !== "function") continue;
+		if (adapter?.selector === void 0 || typeof adapter.describe !== "function") continue;
+		if (adapter.id === "generic-dom" && hits.length > 0) continue;
+		const selector = adapter.selector ?? "body";
 		let els = [];
 		try {
-			els = [...document.querySelectorAll(adapter.selector)];
+			els = [...document.querySelectorAll(selector)];
 		} catch {
 			els = [];
 		}
 		const candidates = [];
 		for (const el of els) {
 			const rect = rectOf(el);
-			if (rect.area < 16 || !inSel(rect)) continue;
+			if (rect.area < 16) continue;
+			if (!(el === document.body || el === document.documentElement ? sel.left < rect.right && sel.right > rect.left && sel.top < rect.bottom && sel.bottom > rect.top : inSel(rect))) continue;
 			const described = adapter.describe(el, sel);
 			if (!described) continue;
 			candidates.push({
