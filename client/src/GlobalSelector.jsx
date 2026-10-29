@@ -312,15 +312,15 @@ export default function GlobalSelector({ send, getSessionId }) {
       // 立即滚一次 + 延迟再滚一次（兜底），保证能看到刚推出的 prompt
       const scrollToBottom = () => {
         try {
-          const nodes = [...document.querySelectorAll('[data-chat-flow-kind]')];
-          const last = nodes[nodes.length - 1];
-          if (last?.scrollIntoView) {
-            last.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          // 首选：直接把对话流滚动容器拉到底（最可靠，不受末节点类型影响）
+          const scroller = document.querySelector('[data-conversation-scroll]');
+          if (scroller) {
+            scroller.scrollTop = scroller.scrollHeight;
             return;
           }
-          // 兜底：对话流的真实滚动容器是 [data-conversation-scroll]
-          const scroller = document.querySelector('[data-conversation-scroll]');
-          if (scroller) scroller.scrollTop = scroller.scrollHeight;
+          // 兜底：最后节点 scrollIntoView
+          const nodes = [...document.querySelectorAll('[data-chat-flow-kind]')];
+          nodes[nodes.length - 1]?.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
         } catch { /* ignore */ }
       };
       scrollToBottom();
