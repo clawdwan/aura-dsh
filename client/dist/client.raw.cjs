@@ -183790,6 +183790,7 @@ function AuraPanel(props) {
 				const open = Boolean(document.querySelector("[data-sidebar-right-open]"));
 				console.log("[aura-panel] pending 收到，面板可见=", open, "tries=", tries);
 				if (open || tries >= 20) {
+					pendingSinceRef.current = Date.now();
 					setPendingEnter(detail);
 					console.log("[aura-panel] 骨架卡显示");
 					return;
@@ -183816,7 +183817,9 @@ function AuraPanel(props) {
 		const latest = cards.reduce((a, b) => (b?.updatedAt ?? 0) > (a?.updatedAt ?? 0) ? b : a, cards[0]);
 		if (!latest?.id || latest.id === lastLatestIdRef.current) return;
 		lastLatestIdRef.current = latest.id;
-		setPendingEnter(null);
+		const elapsed = Date.now() - (pendingSinceRef.current || 0);
+		if (pendingSinceRef.current && elapsed < 400) setTimeout(() => setPendingEnter(null), 400 - elapsed);
+		else setPendingEnter(null);
 		try {
 			delete window.__auraPendingCard;
 		} catch {}
