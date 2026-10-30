@@ -2,6 +2,24 @@
 
 本项目所有重要变更记录于此。版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.8.10] — 2026-10-30
+
+### 修复
+
+- **桌面端快捷键无法唤起**：命令 id 由 `aura-selection` 改为 `aura.selection`
+  （DSH 桌面端要求命令 id 带点号命名空间）
+
+### 变更
+
+- **安装说明双入口**（评估报告 P0）：桌面版走 app 内「插件 → 添加插件 → 重启 app」，
+  独立 web 走 `dsh plugin --profile web`；明确桌面端不要用全局 CLI
+- **瘦身**（评估 P1）：6 个构建依赖（antd/echarts/@xyflow/dagre/modern-screenshot/@tsdown/css）
+  移入 devDependencies；`files` 只发 `client/dist/client.js`（排除 `client.raw.cjs`，-7MB）；
+  dependencies 清空（运行时仅用宿主 peerDependency）
+- **新增 `engines.dsh`**：`>=0.2.0 <0.3.0`（不兼容版本在安装前被拦住）
+- **统一 License**：`LICENSE` 是 Apache-2.0，但 package.json/README 写 MIT → 全部统一 Apache-2.0
+- **README 去重**：中英版各去掉成对重复标题
+
 ## [0.8.9] — 2026-10-29
 
 ### 变更

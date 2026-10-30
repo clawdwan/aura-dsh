@@ -1,7 +1,7 @@
 {
   "name": "dsh-aura",
   "description": "Aura 通用展示层插件：对话流内嵌组件（aura_render）+ 会话右侧面板（aura_panel），10 种视觉组件，支持 HTML 富文档、圈选提问、骨架屏与出场动画",
-  "version": "0.8.9",
+  "version": "0.8.10",
   "private": false,
   "type": "module",
   "main": "host/tool.js",
