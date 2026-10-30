@@ -161,7 +161,7 @@ export function apply(ctx) {
     // 由 DSH 快捷键系统注册，用户可在「设置 → 快捷键」里改键
     try {
       const disposeShortcut = ctx.shortcuts.register({
-        id: 'aura-selection',
+        id: 'aura.selection',
         label: () => 'Aura 圈选提问',
         aliases: ['aura-select', 'selection-ask'],
         // ShortcutProfile = `${runtime}:${platform}`，platform 取 macos|windows|linux。

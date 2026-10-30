@@ -186399,7 +186399,7 @@ function apply(ctx) {
 		} catch {}
 		try {
 			const disposeShortcut = ctx.shortcuts.register({
-				id: "aura-selection",
+				id: "aura.selection",
 				label: () => "Aura 圈选提问",
 				aliases: ["aura-select", "selection-ask"],
 				defaults: {
