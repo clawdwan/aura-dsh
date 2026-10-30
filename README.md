@@ -162,6 +162,9 @@ dsh plugin --profile web add /path/to/aura-dsh
 4. 选择动作后，Aura 构造上下文请求并交给 Agent。
 5. 「整理推送」会把卡片推送到侧边栏；侧边栏关闭时会自动展开（生成期间显示骨架卡）。
 
+> **Linux 用户注意**：快捷键默认未绑定（DSH 对 Linux 的快捷键组合校验较严），请在
+> 「设置 → 快捷键」中手动把「Aura 圈选提问」绑定到 `Ctrl+Alt+S` 或你习惯的组合。
+
 ## 开发者文档
 
 Aura 是构建在 DeepSeek Harness 之上的交互与呈现层。它增强现有的 Agent 使用体验，而不是替代底层 Agent 运行时。
@@ -209,6 +212,8 @@ npm run test:registry # 组件 registry schema 测试
 ```
 
 Aura 以 DSH 插件 bundle 形式安装（见 `cordis.patch.yml`）；`@deepseek-ai/*` 为宿主提供的 peerDependencies。
+
+> `react` / `react-dom` 由 DSH 宿主提供（隐式依赖，不在插件 dependencies 中）；pnpm 可能提示 peer warning，属预期行为。
 
 具体实现请以源代码和对应技术文档为准。
 

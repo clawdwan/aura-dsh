@@ -163,6 +163,8 @@ Once Aura is installed:
 4. Choose an action; Aura builds a contextual request and sends it to the agent.
 5. "Curate & Push" sends cards to the sidebar, which auto-opens when closed (a skeleton card is shown while the agent generates).
 
+> **Linux users**: the shortcut is not bound by default (DSH validates Linux shortcut combinations strictly). Bind "Aura selection" manually under Settings → Shortcuts.
+
 ## For Developers
 
 Aura is an interaction and presentation layer built for DeepSeek Harness. It extends the existing agent experience rather than replacing the underlying agent runtime.
@@ -210,6 +212,8 @@ npm run test:registry # registry schema test
 ```
 
 Aura is installed as a DSH plugin bundle (see `cordis.patch.yml`); `@deepseek-ai/*` are peerDependencies provided by the host.
+
+> `react` / `react-dom` are provided by the DSH host (implicit dependencies, not in this plugin's dependencies); a pnpm peer warning is expected.
 
 For implementation details, refer to the source code and the relevant technical documentation.
 
