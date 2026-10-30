@@ -124,13 +124,11 @@ Aura runs within DeepSeek Harness (DSH) and relies on its host environment and a
 
 ### Installation
 
-### Installation
-
 **Version requirements**
 
 | Dependency | Requirement |
 | --- | --- |
-| DeepSeek Harness | `>=0.2.0 <0.3.0`（0.2.0 recommended; older versions degrade selection/sidebar behavior） |
+| DeepSeek Harness | `>=0.2.0 <0.3.0` (0.2.0 recommended; older versions degrade selection/sidebar behavior) |
 | Node.js | ≥ 22 |
 
 ```bash
@@ -142,16 +140,6 @@ dsh plugin --profile web add /path/to/aura-dsh
 ```
 
 Restart `dsh web` after installation. Run `npm run check` first to verify host compatibility.
-
-### Quick Start
-
-Once Aura is installed:
-
-1. Open a conversation in DeepSeek Harness.
-2. Select a piece of content and open the radial menu.
-3. Choose an available contextual action.
-4. Ask the agent to organize useful content and push it to the sidebar.
-5. Manage or export the resulting cards as needed.
 
 ### Quick Start
 
@@ -177,17 +165,9 @@ Its capabilities span three areas:
 
 ### Rendering Components
 
-Aura supports a collection of structured visual components for agent-generated content.
-
-### Rendering Components
-
 Aura supports 10 structured components: `metric_card`, `comparison_table`, `step_bar`, `insight_cards`, `article_list`, `trend_chart`, `graph`, `data_tree`, `timeline`, `html`.
 
 See [docs/COMPONENTS.md](docs/COMPONENTS.md) for data schemas and usage rules.
-
-### Sidebar and Card Lifecycle
-
-The sidebar provides a single main tab for organizing and managing pushed cards and rich documents.
 
 ### Sidebar and Card Lifecycle
 
@@ -253,9 +233,7 @@ Contributions, feedback, and ideas are welcome — open an issue or a pull reque
 
 ## License
 
-## License
-
-MIT © clawdwan. See [LICENSE](LICENSE).
+Apache-2.0 © clawdwan. See [LICENSE](LICENSE).
 
 ---
 

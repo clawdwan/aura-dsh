@@ -123,8 +123,6 @@ Aura 运行在 DeepSeek Harness（DSH）中，依赖宿主环境及其 Agent 能
 
 ### 安装
 
-### 安装
-
 **版本要求**
 
 | 依赖 | 要求 |
@@ -141,16 +139,6 @@ dsh plugin --profile web add /path/to/aura-dsh
 ```
 
 重启 `dsh web` 后生效。安装前可运行 `npm run check` 自检与宿主兼容性。
-
-### 快速上手
-
-安装 Aura 后：
-
-1. 在 DeepSeek Harness 中打开一个对话。
-2. 圈选一段内容，打开环形菜单。
-3. 选择可用的上下文动作。
-4. 让 Agent 整理有价值的内容并推送到侧边栏。
-5. 根据需要管理卡片或导出内容。
 
 ### 快速上手
 
@@ -176,17 +164,9 @@ Aura 是构建在 DeepSeek Harness 之上的交互与呈现层。它增强现有
 
 ### 可视化组件
 
-Aura 支持一组用于呈现 Agent 生成内容的结构化可视化组件。
-
-### 可视化组件
-
 Aura 支持 10 种结构化组件：`metric_card`、`comparison_table`、`step_bar`、`insight_cards`、`article_list`、`trend_chart`、`graph`、`data_tree`、`timeline`、`html`。
 
 数据结构与使用规则见 [docs/COMPONENTS.md](docs/COMPONENTS.md)。
-
-### 侧边栏与卡片生命周期
-
-侧边栏使用单一主 Tab，集中管理推送的卡片和富文档。
 
 ### 侧边栏与卡片生命周期
 
@@ -252,9 +232,7 @@ Aura 当前是一个运行于 DeepSeek Harness 的插件。
 
 ## 许可证
 
-## 许可证
-
-MIT © clawdwan。详见 [LICENSE](LICENSE)。
+Apache-2.0 © clawdwan。详见 [LICENSE](LICENSE)。
 
 ---
 
