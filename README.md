@@ -12,6 +12,8 @@
 >
 > **Less typing. More doing.**
 
+https://github.com/user-attachments/assets/b8d96675-a190-4104-9f22-a8440c002603
+
 Aura 希望探索一种更直接的人与 Agent 协作方式——不再局限于输入提示词、阅读文字回复。
 
 圈选内容，直接表达意图；让 Agent 用结构化、可视化或富文档的形式呈现结果；把对话中真正有价值的信息沉淀为可复用的工作成果。
