@@ -130,9 +130,21 @@ Aura 运行在 DeepSeek Harness（DSH）中，依赖宿主环境及其 Agent 能
 | DeepSeek Harness | `>=0.2.0 <0.3.0`（推荐 0.2.0；更低版本会降级圈选/侧边栏行为） |
 | Node.js | ≥ 22 |
 
+**安装方式一：桌面版（推荐，无需终端）**
+
+1. 打开 DeepSeek Harness → 侧边栏 **插件**
+2. 右上角 **添加插件**
+3. 输入 `github:clawdwan/aura-dsh#v0.8.10`（或本地目录路径）
+4. 安装完成页点 **立即启用**（若关闭，可在「已安装插件」中再打开开关）
+5. **完全退出并重开 DeepSeek Harness**（桌面端无热加载）
+
+> 注意：桌面版运行的是 `desktop` profile。**不要**用全局 `dsh plugin --profile desktop` 管理它（会报 "managed exclusively by the Electron application"），桌面端请走 app 内的「插件」页。
+
+**安装方式二：独立 Web 版（需要 CLI）**
+
 ```bash
 # 从 GitHub（钉版本更稳）
-dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.9
+dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.10
 
 # 从源码
 dsh plugin --profile web add /path/to/aura-dsh

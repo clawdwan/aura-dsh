@@ -12,7 +12,7 @@
   },
   "files": [
     "host",
-    "client/dist",
+    "client/dist/client.js",
     "cordis.patch.yml",
     "README.md"
   ],
@@ -51,10 +51,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tsdown": "^0.22.0",
-    "typescript": "^5.4.0"
-  },
-  "license": "Apache-2.0",
-  "dependencies": {
+    "typescript": "^5.4.0",
     "@dagrejs/dagre": "^3.1.1",
     "@tsdown/css": "^0.22.14",
     "@xyflow/react": "^12.12.0",
@@ -62,6 +59,8 @@
     "echarts": "^6.1.0",
     "modern-screenshot": "^4.7.0"
   },
+  "license": "Apache-2.0",
+  "dependencies": {},
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-tools": {
       "optional": false
@@ -93,5 +92,8 @@
     "echarts",
     "chart",
     "dashboard"
-  ]
+  ],
+  "engines": {
+    "dsh": ">=0.2.0 <0.3.0"
+  }
 }

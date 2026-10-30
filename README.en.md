@@ -131,9 +131,21 @@ Aura runs within DeepSeek Harness (DSH) and relies on its host environment and a
 | DeepSeek Harness | `>=0.2.0 <0.3.0` (0.2.0 recommended; older versions degrade selection/sidebar behavior) |
 | Node.js | ≥ 22 |
 
+**Option 1: Desktop app (recommended, no terminal)**
+
+1. Open DeepSeek Harness → sidebar **Plugins**
+2. Click **Add plugin** (top right)
+3. Enter `github:clawdwan/aura-dsh#v0.8.10` (or a local path)
+4. On the install page, click **Enable now** (or toggle it later under Installed Plugins)
+5. **Fully quit and reopen DeepSeek Harness** (no hot reload on desktop)
+
+> Note: the desktop app runs the `desktop` profile. Do **not** use the global `dsh plugin --profile desktop` (it reports "managed exclusively by the Electron application"); use the in-app Plugins page instead.
+
+**Option 2: Standalone web (CLI required)**
+
 ```bash
 # From GitHub (pinned version recommended)
-dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.9
+dsh plugin --profile web add github:clawdwan/aura-dsh#v0.8.10
 
 # From source
 dsh plugin --profile web add /path/to/aura-dsh
